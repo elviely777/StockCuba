@@ -139,6 +139,7 @@ fun ListaProductosScreen(
                     } else {
                         ListaProductosContenido(
                             productos = state.productos,
+                            categorias = state.categorias,
                             onDetalle = onDetalle,
                             onEditar = onEditar
                         )
@@ -293,6 +294,7 @@ fun FiltrosBarra(
 @Composable
 fun ListaProductosContenido(
     productos: List<Producto>,
+    categorias: List<Categoria>,
     onDetalle: (String) -> Unit,
     onEditar: (String) -> Unit
 ) {
@@ -306,6 +308,7 @@ fun ListaProductosContenido(
         items(productos) { producto ->
             ProductoCard(
                 producto = producto,
+                categorias = categorias,
                 onClick = { onDetalle(producto.id) },
                 onLongClick = { onEditar(producto.id) }
             )
@@ -317,6 +320,7 @@ fun ListaProductosContenido(
 @Composable
 fun ProductoCard(
     producto: Producto,
+    categorias: List<Categoria>,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
@@ -366,7 +370,7 @@ fun ProductoCard(
                         )
                     }
                     Text(
-                        text = "Categoría: ${producto.categoriaId}", // TODO: resolver nombre real
+                        text = "Categoría: ${categorias.find { it.id == producto.categoriaId }?.nombre ?: "Desconocida"}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
