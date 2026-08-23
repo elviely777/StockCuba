@@ -15,6 +15,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -33,6 +35,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -47,6 +50,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
+import cu.stockcuba.app.domain.model.Categoria
 import cu.stockcuba.app.domain.model.UnidadMedida
 import cu.stockcuba.app.presentation.theme.Shape
 import cu.stockcuba.app.presentation.theme.StockCubaColors
@@ -103,18 +107,90 @@ fun FormularioProductoScreen(
 @Composable
 fun FormularioContenido(state: FormularioProductoUiState.Editing, viewModel: FormularioProductoViewModel, padding: PaddingValues) {
     LazyColumn(modifier = Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(StockCubaSpacing.Md), verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
-        item { TextField(value = state.nombre, onValueChange = { viewModel.updateField("nombre", it) }, label = { Text("Nombre *") }, modifier = Modifier.fillMaxWidth()) }
+        item { TextField(value = state.nombre, onValueChange = { viewModel.updateField("nombre", it) }, label = { Text("Nombre *") }, modifier = Modifier.fillMaxWidth(), isError = state.errors["nombre"] != null, supportingText = { state.errors["nombre"]?.let { Text(it, color = MaterialTheme.colorScheme.error) } }) }
         item { TextField(value = state.descripcion, onValueChange = { viewModel.updateField("descripcion", it) }, label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth()) }
+        
+        // Unidad de Medida
+        item {
+            Text("Unidad de Medida", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            SelectorUnidadMedida(unidadActual = state.unidadMedida, onChange = { viewModel.updateUnidadMedida(it) })
+        }
+        
+        // Categoría
+        item {
+            Text("Categoría", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            SelectorCategoria(categorias = state.categorias, categoriaSeleccionada = state.categoriaId, onChange = { viewModel.updateCategoria(it) }, error = state.errors["categoria"])
+        }
+        
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
-                TextField(value = state.precioVenta, onValueChange = { viewModel.updateField("precioVenta", it) }, label = { Text("Precio") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-                TextField(value = state.costoUnitario, onValueChange = { viewModel.updateField("costoUnitario", it) }, label = { Text("Costo") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                TextField(value = state.precioVenta, onValueChange = { viewModel.updateField("precioVenta", it) }, label = { Text("Precio *") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), isError = state.errors["precioVenta"] != null, supportingText = { state.errors["precioVenta"]?.let { Text(it, color = MaterialTheme.colorScheme.error) } })
+                TextField(value = state.costoUnitario, onValueChange = { viewModel.updateField("costoUnitario", it) }, label = { Text("Costo *") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), isError = state.errors["costoUnitario"] != null, supportingText = { state.errors["costoUnitario"]?.let { Text(it, color = MaterialTheme.colorScheme.error) } })
             }
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
-                TextField(value = state.stockInicial, onValueChange = { viewModel.updateField("stockInicial", it) }, label = { Text("Stock") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-                TextField(value = state.stockMinimo, onValueChange = { viewModel.updateField("stockMinimo", it) }, label = { Text("Mínimo") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                TextField(value = state.stockInicial, onValueChange = { viewModel.updateField("stockInicial", it) }, label = { Text("Stock Inicial *") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), isError = state.errors["stockInicial"] != null, supportingText = { state.errors["stockInicial"]?.let { Text(it, color = MaterialTheme.colorScheme.error) } })
+                TextField(value = state.stockMinimo, onValueChange = { viewModel.updateField("stockMinimo", it) }, label = { Text("Stock Mínimo *") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), isError = state.errors["stockMinimo"] != null, supportingText = { state.errors["stockMinimo"]?.let { Text(it, color = MaterialTheme.colorScheme.error) } })
+            }
+        }
+    }
+}
+
+@Composable
+fun SelectorUnidadMedida(unidadActual: UnidadMedida, onChange: (UnidadMedida) -> Unit) {
+    val expanded = remember { mutableStateOf(false) }
+    val unidades = UnidadMedida.values()
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Xs)) {
+        OutlinedButton(
+            onClick = { expanded.value = !expanded.value },
+            modifier = Modifier.fillMaxWidth(),
+            shape = Shape.Grande,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(text = unidadActual.name, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+                Icon(imageVector = if (expanded.value) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+            }
+        }
+        if (expanded.value) {
+            DropdownMenu(expanded = expanded.value, onDismissRequest = { expanded.value = false }) {
+                unidades.forEach { unidad ->
+                    DropdownMenuItem(text = { Text(unidad.name) }, onClick = { onChange(unidad); expanded.value = false })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SelectorCategoria(categorias: List<Categoria>, categoriaSeleccionada: String?, onChange: (String?) -> Unit, error: String?) {
+    val expanded = remember { mutableStateOf(false) }
+    val nombreActual = categorias.find { it.id == categoriaSeleccionada }?.nombre ?: "Seleccionar..."
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Xs)) {
+        OutlinedButton(
+            onClick = { expanded.value = !expanded.value },
+            modifier = Modifier.fillMaxWidth(),
+            shape = Shape.Grande,
+            border = BorderStroke(1.dp, if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outlineVariant),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = if (error != null) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceContainerHighest
+            )
+        ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(text = nombreActual, style = MaterialTheme.typography.bodyLarge, color = if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
+                Icon(imageVector = if (expanded.value) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, contentDescription = null, tint = if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+            }
+        }
+        if (error != null) {
+            Text(error, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+        }
+        if (expanded.value) {
+            DropdownMenu(expanded = expanded.value, onDismissRequest = { expanded.value = false }) {
+                DropdownMenuItem(text = { Text("Sin categoría") }, onClick = { onChange(null); expanded.value = false })
+                categorias.forEach { cat ->
+                    DropdownMenuItem(text = { Text(cat.nombre) }, onClick = { onChange(cat.id); expanded.value = false })
+                }
             }
         }
     }
