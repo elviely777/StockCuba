@@ -7,7 +7,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
-// import com.jakewharton.processphoenix.ProcessPhoenix
+import com.jakewharton.processphoenix.ProcessPhoenix
 import cu.stockcuba.app.domain.model.DomainError
 import cu.stockcuba.app.domain.model.Result
 import kotlinx.coroutines.Dispatchers
@@ -161,8 +161,8 @@ class BackupRepositoryImpl @Inject constructor(
             // Clean up temp file
             tempFile.delete()
 
-            // Note: App restart needed for clean Room reinitialization
-            // ProcessPhoenix.triggerRebirth(context) - manual restart required
+            // Auto-restart app for clean Room reinitialization
+            ProcessPhoenix.triggerRebirth(context)
             
             Result.Success(Unit)
         } catch (e: Exception) {

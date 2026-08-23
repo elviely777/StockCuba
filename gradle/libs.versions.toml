@@ -55,6 +55,9 @@ datastore = "1.1.1"
 # Biometric
 biometric = "1.2.0-alpha04"
 
+# ProcessPhoenix (app restart)
+processPhoenix = "2.2.0"
+
 # Testing
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -121,6 +124,9 @@ datastore-core = { group = "androidx.datastore", name = "datastore-core", versio
 
 # Biometric
 biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
+
+# ProcessPhoenix
+process-phoenix = { group = "com.jakewharton", name = "process-phoenix", version.ref = "processPhoenix" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }

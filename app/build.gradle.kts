@@ -187,6 +187,9 @@ dependencies {
     // Biometric
     implementation(libs.biometric)
 
+    // ProcessPhoenix (app restart after backup import)
+    implementation(libs.process.phoenix)
+
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.mockito)
