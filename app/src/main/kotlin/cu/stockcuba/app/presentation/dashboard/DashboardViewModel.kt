@@ -23,6 +23,7 @@ import javax.inject.Inject
 class DashboardViewModel @Inject constructor(
     private val obtenerVentasDeHoyUseCase: ObtenerVentasDeHoyUseCase,
     private val obtenerResumenDelDiaUseCase: ObtenerResumenDelDiaUseCase,
+    private val ventaRepository: cu.stockcuba.app.domain.repository.VentaRepository,
     private val obtenerProductosBajoStockUseCase: ObtenerProductosBajoStockUseCase
 ) : ViewModel() {
 
@@ -35,14 +36,26 @@ class DashboardViewModel @Inject constructor(
     }.flatMapLatest { (ventasHoy, productosBajoStock) ->
         flow {
             val resumenResult = obtenerResumenDelDiaUseCase()
+            val ayerResult = ventaRepository.getResumenAyer()
+            
             when (resumenResult) {
                 is cu.stockcuba.app.domain.model.Result.Success -> {
                     val resumen = resumenResult.value
+                    val tendenciaTotal = calcularTendencia(
+                        actual = resumen.totalVendido,
+                        anterior = (ayerResult as? cu.stockcuba.app.domain.model.Result.Success)?.value?.totalVendido ?: 0.0
+                    )
+                    val tendenciaVentas = calcularTendencia(
+                        actual = ventasHoy.size.toDouble(),
+                        anterior = (ayerResult as? cu.stockcuba.app.domain.model.Result.Success)?.value?.cantidadVentas?.toDouble() ?: 0.0
+                    )
                     emit(DashboardUiState.Success(
                         totalVendidoHoy = resumen.totalVendido,
                         cantidadVentasHoy = ventasHoy.size,
                         productoMasVendido = resumen.productoMasVendido,
                         listaProductosBajoStock = productosBajoStock,
+                        tendenciaTotalVendido = tendenciaTotal,
+                        tendenciaCantidadVentas = tendenciaVentas,
                         isLoading = false
                     ))
                 }
@@ -57,6 +70,19 @@ class DashboardViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = DashboardUiState.Loading
         )
+
+    private fun calcularTendencia(actual: Double, anterior: Double): String {
+        return when {
+            anterior == 0.0 && actual == 0.0 -> "—"
+            anterior == 0.0 -> "+∞"
+            else -> {
+                val cambio = ((actual - anterior) / anterior) * 100
+                if (cambio > 0) "+${"%.1f".format(cambio)}%"
+                else if (cambio < 0) "%.1f".format(cambio) + "%"
+                else "0%"
+            }
+        }
+    }
 
     fun refresh() {
         // Los flows se actualizan automáticamente al cambiar los datos en Room

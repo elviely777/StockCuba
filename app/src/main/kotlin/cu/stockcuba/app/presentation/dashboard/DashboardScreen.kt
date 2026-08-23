@@ -113,16 +113,16 @@ fun DashboardScreen(
                             value = state.totalVendidoHoy.formatoCUP(),
                             icon = "💰",
                             color = StockCubaColors.VerdeExito,
-                            trend = "+12%",
-                            trendPositive = true
+                            trend = state.tendenciaTotalVendido,
+                            trendPositive = !state.tendenciaTotalVendido.startsWith("-") && state.tendenciaTotalVendido != "—"
                         ),
                         MetricData(
                             title = "Ventas Hoy",
                             value = state.cantidadVentasHoy.formatoCantidad(),
                             icon = "🧾",
                             color = StockCubaColors.IndigoMarca,
-                            trend = "+3 vs ayer",
-                            trendPositive = true
+                            trend = state.tendenciaCantidadVentas,
+                            trendPositive = !state.tendenciaCantidadVentas.startsWith("-") && state.tendenciaCantidadVentas != "—"
                         ),
                         MetricData(
                             title = "Ticket Promedio",

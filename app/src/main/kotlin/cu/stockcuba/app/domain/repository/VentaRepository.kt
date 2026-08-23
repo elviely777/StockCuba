@@ -27,6 +27,8 @@ interface VentaRepository {
 
     suspend fun getResumenDelDia(fecha: Long): Result<ResumenDia>
 
+    suspend fun getResumenAyer(): Result<ResumenDia>
+
     data class ResumenDia(
         val fecha: Long,
         val totalVendido: Double,

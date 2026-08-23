@@ -93,6 +93,14 @@ class VentaRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getResumenAyer(): Result<VentaRepository.ResumenDia> {
+        val ayer = java.time.LocalDate.now().minusDays(1)
+            .atStartOfDay(java.time.ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+        return getResumenDelDia(ayer)
+    }
+
     override suspend fun getResumenDelDia(fecha: Long): Result<VentaRepository.ResumenDia> {
         return try {
             val inicioDia = java.time.Instant.ofEpochMilli(fecha)

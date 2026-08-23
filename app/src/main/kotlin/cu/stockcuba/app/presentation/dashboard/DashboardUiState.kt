@@ -13,6 +13,8 @@ sealed interface DashboardUiState {
         val cantidadVentasHoy: Int,
         val productoMasVendido: VentaRepository.ProductoMasVendido?,
         val listaProductosBajoStock: List<Producto>,
+        val tendenciaTotalVendido: String = "—",
+        val tendenciaCantidadVentas: String = "—",
         val isLoading: Boolean = false
     ) : DashboardUiState
 
