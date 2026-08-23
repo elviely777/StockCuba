@@ -27,8 +27,11 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.RemoveRedEye
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
@@ -339,7 +342,9 @@ fun RowScope.ResumenChip(label: String, count: String, color: Color, bg: Color) 
 fun ProductoInventarioRow(
     productoConStock: ProductoConStock,
     onAjuste: () -> Unit,
-    onHistorial: () -> Unit
+    onHistorial: () -> Unit,
+    onEditar: ((Producto) -> Unit)? = null,
+    onDetalle: ((Producto) -> Unit)? = null
 ) {
     val producto = productoConStock.producto
     val status = productoConStock.stockStatus
@@ -347,6 +352,8 @@ fun ProductoInventarioRow(
     val color = productoConStock.stockStatusColor()
     val bg = productoConStock.stockStatusBackground()
     val label = productoConStock.stockStatusLabel()
+
+    var showMenu by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -360,7 +367,7 @@ fun ProductoInventarioRow(
                 .padding(StockCubaSpacing.Md),
             verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Sm)
         ) {
-            // Fila superior: Nombre + Badge + Menú
+            // Fila superior: Nombre + Badge + Menú contextual
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -371,7 +378,7 @@ fun ProductoInventarioRow(
                     Text("Cat: ${producto.categoriaId}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
 
-                // Badge estado + menú
+                // Badge estado + menú contextual
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Xs),
                     verticalAlignment = Alignment.CenterVertically
@@ -383,8 +390,45 @@ fun ProductoInventarioRow(
                     ) {
                         Text(label, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = color)
                     }
-                    IconButton(onClick = { /* TODO: menú contextual */ }) {
-                        Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Más", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Más opciones", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+
+                    // Menú contextual (DropdownMenu)
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            onClick = { onAjuste(); showMenu = false },
+                            text = { Text("Ajustar stock", style = MaterialTheme.typography.bodyMedium) },
+                            leadingIcon = { Icon(imageVector = Icons.Default.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp)) }
+                        )
+                        DropdownMenuItem(
+                            onClick = { onHistorial(); showMenu = false },
+                            text = { Text("Ver historial", style = MaterialTheme.typography.bodyMedium) },
+                            leadingIcon = { Icon(imageVector = Icons.Default.History, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp)) }
+                        )
+                        if (onDetalle != null) {
+                            DropdownMenuItem(
+                                onClick = { onDetalle(producto); showMenu = false },
+                                text = { Text("Ver detalle", style = MaterialTheme.typography.bodyMedium) },
+                                leadingIcon = { Icon(imageVector = Icons.Default.RemoveRedEye, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp)) }
+                            )
+                        }
+                        if (onEditar != null) {
+                            DropdownMenuItem(
+                                onClick = { onEditar(producto); showMenu = false },
+                                text = { Text("Editar producto", style = MaterialTheme.typography.bodyMedium) },
+                                leadingIcon = { Icon(imageVector = Icons.Default.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp)) }
+                            )
+                        }
+                        androidx.compose.material3.HorizontalDivider()
+                        DropdownMenuItem(
+                            onClick = { showMenu = false },
+                            text = { Text("Cancelar", style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.error)) },
+                            leadingIcon = { Icon(imageVector = Icons.Default.Close, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp)) }
+                        )
                     }
                 }
             }
