@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Inventory Screen - StockCuba</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error": "#690005",
+                        "outline": "#909097",
+                        "error": "#ffb4ab",
+                        "on-secondary": "#003731",
+                        "primary": "#bec6e0",
+                        "on-primary-fixed": "#131b2e",
+                        "surface-container": "#122131",
+                        "secondary-container": "#03c6b2",
+                        "surface-bright": "#2c3a4c",
+                        "background": "#051424",
+                        "tertiary-container": "#38000d",
+                        "on-secondary-fixed-variant": "#005047",
+                        "on-primary-container": "#798098",
+                        "on-secondary-container": "#004d44",
+                        "secondary-fixed-dim": "#3cddc7",
+                        "on-surface": "#d4e4fa",
+                        "surface-dim": "#051424",
+                        "on-tertiary-container": "#d65569",
+                        "surface": "#051424",
+                        "on-tertiary-fixed": "#400010",
+                        "inverse-surface": "#d4e4fa",
+                        "surface-container-high": "#1c2b3c",
+                        "on-tertiary-fixed-variant": "#891933",
+                        "inverse-on-surface": "#233143",
+                        "primary-fixed-dim": "#bec6e0",
+                        "tertiary-fixed-dim": "#ffb2b9",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "tertiary-fixed": "#ffdadc",
+                        "surface-variant": "#273647",
+                        "surface-container-low": "#0d1c2d",
+                        "surface-container-lowest": "#010f1f",
+                        "surface-tint": "#bec6e0",
+                        "on-background": "#d4e4fa",
+                        "on-error-container": "#ffdad6",
+                        "error-container": "#93000a",
+                        "primary-container": "#0f172a",
+                        "surface-container-highest": "#273647",
+                        "inverse-primary": "#565e74",
+                        "secondary-fixed": "#62fae3",
+                        "primary-fixed": "#dae2fd",
+                        "on-tertiary": "#67001f",
+                        "on-secondary-fixed": "#00201c",
+                        "secondary": "#44e2cd",
+                        "on-surface-variant": "#c6c6cd",
+                        "outline-variant": "#45464d",
+                        "on-primary": "#283044",
+                        "tertiary": "#ffb2b9"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "xs": "8px",
+                        "margin-desktop": "40px",
+                        "md": "16px",
+                        "xl": "32px",
+                        "lg": "24px",
+                        "sm": "12px",
+                        "base": "4px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "display": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "500" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+        }
+        .text-glow-teal {
+            text-shadow: 0 0 10px rgba(3, 198, 178, 0.5);
+        }
+        .text-glow-coral {
+            text-shadow: 0 0 10px rgba(214, 85, 105, 0.5);
+        }
+        .glow-shadow-teal {
+            box-shadow: 0 8px 24px -4px rgba(3, 198, 178, 0.1);
+        }
+        .glow-shadow-coral {
+            box-shadow: 0 8px 24px -4px rgba(214, 85, 105, 0.1);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen pb-[80px]">
+<!-- TopAppBar -->
+<header class="docked full-width top-0 bg-surface dark:bg-surface flex justify-between items-center w-full px-margin-mobile py-sm md:hidden z-40 sticky">
+<div class="flex items-center gap-xs">
+<img alt="User profile photo" class="w-10 h-10 rounded-full object-cover border border-outline-variant/30" data-alt="A professional headshot of a business manager, clear lighting, neutral background, corporate modern aesthetic, dark mode compatible, 50-100 words detailed prompt" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCeWTuqbubEvWKZtm-B7ZnQwBwMsvXg2fkG_0oCpfBlu-3CrUxmMtH_BvQZuY_AEKlOfanfCoyHHmpgTky9E1-__h0QSYw0ur-hXJWx6UjklIBcbqf2fF1Sm9QHfomMBXpj8oIowk6S6A5fecmcTzHYbrB4d_-S5VhE7W4hHOktd2OI2Z3Wn1UNCB30ZULAgwM8miCJh4ZCtHGHv6Yr1WWnDVLL8-_CoI4j7PrFG1tVkDDkj3UXcwx1nQ"/>
+<h1 class="text-headline-md-mobile font-headline-md-mobile font-extrabold text-on-surface dark:text-on-surface">StockCuba</h1>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-variant/50 transition-colors text-primary dark:text-primary">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</header>
+<!-- Desktop Nav (Hidden on Mobile) -->
+<header class="hidden md:flex flex-col md:flex-row justify-between items-center px-margin-desktop py-md bg-surface border-b border-surface-variant/30 sticky top-0 z-40">
+<div class="flex items-center gap-md">
+<h1 class="text-headline-lg font-headline-lg font-extrabold text-on-surface tracking-tight">StockCuba</h1>
+</div>
+<nav class="flex gap-lg items-center">
+<a class="flex items-center gap-xs text-on-surface-variant hover:bg-surface-variant/50 px-sm py-xs rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-lg">home</span>
+<span class="font-label-md text-label-md">Home</span>
+</a>
+<a class="flex items-center gap-xs text-on-surface-variant hover:bg-surface-variant/50 px-sm py-xs rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-lg">inventory_2</span>
+<span class="font-label-md text-label-md">Products</span>
+</a>
+<a class="flex items-center gap-xs text-on-surface-variant hover:bg-surface-variant/50 px-sm py-xs rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-lg">add_shopping_cart</span>
+<span class="font-label-md text-label-md">Sale</span>
+</a>
+<a class="flex items-center gap-xs text-primary font-bold bg-surface-variant/30 px-sm py-xs rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">bar_chart</span>
+<span class="font-label-md text-label-md">Inventory</span>
+</a>
+<a class="flex items-center gap-xs text-on-surface-variant hover:bg-surface-variant/50 px-sm py-xs rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined text-lg">history</span>
+<span class="font-label-md text-label-md">History</span>
+</a>
+</nav>
+<div class="flex items-center gap-md">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-variant/50 transition-colors text-primary">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<img alt="User profile photo" class="w-10 h-10 rounded-full object-cover border border-outline-variant/30" data-alt="A professional headshot of a business manager, clear lighting, neutral background, corporate modern aesthetic, dark mode compatible, 50-100 words detailed prompt" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHIzMONaIncTDYsh29C_A1UDkdOb3FRzk7vx7ibTUY88L1D3CVbFOSk3PQ7eLGmaOK3j_BMCMO9cvKwvQnhAJFIkPgfPUpSh7GZWjoyroZtwtgoZ5q9Ukjse99gj4kgIVrLgwunK3vmSPOL1eHaQ0rzsnOL2zUrslFhpA6iViULLW2-wNbQlSptqyvonC9jiFG3Lar9UISoj6raLa02hZkb8v95DjRBqkq0iyT0df_XpyCOvxHL9D55Q"/>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="px-margin-mobile md:px-margin-desktop py-lg max-w-7xl mx-auto space-y-xl">
+<!-- Header & Search -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-md">
+<div>
+<h2 class="text-headline-md font-headline-md text-on-surface mb-base">Inventory Status</h2>
+<p class="text-body-md font-body-md text-on-surface-variant">Real-time stock monitoring and alerts.</p>
+</div>
+<div class="relative w-full md:w-96">
+<div class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">search</span>
+</div>
+<input class="w-full bg-surface-container-high border-none rounded-lg py-sm pl-xl pr-sm text-on-surface placeholder:text-outline-variant focus:ring-2 focus:ring-secondary focus:outline-none transition-shadow text-body-md font-body-md glass-panel" placeholder="Search products, SKUs..." type="text"/>
+</div>
+</div>
+<!-- Summary Cards (Bento Grid Style) -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-md">
+<div class="bg-surface-container-high rounded-xl p-md border border-outline-variant/30 glow-shadow-teal">
+<div class="flex justify-between items-start mb-sm">
+<span class="text-label-md font-label-md text-on-surface-variant">Total Items</span>
+<span class="material-symbols-outlined text-secondary">inventory_2</span>
+</div>
+<div class="text-headline-md font-headline-md text-on-surface">1,248</div>
+</div>
+<div class="bg-surface-container-high rounded-xl p-md border border-outline-variant/30 glow-shadow-coral">
+<div class="flex justify-between items-start mb-sm">
+<span class="text-label-md font-label-md text-on-surface-variant">Low Stock</span>
+<span class="material-symbols-outlined text-tertiary">warning</span>
+</div>
+<div class="text-headline-md font-headline-md text-tertiary text-glow-coral">12</div>
+</div>
+<div class="bg-surface-container-high rounded-xl p-md border border-outline-variant/30">
+<div class="flex justify-between items-start mb-sm">
+<span class="text-label-md font-label-md text-on-surface-variant">Out of Stock</span>
+<span class="material-symbols-outlined text-error">error</span>
+</div>
+<div class="text-headline-md font-headline-md text-error">3</div>
+</div>
+<div class="bg-surface-container-high rounded-xl p-md border border-outline-variant/30 glow-shadow-teal">
+<div class="flex justify-between items-start mb-sm">
+<span class="text-label-md font-label-md text-on-surface-variant">Healthy Stock</span>
+<span class="material-symbols-outlined text-secondary">check_circle</span>
+</div>
+<div class="text-headline-md font-headline-md text-secondary">1,233</div>
+</div>
+</div>
+<!-- Detailed Inventory List (Glassmorphic Cards) -->
+<div class="space-y-sm">
+<!-- Healthy Item -->
+<div class="bg-surface-container-high rounded-xl p-md flex flex-col md:flex-row md:items-center justify-between gap-md border border-outline-variant/30">
+<div class="flex items-center gap-md w-full md:w-1/3">
+<div class="w-12 h-12 rounded-lg bg-surface-variant flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-surface-variant">liquor</span>
+</div>
+<div>
+<h3 class="text-body-lg font-body-lg text-on-surface font-semibold">Havana Club 7 Años</h3>
+<p class="text-label-sm font-label-sm text-outline">SKU: HC7-750ML</p>
+</div>
+</div>
+<div class="w-full md:w-1/3 flex flex-col gap-xs">
+<div class="flex justify-between text-label-sm font-label-sm">
+<span class="text-on-surface-variant">Stock Level</span>
+<span class="text-secondary font-bold">145 / 50</span>
+</div>
+<div class="w-full bg-surface-variant rounded-full h-2">
+<div class="bg-secondary h-2 rounded-full" style="width: 100%"></div>
+</div>
+</div>
+<div class="flex items-center justify-between w-full md:w-1/4">
+<span class="px-sm py-xs rounded-full bg-secondary-container/20 text-secondary text-label-sm font-label-sm border border-secondary/30">Healthy</span>
+<button class="p-xs rounded hover:bg-surface-variant/50 text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Near Minimum Item -->
+<div class="bg-surface-container-high rounded-xl p-md flex flex-col md:flex-row md:items-center justify-between gap-md border border-outline-variant/30 glow-shadow-coral relative overflow-hidden">
+<!-- Subtle warning glow gradient -->
+<div class="absolute top-0 right-0 w-32 h-32 bg-tertiary-container/20 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none"></div>
+<div class="flex items-center gap-md w-full md:w-1/3 z-10">
+<div class="w-12 h-12 rounded-lg bg-surface-variant flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-surface-variant">local_cafe</span>
+</div>
+<div>
+<h3 class="text-body-lg font-body-lg text-on-surface font-semibold">Cubita Coffee 250g</h3>
+<p class="text-label-sm font-label-sm text-outline">SKU: CUB-250-GR</p>
+</div>
+</div>
+<div class="w-full md:w-1/3 flex flex-col gap-xs z-10">
+<div class="flex justify-between text-label-sm font-label-sm">
+<span class="text-on-surface-variant">Stock Level</span>
+<span class="text-tertiary font-bold">25 / 30</span>
+</div>
+<div class="w-full bg-surface-variant rounded-full h-2">
+<div class="bg-tertiary h-2 rounded-full" style="width: 25%"></div>
+</div>
+</div>
+<div class="flex items-center justify-between w-full md:w-1/4 z-10">
+<span class="px-sm py-xs rounded-full bg-tertiary-container/20 text-tertiary text-label-sm font-label-sm border border-tertiary/30">Low Stock</span>
+<button class="p-xs rounded hover:bg-surface-variant/50 text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Below Minimum Item -->
+<div class="bg-surface-container-high rounded-xl p-md flex flex-col md:flex-row md:items-center justify-between gap-md border border-error/50 bg-error-container/10 relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-r from-error/5 to-transparent pointer-events-none"></div>
+<div class="flex items-center gap-md w-full md:w-1/3 z-10">
+<div class="w-12 h-12 rounded-lg bg-surface-variant flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-surface-variant">smoking_rooms</span>
+</div>
+<div>
+<h3 class="text-body-lg font-body-lg text-on-surface font-semibold">Cohiba Siglo VI</h3>
+<p class="text-label-sm font-label-sm text-outline">SKU: COH-SVI-BX</p>
+</div>
+</div>
+<div class="w-full md:w-1/3 flex flex-col gap-xs z-10">
+<div class="flex justify-between text-label-sm font-label-sm">
+<span class="text-on-surface-variant">Stock Level</span>
+<span class="text-error font-bold">2 / 10</span>
+</div>
+<div class="w-full bg-surface-variant rounded-full h-2">
+<div class="bg-error h-2 rounded-full" style="width: 10%"></div>
+</div>
+</div>
+<div class="flex items-center justify-between w-full md:w-1/4 z-10">
+<span class="px-sm py-xs rounded-full bg-error-container/30 text-error text-label-sm font-label-sm border border-error/50">Critical</span>
+<button class="p-xs rounded hover:bg-surface-variant/50 text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Healthy Item -->
+<div class="bg-surface-container-high rounded-xl p-md flex flex-col md:flex-row md:items-center justify-between gap-md border border-outline-variant/30">
+<div class="flex items-center gap-md w-full md:w-1/3">
+<div class="w-12 h-12 rounded-lg bg-surface-variant flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-surface-variant">water_drop</span>
+</div>
+<div>
+<h3 class="text-body-lg font-body-lg text-on-surface font-semibold">Ciego Montero Agua</h3>
+<p class="text-label-sm font-label-sm text-outline">SKU: CMA-500ML</p>
+</div>
+</div>
+<div class="w-full md:w-1/3 flex flex-col gap-xs">
+<div class="flex justify-between text-label-sm font-label-sm">
+<span class="text-on-surface-variant">Stock Level</span>
+<span class="text-secondary font-bold">300 / 100</span>
+</div>
+<div class="w-full bg-surface-variant rounded-full h-2">
+<div class="bg-secondary h-2 rounded-full" style="width: 100%"></div>
+</div>
+</div>
+<div class="flex items-center justify-between w-full md:w-1/4">
+<span class="px-sm py-xs rounded-full bg-secondary-container/20 text-secondary text-label-sm font-label-sm border border-secondary/30">Healthy</span>
+<button class="p-xs rounded hover:bg-surface-variant/50 text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden docked full-width bottom-0 rounded-t-xl bg-surface-container/80 backdrop-blur-md border-t border-outline-variant/30 shadow-lg fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 py-3 pb-safe">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-primary-container/20 p-2 rounded-xl transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">home</span>
+<span class="text-label-sm font-label-sm">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-primary-container/20 p-2 rounded-xl transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">inventory_2</span>
+<span class="text-label-sm font-label-sm">Products</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-primary-container/20 p-2 rounded-xl transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">add_shopping_cart</span>
+<span class="text-label-sm font-label-sm">Sale</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-4 py-1 scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">bar_chart</span>
+<span class="text-label-sm font-label-sm font-bold">Inventory</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-primary-container/20 p-2 rounded-xl transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">history</span>
+<span class="text-label-sm font-label-sm">History</span>
+</a>
+</nav>
+</body></html>

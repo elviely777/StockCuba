@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>StockCuba - Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error": "#690005",
+                        "outline": "#909097",
+                        "error": "#ffb4ab",
+                        "on-secondary": "#003731",
+                        "primary": "#bec6e0",
+                        "on-primary-fixed": "#131b2e",
+                        "surface-container": "#122131",
+                        "secondary-container": "#03c6b2",
+                        "surface-bright": "#2c3a4c",
+                        "background": "#051424",
+                        "tertiary-container": "#38000d",
+                        "on-secondary-fixed-variant": "#005047",
+                        "on-primary-container": "#798098",
+                        "on-secondary-container": "#004d44",
+                        "secondary-fixed-dim": "#3cddc7",
+                        "on-surface": "#d4e4fa",
+                        "surface-dim": "#051424",
+                        "on-tertiary-container": "#d65569",
+                        "surface": "#051424",
+                        "on-tertiary-fixed": "#400010",
+                        "inverse-surface": "#d4e4fa",
+                        "surface-container-high": "#1c2b3c",
+                        "on-tertiary-fixed-variant": "#891933",
+                        "inverse-on-surface": "#233143",
+                        "primary-fixed-dim": "#bec6e0",
+                        "tertiary-fixed-dim": "#ffb2b9",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "tertiary-fixed": "#ffdadc",
+                        "surface-variant": "#273647",
+                        "surface-container-low": "#0d1c2d",
+                        "surface-container-lowest": "#010f1f",
+                        "surface-tint": "#bec6e0",
+                        "on-background": "#d4e4fa",
+                        "on-error-container": "#ffdad6",
+                        "error-container": "#93000a",
+                        "primary-container": "#0f172a",
+                        "surface-container-highest": "#273647",
+                        "inverse-primary": "#565e74",
+                        "secondary-fixed": "#62fae3",
+                        "primary-fixed": "#dae2fd",
+                        "on-tertiary": "#67001f",
+                        "on-secondary-fixed": "#00201c",
+                        "secondary": "#44e2cd",
+                        "on-surface-variant": "#c6c6cd",
+                        "outline-variant": "#45464d",
+                        "on-primary": "#283044",
+                        "tertiary": "#ffb2b9"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "xs": "8px",
+                        "margin-desktop": "40px",
+                        "md": "16px",
+                        "xl": "32px",
+                        "lg": "24px",
+                        "sm": "12px",
+                        "base": "4px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "display": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "500" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-24 md:pb-8 flex flex-col font-body-md text-body-md selection:bg-secondary-container selection:text-on-secondary-container">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-margin-mobile py-sm bg-surface dark:bg-surface sticky top-0 z-40">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded-full bg-cover bg-center border border-outline-variant/30" data-alt="A close-up portrait of a professional Cuban business owner in a modern, dimly lit stockroom environment. The lighting is moody with cool blue and subtle teal highlights reflecting on the face. High resolution, hyper-realistic, conveying confidence and focus in a dark mode UI aesthetic." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDzrjcIjt8KYZwnyIQtDeOx87m1HjNUyyoQdNe5kxcdrRlCKULEHehWnlOP8fyXd3DzOM-XJ8KzSp57EGHxjeU2QX1WmsyMhEAfBPOKHc2hWveqjRFt29wc7TVstZhl6mCBsEvlacZMn2wqfBs82ppxJi_oBSrUsZyX5Af6VG_2WAvdxIbAdPP9tg9V_3utSsLhN6OF0mmg-okjASBFSyoqujSdtdLch3XavPspYk09bukLoO4ri5umhw')"></div>
+</div>
+<h1 class="text-headline-md-mobile font-headline-md-mobile font-extrabold text-on-surface dark:text-on-surface tracking-tight">StockCuba</h1>
+<button class="text-on-surface-variant hover:bg-surface-variant/50 p-2 rounded-full transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</header>
+<!-- Main Content -->
+<main class="flex-1 px-margin-mobile md:px-margin-desktop py-lg flex flex-col gap-lg max-w-5xl mx-auto w-full">
+<!-- Summary Section (Glassmorphic Card) -->
+<section class="bg-surface-container border border-outline-variant/30 rounded-xl p-lg relative overflow-hidden group">
+<div class="absolute -top-24 -right-24 w-64 h-64 bg-secondary-container/20 rounded-full blur-[60px] pointer-events-none transition-all duration-700 group-hover:bg-secondary-container/30"></div>
+<h2 class="text-label-md font-label-md text-on-surface-variant uppercase tracking-wider mb-xs">Resumen de hoy</h2>
+<div class="flex flex-col gap-base relative z-10">
+<div class="flex items-baseline gap-sm">
+<span class="text-display font-display text-secondary tracking-tighter">$2,845.00</span>
+<span class="text-label-md font-label-md text-secondary/70">CUP</span>
+</div>
+<div class="flex items-center gap-xs text-on-surface-variant mt-sm">
+<span class="material-symbols-outlined text-[18px]">receipt_long</span>
+<span class="text-body-md font-body-md">42 ventas registradas hoy</span>
+</div>
+</div>
+</section>
+<!-- Quick Actions -->
+<section>
+<button class="w-full md:w-auto bg-secondary-container text-on-secondary-container rounded-full py-md px-xl flex items-center justify-center gap-sm shadow-[0_8px_24px_rgba(3,198,178,0.15)] hover:shadow-[0_12px_32px_rgba(3,198,178,0.25)] hover:bg-secondary transition-all duration-300 active:scale-95 group">
+<span class="material-symbols-outlined group-hover:rotate-90 transition-transform duration-300" style="font-variation-settings: 'FILL' 1;">add_circle</span>
+<span class="text-label-md font-label-md uppercase tracking-widest font-bold">Nueva Venta</span>
+</button>
+</section>
+<!-- Bento Grid for details -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-lg mt-md">
+<!-- Producto más vendido -->
+<section class="bg-surface-container border border-outline-variant/30 rounded-xl p-md flex flex-col gap-md">
+<div class="flex items-center justify-between">
+<h3 class="text-headline-md-mobile font-headline-md-mobile text-on-surface">Producto más vendido</h3>
+<span class="material-symbols-outlined text-on-surface-variant">emoji_events</span>
+</div>
+<div class="flex gap-md items-center bg-surface-container-high rounded-lg p-sm border border-outline-variant/20">
+<div class="w-20 h-20 rounded-md bg-cover bg-center shrink-0 border border-outline-variant/10" data-alt="A stylized, high-quality photograph of a glass bottle of premium Cuban rum resting on a dark slate surface. The lighting is cinematic, coming from a side angle, highlighting the amber liquid and casting deep, soft shadows in a dark moody environment, matching a modern corporate aesthetic." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCK1HJVYqyGWwXD4Z8vXanTEJDF0_K63D-D1JnUVYmcYvwLivpLrleotmOfnSWI_fmiNzpT_G0LymEnBWnBBEuTUkrUmOEABeHy5mOuxMtps_OQh00Qr8dgtZRh4jQlLGANRAoZbIU1n4ic2vlK6FbUvsauwUndQ9-xEEQuDD2SxVkeu2B0z2X6hcXRYgCJ_GRBobUsasgazn7bYF0HwBb8olZXDbasDtDljDoO4KbI9Gt4kIvl7cz8mQ')"></div>
+<div class="flex-1 min-w-0">
+<h4 class="text-body-lg font-body-lg text-on-surface font-semibold truncate">Ron Añejo Especial</h4>
+<p class="text-label-sm font-label-sm text-on-surface-variant truncate">Bebidas Alcohólicas</p>
+</div>
+<div class="flex flex-col items-end shrink-0">
+<div class="bg-secondary/10 text-secondary px-xs py-1 rounded text-label-md font-label-md font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">trending_up</span> 128
+                        </div>
+<span class="text-label-sm font-label-sm text-on-surface-variant mt-1">unidades</span>
+</div>
+</div>
+</section>
+<!-- Alerta de bajo stock -->
+<section class="bg-surface-container border border-outline-variant/30 rounded-xl p-md flex flex-col gap-md overflow-hidden relative">
+<div class="absolute top-0 right-0 w-32 h-32 bg-error/5 rounded-full blur-[40px] pointer-events-none"></div>
+<div class="flex justify-between items-center relative z-10">
+<h3 class="text-headline-md-mobile font-headline-md-mobile text-on-surface flex items-center gap-xs">
+<span class="material-symbols-outlined text-error">warning</span>
+                        Bajo stock
+                    </h3>
+<button class="text-label-sm font-label-sm text-on-surface-variant hover:text-on-surface transition-colors">Ver todos</button>
+</div>
+<div class="flex overflow-x-auto gap-md snap-x pb-2 -mx-md px-md hide-scrollbar relative z-10">
+<!-- Item 1 -->
+<div class="snap-start shrink-0 w-40 bg-surface-container-high rounded-lg p-sm border border-outline-variant/20 flex flex-col justify-between h-full">
+<div>
+<h4 class="text-label-md font-label-md text-on-surface truncate mb-1">Cerveza Bucanero</h4>
+<p class="text-label-sm font-label-sm text-on-surface-variant truncate">Lata 355ml</p>
+</div>
+<div class="mt-sm bg-error/10 border border-error/20 text-error px-2 py-1 rounded-md text-label-md font-label-md w-fit flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">inventory_2</span>
+                            Quedan: 5
+                        </div>
+</div>
+<!-- Item 2 -->
+<div class="snap-start shrink-0 w-40 bg-surface-container-high rounded-lg p-sm border border-outline-variant/20 flex flex-col justify-between h-full">
+<div>
+<h4 class="text-label-md font-label-md text-on-surface truncate mb-1">Café Cubita</h4>
+<p class="text-label-sm font-label-sm text-on-surface-variant truncate">Paquete 250g</p>
+</div>
+<div class="mt-sm bg-error/10 border border-error/20 text-error px-2 py-1 rounded-md text-label-md font-label-md w-fit flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">inventory_2</span>
+                            Quedan: 2
+                        </div>
+</div>
+<!-- Item 3 -->
+<div class="snap-start shrink-0 w-40 bg-surface-container-high rounded-lg p-sm border border-outline-variant/20 flex flex-col justify-between h-full">
+<div>
+<h4 class="text-label-md font-label-md text-on-surface truncate mb-1">Refresco Tukola</h4>
+<p class="text-label-sm font-label-sm text-on-surface-variant truncate">Botella 1.5L</p>
+</div>
+<div class="mt-sm bg-error/10 border border-error/20 text-error px-2 py-1 rounded-md text-label-md font-label-md w-fit flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">inventory_2</span>
+                            Quedan: 8
+                        </div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 py-3 pb-safe bg-surface-container/80 backdrop-blur-md shadow-lg rounded-t-xl md:hidden border-t-0">
+<!-- Home (Active) -->
+<button class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-4 py-1 scale-95 transition-transform duration-150">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="text-label-sm font-label-sm mt-1">Home</span>
+</button>
+<!-- Products -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-variant/50 transition-colors p-2 rounded-lg">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="text-label-sm font-label-sm mt-1">Products</span>
+</button>
+<!-- Sale -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-variant/50 transition-colors p-2 rounded-lg">
+<span class="material-symbols-outlined">add_shopping_cart</span>
+<span class="text-label-sm font-label-sm mt-1">Sale</span>
+</button>
+<!-- Inventory -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-variant/50 transition-colors p-2 rounded-lg">
+<span class="material-symbols-outlined">bar_chart</span>
+<span class="text-label-sm font-label-sm mt-1">Inventory</span>
+</button>
+<!-- History -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-variant/50 transition-colors p-2 rounded-lg">
+<span class="material-symbols-outlined">history</span>
+<span class="text-label-sm font-label-sm mt-1">History</span>
+</button>
+</nav>
+</body></html>

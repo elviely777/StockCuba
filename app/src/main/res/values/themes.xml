@@ -1,0 +1,25 @@
+<resources>
+    <!-- Base application theme -->
+    <style name="Theme.StockCuba" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- Primary brand color -->
+        <item name="android:colorPrimary">@color/purple_700</item>
+        <!-- Status bar color -->
+        <item name="android:statusBarColor">@color/purple_900</item>
+    </style>
+
+    <!-- Splash Screen Theme -->
+    <style name="Theme.StockCuba.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_foreground</item>
+        <item name="windowSplashScreenAnimationDuration">300</item>
+        <item name="postSplashScreenTheme">@style/Theme.StockCuba</item>
+        <!-- For API 31+ -->
+        <item name="windowSplashScreenIconBackgroundColor">@color/splash_icon_background</item>
+    </style>
+
+    <!-- No action bar variant for activities that need it -->
+    <style name="Theme.StockCuba.NoActionBar" parent="Theme.StockCuba">
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+</resources>

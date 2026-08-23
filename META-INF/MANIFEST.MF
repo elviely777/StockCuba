@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Implementation-Title: Gradle Wrapper
+Created-By: 17.0.20 (Eclipse Adoptium)
+Main-Class: org.gradle.wrapper.GradleWrapperMain
+
