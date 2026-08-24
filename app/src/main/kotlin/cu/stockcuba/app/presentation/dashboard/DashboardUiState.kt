@@ -30,7 +30,7 @@ sealed interface DashboardUiState {
         // Metas (respecto a ayer o periodo anterior)
         val metaVenta: Double = 0.0, // El valor de referencia (ej. ayer)
         val progresoMeta: Float = 0f, // 0.0 a 1.0 (o más)
-        
+
         // IPB e IPC (T66)
         val valorInventarioVenta: Double = 0.0, // IPB
         val valorInventarioCosto: Double = 0.0, // IPC

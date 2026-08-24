@@ -20,10 +20,10 @@ android {
     val computedVersionCode = versionMajor * 10000 + versionMinor * 100 + versionPatch
     val computedVersionName = "$versionMajor.$versionMinor.$versionPatch"
 
-    defaultConfig {
-        applicationId = "cu.stockcuba.app"
-        minSdk = libs.versions.minSdk.get().toInt()
-        targetSdk = libs.versions.targetSdk.get().toInt()
+defaultConfig {
+            applicationId = "cu.stockcuba.app"
+            minSdk = 26
+            targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = computedVersionCode
         versionName = computedVersionName
 
@@ -192,6 +192,9 @@ dependencies {
 
     // CSV Export for Excel
     implementation(libs.csvExport)
+
+    // Apache POI para crear archivos .xlsx
+    implementation("org.apache.poi:poi-ooxml:5.4.0")
 
     // Testing
     testImplementation(libs.junit)

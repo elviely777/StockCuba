@@ -52,7 +52,7 @@ class DashboardViewModel @Inject constructor(
         
         val efectivo = periodVentas.sumOf { it.montoEfectivo }
         val transferencia = periodVentas.sumOf { it.montoTransferencia }
-        
+
         // IPB e IPC (T66)
         val activeProductos = allProductos.filter { it.activo }
         val ipb = activeProductos.sumOf { it.stockActual * it.precioVenta }
@@ -106,7 +106,7 @@ class DashboardViewModel @Inject constructor(
     }
 
     suspend fun exportarReporteDiario(): Result<Uri> {
-        return reportRepository.generarReporteDiarioExcel(LocalDate.now())
+        return reportRepository.generarReporteDiarioXlsx()
     }
 
     private fun calcularTendencia(actual: Double, anterior: Double): String {

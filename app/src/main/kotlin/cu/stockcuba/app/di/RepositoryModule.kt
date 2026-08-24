@@ -4,17 +4,18 @@ import cu.stockcuba.app.data.repository.CategoriaRepositoryImpl
 import cu.stockcuba.app.data.repository.ClienteRepositoryImpl
 import cu.stockcuba.app.data.repository.InventarioRepositoryImpl
 import cu.stockcuba.app.data.repository.ProductoRepositoryImpl
+import cu.stockcuba.app.data.repository.ReportRepositoryImpl
 import cu.stockcuba.app.data.repository.SyncRepository
 import cu.stockcuba.app.data.repository.VentaRepositoryImpl
 import cu.stockcuba.app.domain.repository.CategoriaRepository
 import cu.stockcuba.app.domain.repository.ClienteRepository
 import cu.stockcuba.app.domain.repository.InventarioRepository
 import cu.stockcuba.app.domain.repository.ProductoRepository
-import cu.stockcuba.app.domain.repository.VentaRepository
-import cu.stockcuba.app.data.repository.ReportRepositoryImpl
 import cu.stockcuba.app.domain.repository.ReportRepository
+import cu.stockcuba.app.domain.repository.VentaRepository
 import dagger.Binds
 import dagger.Module
+import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
@@ -43,7 +44,9 @@ abstract class RepositoryModule {
     @Singleton
     abstract fun bindInventarioRepository(impl: InventarioRepositoryImpl): InventarioRepository
 
-    @Binds
-    @Singleton
-    abstract fun bindReportRepository(impl: ReportRepositoryImpl): ReportRepository
+    companion object {
+        @Provides
+        @Singleton
+        fun provideReportRepository(impl: ReportRepositoryImpl): ReportRepository = impl
+    }
 }
