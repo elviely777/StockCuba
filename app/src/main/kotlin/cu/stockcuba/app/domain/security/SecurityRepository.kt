@@ -24,4 +24,9 @@ interface SecurityRepository {
      * Checks if a PIN has been set.
      */
     suspend fun hasPin(): Result<Boolean>
+
+    /**
+     * Removes the security PIN.
+     */
+    suspend fun removePin(): Result<Unit>
 }

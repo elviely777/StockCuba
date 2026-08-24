@@ -85,6 +85,10 @@ class SecurityRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun removePin(): Result<Unit> {
+        return ajustesDataStore.eliminarPin()
+    }
+
     /**
      * Hashes a PIN using PBKDF2WithHmacSHA256.
      */

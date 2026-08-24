@@ -218,6 +218,15 @@ class AjustesViewModel @Inject constructor(
         return Result.Success(Unit)
     }
 
+    /**
+     * Removes the security PIN (T69).
+     */
+    fun eliminarPin() {
+        viewModelScope.launch {
+            securityRepository.removePin()
+        }
+    }
+
     // ===== Feedback (T46) =====
 
     /**

@@ -58,6 +58,7 @@ fun AjustesScreen(
     var resetConfirmationText by remember { mutableStateOf("") }
     var showPinSetupDialog by remember { mutableStateOf(false) }
     var pinSetupMode by remember { mutableStateOf<Mode>(Mode.Setup) }
+    var showPinRemoveDialog by remember { mutableStateOf(false) }
 
     // SAF launcher for importing database file
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
@@ -107,6 +108,7 @@ fun AjustesScreen(
                         onReiniciar = { showResetDialog = true },
                         onPinSetup = { pinSetupMode = Mode.Setup; showPinSetupDialog = true },
                         onPinChange = { pinSetupMode = Mode.Verify; showPinSetupDialog = true },
+                        onPinRemove = { showPinRemoveDialog = true },
                         onExportarInventario = {
                             scope.launch {
                                 viewModel.exportarReporteInventario().onSuccess {
@@ -156,6 +158,30 @@ fun AjustesScreen(
                 }
             )
         }
+
+        if (showPinRemoveDialog) {
+            AlertDialog(
+                onDismissRequest = { showPinRemoveDialog = false },
+                title = { Text("¿Eliminar PIN de seguridad?", fontWeight = FontWeight.Bold) },
+                text = { Text("La aplicación ya no estará protegida. Cualquier persona con acceso al teléfono podrá ver tus ventas e inventario.") },
+                confirmButton = {
+                    Button(
+                        onClick = { 
+                            viewModel.eliminarPin()
+                            showPinRemoveDialog = false
+                            scope.launch { snackbarHostState.showSnackbar("PIN eliminado correctamente") }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = StockCubaColors.CoralAlerta),
+                        shape = Shape.Grande
+                    ) {
+                        Text("Eliminar PIN")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showPinRemoveDialog = false }) { Text("Cancelar") }
+                }
+            )
+        }
     }
 }
 
@@ -194,6 +220,7 @@ fun AjustesContenidoModerno(
     onReiniciar: () -> Unit,
     onPinSetup: () -> Unit,
     onPinChange: () -> Unit,
+    onPinRemove: () -> Unit,
     onExportarInventario: () -> Unit,
     onFeedback: () -> Unit
 ) {
@@ -303,6 +330,16 @@ fun AjustesContenidoModerno(
                     icon = Icons.Default.Lock,
                     onClick = if (state.tienePin) onPinChange else onPinSetup
                 )
+                if (state.tienePin) {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                    FilaAccionAjuste(
+                        titulo = "Eliminar PIN",
+                        subtitulo = "Quitar la protección de acceso",
+                        icon = Icons.Default.LockOpen,
+                        color = StockCubaColors.CoralAlerta,
+                        onClick = onPinRemove
+                    )
+                }
             }
         }
 

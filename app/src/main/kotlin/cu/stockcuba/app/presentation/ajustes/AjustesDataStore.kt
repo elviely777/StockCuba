@@ -75,6 +75,18 @@ class AjustesDataStore @Inject constructor(
     suspend fun guardarPinHash(hash: String): Result<Unit> = guardarDato(PIN_HASH_KEY, hash)
     suspend fun guardarPinSalt(salt: String): Result<Unit> = guardarDato(PIN_SALT_KEY, salt)
 
+    suspend fun eliminarPin(): Result<Unit> {
+        return try {
+            dataStore.edit { preferences ->
+                preferences.remove(PIN_HASH_KEY)
+                preferences.remove(PIN_SALT_KEY)
+            }
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Failure(DomainError.DatabaseError(e))
+        }
+    }
+
     private suspend fun <T> guardarDato(key: Preferences.Key<T>, value: T): Result<Unit> {
         return try {
             dataStore.edit { preferences ->
