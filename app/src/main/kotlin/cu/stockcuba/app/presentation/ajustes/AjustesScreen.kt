@@ -107,6 +107,15 @@ fun AjustesScreen(
                         onReiniciar = { showResetDialog = true },
                         onPinSetup = { pinSetupMode = Mode.Setup; showPinSetupDialog = true },
                         onPinChange = { pinSetupMode = Mode.Verify; showPinSetupDialog = true },
+                        onExportarInventario = {
+                            scope.launch {
+                                viewModel.exportarReporteInventario().onSuccess {
+                                    scope.launch { snackbarHostState.showSnackbar("Reporte de inventario guardado") }
+                                }.onFailure { error ->
+                                    scope.launch { snackbarHostState.showSnackbar("Error al exportar inventario: $error") }
+                                }
+                            }
+                        },
                         onFeedback = {
                             scope.launch {
                                 viewModel.sendFeedback().onFailure { 
@@ -185,6 +194,7 @@ fun AjustesContenidoModerno(
     onReiniciar: () -> Unit,
     onPinSetup: () -> Unit,
     onPinChange: () -> Unit,
+    onExportarInventario: () -> Unit,
     onFeedback: () -> Unit
 ) {
     LazyColumn(
@@ -301,9 +311,17 @@ fun AjustesContenidoModerno(
             SeccionAjustesModerna(titulo = "Gestión de Datos", icono = Icons.Default.Storage, color = Color(0xFFF59E0B)) {
                 FilaAccionAjuste(
                     titulo = "Copia de Seguridad",
-                    subtitulo = "Exportar base de datos a un archivo",
+                    subtitulo = "Exportar base de datos completa",
                     icon = Icons.Default.CloudUpload,
                     onClick = onExportar
+                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                FilaAccionAjuste(
+                    titulo = "Reporte de Inventario (Excel)",
+                    subtitulo = "Exportar existencias y valor (IPB/IPC)",
+                    icon = Icons.Default.TableChart,
+                    color = MaterialTheme.colorScheme.primary,
+                    onClick = onExportarInventario
                 )
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
                 FilaAccionAjuste(

@@ -9,6 +9,7 @@ import cu.stockcuba.app.data.backup.BackupRepository
 import cu.stockcuba.app.data.local.database.StockCubaDatabase
 import cu.stockcuba.app.domain.feedback.FeedbackRepository
 import cu.stockcuba.app.domain.model.Result
+import cu.stockcuba.app.domain.repository.ReportRepository
 import cu.stockcuba.app.domain.security.SecurityRepository
 import cu.stockcuba.app.domain.validation.validarImpuesto
 import cu.stockcuba.app.domain.validation.validarNombre
@@ -29,7 +30,8 @@ class AjustesViewModel @Inject constructor(
     private val backupRepository: BackupRepository,
     private val database: StockCubaDatabase,
     val securityRepository: SecurityRepository,
-    val feedbackRepository: FeedbackRepository
+    val feedbackRepository: FeedbackRepository,
+    private val reportRepository: ReportRepository
 ) : ViewModel() {
 
     var onResetComplete: (() -> Unit)? = null
@@ -159,6 +161,10 @@ class AjustesViewModel @Inject constructor(
 
     suspend fun importarBaseDatos(uri: Uri): Result<Unit> {
         return backupRepository.importDatabase(uri)
+    }
+
+    suspend fun exportarReporteInventario(): Result<Uri> {
+        return reportRepository.generarReporteInventarioExcel()
     }
 
     /**

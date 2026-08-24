@@ -13,12 +13,14 @@ import cu.stockcuba.app.domain.repository.ReportRepository
 import cu.stockcuba.app.domain.repository.VentaRepository
 import cu.stockcuba.app.domain.repository.ProductoRepository
 import cu.stockcuba.app.domain.repository.ClienteRepository
+import cu.stockcuba.app.presentation.ajustes.AjustesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -28,7 +30,8 @@ class ReportRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val ventaRepository: VentaRepository,
     private val productoRepository: ProductoRepository,
-    private val clienteRepository: ClienteRepository
+    private val clienteRepository: ClienteRepository,
+    private val ajustesDataStore: AjustesDataStore
 ) : ReportRepository {
 
     private val contentResolver = context.contentResolver
@@ -40,8 +43,9 @@ class ReportRepositoryImpl @Inject constructor(
             
             val ventas = ventaRepository.getVentasPorRango(startOfDay, endOfDay).first()
             val clientes = clienteRepository.getAll().first().associateBy { it.id }
+            val nombreNegocio = ajustesDataStore.nombreNegocio.first()
 
-            val fileName = "Reporte_Diario_${fecha.format(DateTimeFormatter.ofPattern("yyyyMMdd"))}.csv"
+            val fileName = "Reporte_${fecha.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))}.csv"
             
             val contentValues = ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
@@ -62,11 +66,35 @@ class ReportRepositoryImpl @Inject constructor(
                 ?: throw IOException("Error al crear archivo de reporte")
 
             contentResolver.openOutputStream(uri)?.use { output ->
+                // Write UTF-8 BOM for Excel compatibility (T67)
+                output.write(byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte()))
                 csvWriter().open(output) {
-                    writeRow(listOf("HORA", "CLIENTE", "PRODUCTOS", "METODO PAGO", "EFECTIVO", "TRANSFERENCIA", "TOTAL"))
-                    ventas.forEach { venta ->
+                    // --- ENCABEZADO DE MARCA ---
+                    writeRow(listOf("STOCKCUBA - GESTIÓN INTELIGENTE"))
+                    writeRow(listOf("REPORTE DIARIO DE OPERACIONES"))
+                    writeRow(listOf("Negocio:", nombreNegocio))
+                    writeRow(listOf("Fecha:", fecha.format(DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM yyyy"))))
+                    writeRow(listOf("Generado:", LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy hh:mm a"))))
+                    writeRow(listOf("")) // Espacio
+
+                    // --- SECCIÓN 1: RESUMEN FINANCIERO ---
+                    writeRow(listOf("=== RESUMEN DEL DÍA ==="))
+                    writeRow(listOf("Métrica", "Valor"))
+                    writeRow(listOf("Total Recaudado", ventas.sumOf { it.total }))
+                    writeRow(listOf("Ventas Totales", ventas.size))
+                    writeRow(listOf("Ticket Promedio", if (ventas.isNotEmpty()) ventas.sumOf { it.total } / ventas.size else 0.0))
+                    writeRow(listOf("Cobrado en Efectivo", ventas.sumOf { it.montoEfectivo }))
+                    writeRow(listOf("Cobrado por Transferencia", ventas.sumOf { it.montoTransferencia }))
+                    writeRow(listOf("")) // Espacio
+
+                    // --- SECCIÓN 2: LOG DETALLADO ---
+                    writeRow(listOf("=== DETALLE DE VENTAS ==="))
+                    writeRow(listOf("HORA", "CLIENTE", "PRODUCTOS VENDIDOS", "MÉTODO", "EFECTIVO", "TRANSF.", "TOTAL VENTA"))
+                    
+                    ventas.sortedBy { it.fecha }.forEach { venta ->
                         val resumenProductos = venta.items.joinToString(" | ") { "${it.nombreProducto} (x${it.cantidad})" }
                         val clienteNombre = venta.clienteId?.let { clientes[it]?.nombre } ?: "Consumidor Final"
+                        
                         writeRow(listOf(
                             venta.fecha.atZone(java.time.ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("hh:mm a")),
                             clienteNombre,
@@ -77,8 +105,9 @@ class ReportRepositoryImpl @Inject constructor(
                             venta.total
                         ))
                     }
-                    writeRow(listOf(""))
-                    writeRow(listOf("TOTAL DIA", "", "", "", ventas.sumOf { it.montoEfectivo }, ventas.sumOf { it.montoTransferencia }, ventas.sumOf { it.total }))
+                    
+                    writeRow(listOf("")) // Espacio
+                    writeRow(listOf("FIN DEL REPORTE"))
                 }
             }
 
@@ -96,7 +125,8 @@ class ReportRepositoryImpl @Inject constructor(
     override suspend fun generarReporteInventarioExcel(): Result<Uri> = withContext(Dispatchers.IO) {
         return@withContext try {
             val productos = productoRepository.getAll().first().filter { it.activo }
-            val fileName = "Estado_Inventario_${LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))}.csv"
+            val nombreNegocio = ajustesDataStore.nombreNegocio.first()
+            val fileName = "Inventario_${LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))}.csv"
 
             val contentValues = ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
@@ -117,15 +147,40 @@ class ReportRepositoryImpl @Inject constructor(
                 ?: throw IOException("Error al crear archivo de inventario")
 
             contentResolver.openOutputStream(uri)?.use { output ->
+                // Write UTF-8 BOM for Excel compatibility (T67)
+                output.write(byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte()))
                 csvWriter().open(output) {
-                    writeRow(listOf("PRODUCTO", "STOCK ACTUAL", "UM", "COSTO UNIT.", "PRECIO VENTA", "IPB (VALOR VENTA)", "IPC (INVERSION)"))
-                    productos.forEach { p ->
-                        val ipb = p.stockActual * p.precioVenta
-                        val ipc = p.stockActual * p.costoUnitario
-                        writeRow(listOf(p.nombre, p.stockActual, p.unidadMedida.name, p.costoUnitario, p.precioVenta, ipb, ipc))
-                    }
+                    // --- CABECERA ---
+                    writeRow(listOf("STOCKCUBA - REPORTE DE INVENTARIO"))
+                    writeRow(listOf("Negocio:", nombreNegocio))
+                    writeRow(listOf("Fecha de Corte:", LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))))
                     writeRow(listOf(""))
-                    writeRow(listOf("TOTALES", "", "", "", "", productos.sumOf { it.stockActual * it.precioVenta }, productos.sumOf { it.stockActual * it.costoUnitario }))
+
+                    // --- RESUMEN DE VALORACIÓN ---
+                    val ipb = productos.sumOf { it.stockActual * it.precioVenta }
+                    val ipc = productos.sumOf { it.stockActual * it.costoUnitario }
+                    
+                    writeRow(listOf("=== VALORACIÓN TOTAL ==="))
+                    writeRow(listOf("IPB (Inventario a Precio de Venta)", ipb))
+                    writeRow(listOf("IPC (Inversión a Precio de Costo)", ipc))
+                    writeRow(listOf("Utilidad Proyectada", ipb - ipc))
+                    writeRow(listOf(""))
+
+                    // --- TABLA DETALLADA ---
+                    writeRow(listOf("=== DETALLE POR PRODUCTO ==="))
+                    writeRow(listOf("PRODUCTO", "EXISTENCIA", "UM", "COSTO UNIT.", "PRECIO VENTA", "VALOR VENTA (IPB)", "VALOR COSTO (IPC)"))
+                    
+                    productos.sortedBy { it.nombre }.forEach { p ->
+                        writeRow(listOf(
+                            p.nombre,
+                            p.stockActual,
+                            p.unidadMedida.name,
+                            p.costoUnitario,
+                            p.precioVenta,
+                            p.stockActual * p.precioVenta,
+                            p.stockActual * p.costoUnitario
+                        ))
+                    }
                 }
             }
 
