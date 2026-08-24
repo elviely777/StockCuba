@@ -36,6 +36,10 @@ interface VentaDao {
     @Query("SELECT * FROM ventas ORDER BY fecha DESC")
     fun getAllWithItems(): Flow<List<VentaWithItems>>
 
+    @Transaction
+    @Query("SELECT * FROM ventas WHERE fecha BETWEEN :startDate AND :endDate ORDER BY fecha DESC")
+    fun getByDateRangeWithItems(startDate: Long, endDate: Long): Flow<List<VentaWithItems>>
+
     @Query("SELECT * FROM ventas WHERE fecha BETWEEN :startDate AND :endDate ORDER BY fecha DESC")
     fun getByDateRange(startDate: Long, endDate: Long): Flow<List<VentaEntity>>
 

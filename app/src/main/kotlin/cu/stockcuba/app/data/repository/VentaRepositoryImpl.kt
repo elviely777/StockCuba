@@ -25,7 +25,7 @@ class VentaRepositoryImpl @Inject constructor(
     override fun getById(id: String): Flow<Venta?> = ventaDao.getById(id).map { it?.toDomain() }
 
     override fun getVentasPorRango(desde: Long, hasta: Long): Flow<List<Venta>> =
-        ventaDao.getByDateRange(desde, hasta).map { it.map { it.toDomain() } }
+        ventaDao.getByDateRangeWithItems(desde, hasta).map { it.map { it.toDomain() } }
 
     override fun getVentasDeHoy(): Flow<List<Venta>> {
         val inicioDia = java.time.LocalDate.now()
