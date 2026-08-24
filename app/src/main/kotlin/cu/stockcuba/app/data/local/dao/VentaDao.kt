@@ -8,6 +8,7 @@ import androidx.room.Query
 import androidx.room.Transaction
 import cu.stockcuba.app.data.local.entity.VentaEntity
 import cu.stockcuba.app.data.local.entity.VentaItemEntity
+import cu.stockcuba.app.data.local.entity.VentaWithItems
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -30,6 +31,10 @@ interface VentaDao {
 
     @Query("SELECT * FROM ventas ORDER BY fecha DESC")
     fun getAll(): Flow<List<VentaEntity>>
+
+    @Transaction
+    @Query("SELECT * FROM ventas ORDER BY fecha DESC")
+    fun getAllWithItems(): Flow<List<VentaWithItems>>
 
     @Query("SELECT * FROM ventas WHERE fecha BETWEEN :startDate AND :endDate ORDER BY fecha DESC")
     fun getByDateRange(startDate: Long, endDate: Long): Flow<List<VentaEntity>>

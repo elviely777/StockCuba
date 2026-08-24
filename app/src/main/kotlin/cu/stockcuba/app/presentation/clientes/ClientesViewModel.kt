@@ -50,10 +50,11 @@ class ClientesViewModel @Inject constructor(
         _query.value = query
     }
 
-    suspend fun crearCliente(nombre: String, telefono: String?, notas: String?): Result<Unit> {
+    suspend fun crearCliente(nombre: String, ci: String, telefono: String?, notas: String?): Result<Unit> {
         val cliente = Cliente(
             id = UUID.randomUUID().toString(),
             nombre = nombre.trim(),
+            ci = ci.trim(),
             telefono = telefono?.trim()?.takeIf { it.isNotBlank() },
             notas = notas?.trim()?.takeIf { it.isNotBlank() }
         )

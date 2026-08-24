@@ -131,7 +131,22 @@ class FormularioProductoViewModel @Inject constructor(
     fun updateCategoria(categoriaId: String?) {
         _uiState.update { state ->
             when (state) {
-                is FormularioProductoUiState.Editing -> state.copy(categoriaId = categoriaId)
+                is FormularioProductoUiState.Editing -> {
+                    state.copy(
+                        categoriaId = categoriaId,
+                        esNuevaCategoria = categoriaId == "otros",
+                        errors = state.errors - "categoria"
+                    )
+                }
+                else -> state
+            }
+        }
+    }
+
+    fun updateNuevaCategoriaNombre(nombre: String) {
+        _uiState.update { state ->
+            when (state) {
+                is FormularioProductoUiState.Editing -> state.copy(nuevaCategoriaNombre = nombre, errors = state.errors - "nuevaCategoria")
                 else -> state
             }
         }
@@ -181,6 +196,8 @@ class FormularioProductoViewModel @Inject constructor(
 
         if (state.categoriaId == null || state.categoriaId!!.isBlank()) {
             errors["categoria"] = "Debe seleccionar una categoría"
+        } else if (state.esNuevaCategoria && state.nuevaCategoriaNombre.trim().isEmpty()) {
+            errors["nuevaCategoria"] = "Especifique el nombre de la categoría"
         }
 
         return errors
@@ -209,6 +226,24 @@ class FormularioProductoViewModel @Inject constructor(
             when (currentState) {
                 is FormularioProductoUiState.Editing -> {
                     if (currentState.errors.isEmpty()) {
+                        var finalCategoriaId = currentState.categoriaId!!
+
+                        // Si es una nueva categoría (seleccionó "Otros"), crearla primero (T50)
+                        if (currentState.esNuevaCategoria) {
+                            val nuevaCat = Categoria(
+                                id = UUID.randomUUID().toString(),
+                                nombre = currentState.nuevaCategoriaNombre.trim(),
+                                color = 0xFF6366F1.toInt() // IndigoMarca
+                            )
+                            val insertResult = categoriaRepository.insert(nuevaCat)
+                            if (insertResult is Result.Success) {
+                                finalCategoriaId = nuevaCat.id
+                            } else {
+                                _uiState.update { FormularioProductoUiState.Error("No se pudo crear la categoría") }
+                                return@launch
+                            }
+                        }
+
                         val producto = Producto(
                             id = currentState.productoId ?: UUID.randomUUID().toString(),
                             nombre = currentState.nombre.trim(),
@@ -218,7 +253,7 @@ class FormularioProductoViewModel @Inject constructor(
                             stockActual = currentState.stockInicial.toIntOrNull() ?: 0,
                             stockMinimo = currentState.stockMinimo.toIntOrNull() ?: 0,
                             unidadMedida = currentState.unidadMedida,
-                            categoriaId = currentState.categoriaId!!,
+                            categoriaId = finalCategoriaId,
                             fechaCreacion = java.time.Instant.now(),
                             activo = true
                         )

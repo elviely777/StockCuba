@@ -116,56 +116,62 @@ class BackupRepositoryImpl @Inject constructor(
 
     override suspend fun importDatabase(uri: Uri): Result<Unit> = withContext(Dispatchers.IO) {
         return@withContext try {
-            // Verify schema version on the source file
-            val inputStream = contentResolver.openInputStream(uri)
-                ?: return@withContext Result.Failure(DomainError.DatabaseError(IOException("Failed to open input stream")))
-
-            // Create a temporary file to verify schema
-            val tempFile = File(context.cacheDir, "temp_import_${System.currentTimeMillis()}.db")
-            tempFile.parentFile?.mkdirs()
+            // Copy the file to a temporary location to work with it
+            val tempFile = File(context.cacheDir, "import_check.db")
+            tempFile.delete()
             
+            val initialInputStream = contentResolver.openInputStream(uri)
+                ?: return@withContext Result.Failure(DomainError.DatabaseError(IOException("No se pudo leer el archivo")))
+
+            FileOutputStream(tempFile).use { output ->
+                copyStream(initialInputStream, output)
+            }
+            initialInputStream.close()
+
+            // Verify if it's a valid SQLite database by trying to open it (T60)
             try {
-                copyStream(inputStream, FileOutputStream(tempFile))
-            } finally {
-                inputStream.close()
+                val checkDb = android.database.sqlite.SQLiteDatabase.openDatabase(
+                    tempFile.absolutePath, 
+                    null, 
+                    android.database.sqlite.SQLiteDatabase.OPEN_READONLY
+                )
+                checkDb.close()
+            } catch (e: Exception) {
+                tempFile.delete()
+                return@withContext Result.Failure(DomainError.InvalidOperation("El archivo seleccionado no es una base de datos válida o está protegido"))
             }
 
-            // Verify schema using SQLite
-            val db = SQLiteDatabase.openDatabase(tempFile.absolutePath, null, SQLiteDatabase.OPEN_READONLY)
+            // Close active database connections before replacing files
             try {
-                val userVersion = db.version
-                if (userVersion != 1) {
-                    return@withContext Result.Failure(DomainError.InvalidOperation("Schema version mismatch: expected 1, got $userVersion"))
-                }
-            } finally {
-                db.close()
+                cu.stockcuba.app.data.local.database.StockCubaDatabase.getInstance(context).close()
+            } catch (e: Exception) {
+                // Ignore
             }
 
             // Delete current database and WAL/SHM files
             context.deleteDatabase(databaseName)
-            val dbDir = context.getDatabasePath(databaseName).parentFile
-            File(dbDir, "${databaseName}-wal").delete()
-            File(dbDir, "${databaseName}-shm").delete()
-
-            // Copy the verified file to the database location
-            val targetFile = context.getDatabasePath(databaseName)
-            targetFile.parentFile?.mkdirs()
-            
-            val targetStream = FileOutputStream(targetFile)
-            try {
-                copyStream(File(tempFile.absolutePath).inputStream(), targetStream)
-            } finally {
-                targetStream.close()
+            val dbFile = context.getDatabasePath(databaseName)
+            val dbDir = dbFile.parentFile
+            if (dbDir != null) {
+                File(dbDir, "${databaseName}-wal").delete()
+                File(dbDir, "${databaseName}-shm").delete()
             }
 
-            // Clean up temp file
+            // Copy the verified file from temp to final location
+            dbFile.parentFile?.mkdirs()
+            tempFile.inputStream().use { input ->
+                dbFile.outputStream().use { output ->
+                    copyStream(input, output)
+                }
+            }
             tempFile.delete()
 
-            // Auto-restart app for clean Room reinitialization
+            // auto-restart app
             ProcessPhoenix.triggerRebirth(context)
             
             Result.Success(Unit)
         } catch (e: Exception) {
+            android.util.Log.e("BackupRepo", "Error fatal en restauración", e)
             Result.Failure(DomainError.DatabaseError(e))
         }
     }

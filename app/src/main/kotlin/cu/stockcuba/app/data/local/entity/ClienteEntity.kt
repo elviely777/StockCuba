@@ -13,6 +13,9 @@ data class ClienteEntity(
     @ColumnInfo(name = "nombre")
     val nombre: String,
 
+    @ColumnInfo(name = "ci")
+    val ci: String,
+
     @ColumnInfo(name = "telefono")
     val telefono: String?,
 

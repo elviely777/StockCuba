@@ -36,7 +36,8 @@ import javax.inject.Singleton
 class SyncRepository @Inject constructor(
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: Context,
     private val ventaDao: VentaDao,
-    private val api: StockCubaApi
+    private val api: StockCubaApi,
+    private val categoriaRepository: cu.stockcuba.app.domain.repository.CategoriaRepository
 ) : LifecycleObserver {
 
     private val syncJob = SupervisorJob()
@@ -51,6 +52,11 @@ class SyncRepository @Inject constructor(
      */
     @OnLifecycleEvent(Lifecycle.Event.ON_START)
     fun startSyncObserver() {
+        // Prepopular categorías si es necesario (T50)
+        syncScope.launch {
+            categoriaRepository.prepopular()
+        }
+
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
         connectivityCallback = object : ConnectivityManager.NetworkCallback() {

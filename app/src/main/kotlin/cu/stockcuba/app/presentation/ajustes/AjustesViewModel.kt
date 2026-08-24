@@ -1,8 +1,10 @@
 package cu.stockcuba.app.presentation.ajustes
 
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jakewharton.processphoenix.ProcessPhoenix
 import cu.stockcuba.app.data.backup.BackupRepository
 import cu.stockcuba.app.data.local.database.StockCubaDatabase
 import cu.stockcuba.app.domain.feedback.FeedbackRepository
@@ -11,24 +13,23 @@ import cu.stockcuba.app.domain.security.SecurityRepository
 import cu.stockcuba.app.domain.validation.validarImpuesto
 import cu.stockcuba.app.domain.validation.validarNombre
 import cu.stockcuba.app.domain.validation.validarTelefono
-import cu.stockcuba.app.presentation.security.BiometricAuthenticator
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class AjustesViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val ajustesDataStore: AjustesDataStore,
     private val backupRepository: BackupRepository,
     private val database: StockCubaDatabase,
     val securityRepository: SecurityRepository,
-    val feedbackRepository: FeedbackRepository,
-    val biometricAuthenticator: BiometricAuthenticator
+    val feedbackRepository: FeedbackRepository
 ) : ViewModel() {
 
     var onResetComplete: (() -> Unit)? = null
@@ -60,7 +61,6 @@ class AjustesViewModel @Inject constructor(
                     ajustesDataStore.moneda,
                     ajustesDataStore.impuesto,
                     ajustesDataStore.tema,
-                    ajustesDataStore.seguridadBiometrica,
                     hasPinFlow
                 )
             ) { array ->
@@ -70,8 +70,7 @@ class AjustesViewModel @Inject constructor(
                 val moneda = array[3] as Moneda
                 val impuesto = array[4] as Double
                 val tema = array[5] as String
-                val seguridadBiometrica = array[6] as Boolean
-                val tienePin = array[7] as Boolean
+                val tienePin = array[6] as Boolean
 
                 AjustesUiState.Success(
                     nombreNegocio = nombre,
@@ -80,7 +79,7 @@ class AjustesViewModel @Inject constructor(
                     moneda = moneda,
                     impuesto = impuesto,
                     tema = tema,
-                    seguridadBiometrica = seguridadBiometrica,
+                    seguridadBiometrica = false,
                     tienePin = tienePin,
                     appVersion = "1.0.0",
                     validationErrors = emptyMap()
@@ -154,10 +153,6 @@ class AjustesViewModel @Inject constructor(
         viewModelScope.launch { ajustesDataStore.guardarTema(tema) }
     }
 
-    fun guardarSeguridadBiometrica(habilitada: Boolean) {
-        viewModelScope.launch { ajustesDataStore.guardarSeguridadBiometrica(habilitada) }
-    }
-
     suspend fun exportarBaseDatos(): Result<Uri> {
         return backupRepository.exportDatabase()
     }
@@ -169,27 +164,32 @@ class AjustesViewModel @Inject constructor(
     /**
      * Resets all data (T28).
      * Validates exact "REINICIAR" confirmation, clears DataStore (except preserved keys) and Room database,
-     * triggers onResetComplete callback for navigation to Dashboard with popUpTo(start) { inclusive = true }.
+     * and triggers an app restart for clean reinitialization.
      */
     fun reiniciarDatos(confirmacion: String) {
         if (confirmacion != "REINICIAR") {
-            return // Silently ignore invalid confirmation
+            return
         }
 
         viewModelScope.launch {
-            // Clear DataStore (preserves tema, pin, biometric)
-            val preservedKeys = setOf(
-                AjustesDataStore.TEMA_KEY,
-                AjustesDataStore.PIN_HASH_KEY,
-                AjustesDataStore.PIN_SALT_KEY,
-                AjustesDataStore.BIOMETRIC_ENABLED_KEY
-            )
-            val result = ajustesDataStore.clearAll(preservedKeys)
-            if (result.isSuccess) {
-                // Clear Room database
-                database.clearAllTables()
-                // Trigger navigation callback
-                onResetComplete?.invoke()
+            try {
+                // 1. Clear Operation DataStore keys (T59)
+                val preservedKeys = setOf(
+                    AjustesDataStore.TEMA_KEY,
+                    AjustesDataStore.PIN_HASH_KEY,
+                    AjustesDataStore.PIN_SALT_KEY
+                )
+                val dsResult = ajustesDataStore.clearAll(preservedKeys)
+                
+                if (dsResult.isSuccess) {
+                    // 2. Wipe Room database tables
+                    database.reiniciarBaseDatos()
+                    
+                    // 3. Restart the process to ensure all components/flows are reset (T59)
+                    ProcessPhoenix.triggerRebirth(context)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("AjustesViewModel", "Error fatal en borrado total", e)
             }
         }
     }
@@ -201,8 +201,6 @@ class AjustesViewModel @Inject constructor(
      */
     suspend fun configurarPin(pin: String): Result<Unit> {
         return ajustesDataStore.guardarPinHash("").flatMap { 
-            // This will be handled by SecurityRepository via AjustesDataStore
-            // ViewModel just delegates to SecurityRepository in real usage
             Result.Success(Unit)
         }
     }
@@ -211,15 +209,7 @@ class AjustesViewModel @Inject constructor(
      * Changes existing PIN (requires current PIN verification).
      */
     suspend fun cambiarPin(pinActual: String, pinNuevo: String): Result<Unit> {
-        // This will be handled by SecurityRepository
         return Result.Success(Unit)
-    }
-
-    /**
-     * Toggles biometric authentication.
-     */
-    suspend fun toggleBiometric(enabled: Boolean): Result<Unit> {
-        return ajustesDataStore.guardarBiometricEnabled(enabled)
     }
 
     // ===== Feedback (T46) =====

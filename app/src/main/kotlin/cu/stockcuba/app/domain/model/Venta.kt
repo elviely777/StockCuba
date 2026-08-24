@@ -8,7 +8,9 @@ data class Venta(
     val total: Double,
     val metodoPago: MetodoPago,
     val items: List<VentaItem>,
-    val clienteId: String?
+    val clienteId: String?,
+    val montoEfectivo: Double = 0.0,
+    val montoTransferencia: Double = 0.0
 ) {
     init {
         require(total >= 0) { "El total no puede ser negativo" }

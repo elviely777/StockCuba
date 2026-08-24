@@ -42,7 +42,9 @@ sealed interface FormularioProductoUiState {
         val isLoading: Boolean = false,
         val errors: Map<String, String> = emptyMap(),
         val isEditing: Boolean = false,
-        val productoId: String? = null
+        val productoId: String? = null,
+        val nuevaCategoriaNombre: String = "",
+        val esNuevaCategoria: Boolean = false
     ) : FormularioProductoUiState
 
     data object Saving : FormularioProductoUiState

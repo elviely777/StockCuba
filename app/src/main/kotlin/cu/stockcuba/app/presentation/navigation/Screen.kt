@@ -71,9 +71,13 @@ sealed interface Screen {
         val modo: String, // "crear" | "editar"
         val productoId: String? = null
     ) : Screen {
-        override val route = "productos/formulario/$modo/${productoId ?: ""}"
+        override val route = if (productoId != null) {
+            "productos/formulario/$modo?productoId=$productoId"
+        } else {
+            "productos/formulario/$modo"
+        }
         companion object {
-            const val ROUTE_PATTERN = "productos/formulario/{modo}/{productoId?}"
+            const val ROUTE_PATTERN = "productos/formulario/{modo}?productoId={productoId}"
         }
     }
 

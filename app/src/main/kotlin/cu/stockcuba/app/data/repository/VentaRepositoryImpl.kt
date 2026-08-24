@@ -20,7 +20,7 @@ class VentaRepositoryImpl @Inject constructor(
     private val inventarioRepository: InventarioRepository
 ) : VentaRepository {
 
-    override fun getAll(): Flow<List<Venta>> = ventaDao.getAll().map { it.map { it.toDomain() } }
+    override fun getAll(): Flow<List<Venta>> = ventaDao.getAllWithItems().map { it.map { it.toDomain() } }
 
     override fun getById(id: String): Flow<Venta?> = ventaDao.getById(id).map { it?.toDomain() }
 
@@ -64,19 +64,24 @@ class VentaRepositoryImpl @Inject constructor(
                 ventaDao.insert(ventaEntity)
                 ventaDao.insertItems(itemsEntities)
 
-                // Registrar movimientos de inventario tipo VENTA
+                // Registrar movimientos de inventario tipo VENTA (T58)
                 val movimientoDao = database.movimientoInventarioDao()
-                val movimientosEntities = venta.items.map { item ->
-                    MovimientoInventario(
+                val productoDao = database.productoDao()
+                
+                venta.items.forEach { item ->
+                    val movimiento = MovimientoInventario(
                         id = java.util.UUID.randomUUID().toString(),
                         productoId = item.productoId,
                         tipo = TipoMovimientoInventario.VENTA,
                         cantidad = item.cantidad,
                         fecha = venta.fecha,
                         motivo = "Venta #${venta.id.take(8)}"
-                    ).toEntity()
+                    )
+                    
+                    movimientoDao.insert(movimiento.toEntity())
+                    // Descontar stock
+                    productoDao.updateStock(item.productoId, -item.cantidad)
                 }
-                movimientoDao.insertAll(movimientosEntities)
             }
             Result.Success(Unit)
         } catch (e: Exception) {

@@ -85,19 +85,6 @@ class SecurityRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getBiometricEnabled(): Result<Boolean> {
-        return try {
-            val enabled = ajustesDataStore.biometricEnabled.first()
-            Result.Success(enabled)
-        } catch (e: Exception) {
-            Result.Failure(DomainError.DatabaseError(e))
-        }
-    }
-
-    override suspend fun setBiometricEnabled(enabled: Boolean): Result<Unit> {
-        return ajustesDataStore.guardarBiometricEnabled(enabled)
-    }
-
     /**
      * Hashes a PIN using PBKDF2WithHmacSHA256.
      */

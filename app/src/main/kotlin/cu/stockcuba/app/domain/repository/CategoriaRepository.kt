@@ -21,4 +21,9 @@ interface CategoriaRepository {
     suspend fun deleteById(id: String): Result<Unit>
 
     fun countProductosInCategoria(categoriaId: String): Flow<Int>
+
+    /**
+     * Inserta las categorías por defecto si la base de datos está vacía (T50).
+     */
+    suspend fun prepopular(): Result<Unit>
 }

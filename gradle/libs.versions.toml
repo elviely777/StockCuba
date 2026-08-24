@@ -58,6 +58,9 @@ biometric = "1.2.0-alpha04"
 # ProcessPhoenix (app restart)
 processPhoenix = "2.2.0"
 
+# CSV Export
+kotlin-csv = "1.10.0"
+
 # Testing
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -127,6 +130,9 @@ biometric = { group = "androidx.biometric", name = "biometric", version.ref = "b
 
 # ProcessPhoenix
 process-phoenix = { group = "com.jakewharton", name = "process-phoenix", version.ref = "processPhoenix" }
+
+# CSV Export
+csvExport = { group = "com.github.doyaaaaaken", name = "kotlin-csv-jvm", version.ref = "kotlin-csv" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }

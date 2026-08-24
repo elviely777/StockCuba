@@ -5,18 +5,9 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import cu.stockcuba.app.data.local.dao.CategoriaDao
-import cu.stockcuba.app.data.local.dao.ClienteDao
-import cu.stockcuba.app.data.local.dao.MovimientoInventarioDao
-import cu.stockcuba.app.data.local.dao.ProductoDao
-import cu.stockcuba.app.data.local.dao.VentaDao
-import cu.stockcuba.app.data.local.entity.CategoriaEntity
-import cu.stockcuba.app.data.local.entity.ClienteEntity
-import cu.stockcuba.app.data.local.entity.Converters
-import cu.stockcuba.app.data.local.entity.MovimientoInventarioEntity
-import cu.stockcuba.app.data.local.entity.ProductoEntity
-import cu.stockcuba.app.data.local.entity.VentaEntity
-import cu.stockcuba.app.data.local.entity.VentaItemEntity
+import androidx.room.withTransaction
+import cu.stockcuba.app.data.local.dao.*
+import cu.stockcuba.app.data.local.entity.*
 import java.io.File
 
 @Database(
@@ -28,7 +19,7 @@ import java.io.File
         ClienteEntity::class,
         MovimientoInventarioEntity::class
     ],
-    version = 1,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -41,38 +32,21 @@ abstract class StockCubaDatabase : RoomDatabase() {
     abstract fun movimientoInventarioDao(): MovimientoInventarioDao
 
     /**
-     * Clears all tables in the database, respecting foreign key order.
-     * Also deletes WAL and SHM files if they exist (T27).
+     * Clears all operation tables in the database, respecting foreign key order (T27).
+     * This is a suspend function to be called from a coroutine.
      */
-    override fun clearAllTables() {
-        // Disable foreign key checks temporarily to allow truncation in any order
-        // Room's clearAllTables() handles FK order automatically, but we ensure it
-        runInTransaction {
+    suspend fun reiniciarBaseDatos() {
+        val database = this
+        database.withTransaction {
             // Delete in reverse dependency order to avoid FK violations
             // MovimientoInventario -> VentaItem -> Venta -> Producto -> Cliente -> Categoria
-            // Use blocking calls for DAOs that are suspend
-            // Note: This is a simplified approach - in production, consider using a coroutine
-            try {
-                kotlinx.coroutines.runBlocking {
-                    movimientoInventarioDao().deleteAll()
-                    ventaDao().deleteAllItems()
-                    ventaDao().deleteAll()
-                    productoDao().deleteAll()
-                    clienteDao().deleteAll()
-                    categoriaDao().deleteAll()
-                }
-            } catch (e: Exception) {
-                // Log error but continue
-                android.util.Log.e("StockCubaDatabase", "Error clearing tables", e)
-            }
+            movimientoInventarioDao().deleteAll()
+            ventaDao().deleteAllItems()
+            ventaDao().deleteAll()
+            productoDao().deleteAll()
+            clienteDao().deleteAll()
+            categoriaDao().deleteAll()
         }
-        
-        // Delete WAL and SHM files
-        val dbFile = File(openHelper.writableDatabase.path)
-        val walFile = File("${dbFile.absolutePath}-wal")
-        val shmFile = File("${dbFile.absolutePath}-shm")
-        walFile.delete()
-        shmFile.delete()
     }
 
     companion object {

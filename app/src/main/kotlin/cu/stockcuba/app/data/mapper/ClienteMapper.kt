@@ -7,6 +7,7 @@ import java.time.Instant
 fun ClienteEntity.toDomain(): Cliente = Cliente(
     id = id,
     nombre = nombre,
+    ci = ci,
     telefono = telefono,
     notas = notas
 )
@@ -14,6 +15,7 @@ fun ClienteEntity.toDomain(): Cliente = Cliente(
 fun Cliente.toEntity(): ClienteEntity = ClienteEntity(
     id = id,
     nombre = nombre,
+    ci = ci,
     telefono = telefono,
     notas = notas,
     fechaCreacion = Instant.now().toEpochMilli(),

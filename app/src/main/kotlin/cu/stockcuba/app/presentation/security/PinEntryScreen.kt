@@ -22,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -58,8 +59,7 @@ import kotlin.math.pow
 fun PinEntryScreen(
     mode: Mode,
     securityRepository: SecurityRepository,
-    onResult: (Result<Boolean>) -> Unit,
-    biometricAuthenticator: BiometricAuthenticator? = null
+    onResult: (Result<Boolean>) -> Unit
 ) {
     var pin by remember { mutableStateOf("") }
     var confirmPin by remember { mutableStateOf("") }
@@ -186,6 +186,20 @@ fun PinEntryScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Lg)
             ) {
+                // Logo
+                Surface(
+                    color = Color.White,
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    modifier = Modifier.size(72.dp),
+                    shadowElevation = 4.dp
+                ) {
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.ui.res.painterResource(id = cu.stockcuba.app.R.mipmap.ic_launcher_foreground),
+                        contentDescription = "Logo",
+                        modifier = Modifier.padding(8.dp).fillMaxSize()
+                    )
+                }
+
                 // Title
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -274,17 +288,6 @@ fun PinEntryScreen(
                             text = actionLabel,
                             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                         )
-                    }
-                }
-
-                // Cancel button (optional - could go back)
-                if (mode == Mode.Verify && biometricAuthenticator != null) {
-                    OutlinedButton(
-                        onClick = { onResult(Result.Failure(DomainError.Unknown("User cancelled", null))) },
-                        modifier = Modifier.fillMaxWidth().padding(top = StockCubaSpacing.Sm),
-                        shape = Shape.Grande
-                    ) {
-                        Text("Cancelar")
                     }
                 }
             }

@@ -21,7 +21,12 @@ sealed interface NuevaVentaUiState {
         val clientes: List<ClienteSimple> = emptyList(),
         val isLoading: Boolean = false,
         val errors: Map<String, String> = emptyMap(),
-        val showSuccess: Boolean = false
+        val showSuccess: Boolean = false,
+        val showNuevoClienteDialog: Boolean = false,
+        val editingClienteId: String? = null, // null = creando, not null = editando
+        val nuevoClienteNombre: String = "",
+        val nuevoClienteCI: String = "",
+        val nuevoClienteTelefono: String = ""
     ) : NuevaVentaUiState
 
     data object Saving : NuevaVentaUiState
@@ -105,11 +110,11 @@ sealed interface HistorialVentasUiState {
 }
 
 /**
- * Ventas agrupadas por día.
+ * Ventas agrupadas por día con información de clientes mapeada.
  */
 data class VentasPorDia(
     val fecha: Long,
-    val ventas: List<Venta>,
+    val ventas: List<VentaUi>,
     val totalDia: Double
 ) {
     val cantidadVentas: Int
@@ -121,6 +126,26 @@ data class VentasPorDia(
             .toLocalDate()
             .format(java.time.format.DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM", java.util.Locale.getDefault()))
             .replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() }
+}
+
+/**
+ * Representación de venta para la UI con nombre de cliente.
+ */
+data class VentaUi(
+    val venta: Venta,
+    val clienteNombre: String? = null
+)
+
+/**
+ * Estado para Detalle de Venta.
+ */
+sealed interface DetalleVentaUiState {
+    data object Loading : DetalleVentaUiState
+    data class Success(
+        val venta: Venta,
+        val cliente: cu.stockcuba.app.domain.model.Cliente? = null
+    ) : DetalleVentaUiState
+    data class Error(val message: String) : DetalleVentaUiState
 }
 
 /**

@@ -190,6 +190,9 @@ dependencies {
     // ProcessPhoenix (app restart after backup import)
     implementation(libs.process.phoenix)
 
+    // CSV Export for Excel
+    implementation(libs.csvExport)
+
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.mockito)

@@ -4,7 +4,7 @@ import cu.stockcuba.app.domain.model.Result
 
 /**
  * Repository interface for security operations (T34).
- * Handles PIN management with PBKDF2 hashing and biometric authentication.
+ * Handles PIN management with PBKDF2 hashing.
  */
 interface SecurityRepository {
 
@@ -24,14 +24,4 @@ interface SecurityRepository {
      * Checks if a PIN has been set.
      */
     suspend fun hasPin(): Result<Boolean>
-
-    /**
-     * Gets whether biometric authentication is enabled.
-     */
-    suspend fun getBiometricEnabled(): Result<Boolean>
-
-    /**
-     * Enables or disables biometric authentication.
-     */
-    suspend fun setBiometricEnabled(enabled: Boolean): Result<Unit>
 }

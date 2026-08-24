@@ -3,87 +3,27 @@ package cu.stockcuba.app.presentation.ajustes
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AttachMoney
-import androidx.compose.material.icons.filled.Brightness4
-import androidx.compose.material.icons.filled.BrightnessAuto
-import androidx.compose.material.icons.filled.Business
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DeleteForever
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Mail
-import androidx.compose.material.icons.filled.Percent
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material.icons.filled.Upload
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AlertDialogDefaults
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -93,11 +33,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.compose.ui.window.DialogProperties
-import cu.stockcuba.app.domain.feedback.FeedbackRepository
-import cu.stockcuba.app.presentation.ajustes.Moneda
-import cu.stockcuba.app.domain.security.SecurityRepository
+import cu.stockcuba.app.domain.model.Result
 import cu.stockcuba.app.presentation.navigation.Screen
-import cu.stockcuba.app.presentation.security.BiometricAuthenticator
 import cu.stockcuba.app.presentation.security.PinEntryScreen
 import cu.stockcuba.app.presentation.security.Mode
 import cu.stockcuba.app.presentation.theme.Shape
@@ -112,8 +49,6 @@ fun AjustesScreen(
     navController: NavController,
     viewModel: AjustesViewModel = hiltViewModel()
 ) {
-    val securityRepository = viewModel.securityRepository
-    val biometricAuthenticator = viewModel.biometricAuthenticator
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -123,14 +58,15 @@ fun AjustesScreen(
     var resetConfirmationText by remember { mutableStateOf("") }
     var showPinSetupDialog by remember { mutableStateOf(false) }
     var pinSetupMode by remember { mutableStateOf<Mode>(Mode.Setup) }
-    var showBiometricToggleDialog by remember { mutableStateOf(false) }
 
     // SAF launcher for importing database file
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         uri?.let { selectedUri ->
             scope.launch {
-                viewModel.importarBaseDatos(selectedUri).onFailure { error ->
-                    scope.launch { snackbarHostState.showSnackbar("Error al importar: ${error.toString()}") }
+                viewModel.importarBaseDatos(selectedUri).onSuccess {
+                    scope.launch { snackbarHostState.showSnackbar("Datos importados con éxito") }
+                }.onFailure { error ->
+                    scope.launch { snackbarHostState.showSnackbar("Error al importar: $error") }
                 }
             }
         }
@@ -139,520 +75,391 @@ fun AjustesScreen(
     // Navigation callback for reset completion
     viewModel.onResetComplete = {
         navController.navigate(Screen.Dashboard.route) {
-            popUpTo(navController.graph.startDestinationId) {
-                inclusive = true
-            }
+            popUpTo(navController.graph.startDestinationId) { inclusive = true }
             launchSingleTop = true
-            restoreState = true
         }
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Ajustes") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
-            )
+            AjustesHeader(onBack = onBack)
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-        when (val state = uiState) {
-            is AjustesUiState.Loading -> AjustesCargando()
-            is AjustesUiState.Error -> AjustesError(message = state.message)
-            is AjustesUiState.Success -> AjustesContenido(
-                state = state,
-                onNombreChange = { viewModel.guardarNombreNegocio(it) },
-                onDireccionChange = { viewModel.guardarDireccion(it) },
-                onTelefonoChange = { viewModel.guardarTelefono(it) },
-                onMonedaChange = { viewModel.guardarMoneda(it) },
-                onImpuestoChange = { viewModel.guardarImpuesto(it) },
-                onTemaChange = { viewModel.guardarTema(it) },
-                onSeguridadChange = { viewModel.guardarSeguridadBiometrica(it) },
-                onExportar = {
-                    scope.launch {
-                        viewModel.exportarBaseDatos().onSuccess { uri ->
-                            scope.launch { snackbarHostState.showSnackbar("Exportado a ${uri.toString()}") }
-                        }.onFailure { error ->
-                            scope.launch { snackbarHostState.showSnackbar("Error al exportar: ${error.toString()}") }
+        Box(modifier = Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background)) {
+            when (val state = uiState) {
+                is AjustesUiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = StockCubaColors.VerdeExito) }
+                is AjustesUiState.Error -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(state.message, color = StockCubaColors.CoralAlerta) }
+                is AjustesUiState.Success -> {
+                    AjustesContenidoModerno(
+                        state = state,
+                        viewModel = viewModel,
+                        onExportar = {
+                            scope.launch {
+                                viewModel.exportarBaseDatos().onSuccess {
+                                    scope.launch { snackbarHostState.showSnackbar("Copia guardada con éxito") }
+                                }.onFailure { error ->
+                                    scope.launch { snackbarHostState.showSnackbar("Error al exportar: $error") }
+                                }
+                            }
+                        },
+                        onImportar = { importLauncher.launch(arrayOf("*/*")) },
+                        onReiniciar = { showResetDialog = true },
+                        onPinSetup = { pinSetupMode = Mode.Setup; showPinSetupDialog = true },
+                        onPinChange = { pinSetupMode = Mode.Verify; showPinSetupDialog = true },
+                        onFeedback = {
+                            scope.launch {
+                                viewModel.sendFeedback().onFailure { 
+                                    scope.launch { snackbarHostState.showSnackbar("No se encontró app de correo") }
+                                }
+                            }
                         }
-                    }
-                },
-                onImportar = {
-                    importLauncher.launch(arrayOf("application/x-sqlite3"))
-                },
-                onReiniciar = { showResetDialog = true },
-                onPinSetup = { pinSetupMode = Mode.Setup; showPinSetupDialog = true },
-                onPinChange = { pinSetupMode = Mode.Verify; showPinSetupDialog = true },
-                onBiometricToggle = { showBiometricToggleDialog = true },
-                onFeedback = {
-                    scope.launch {
-                        viewModel.sendFeedback().onSuccess {
-                            scope.launch { snackbarHostState.showSnackbar("Correo abierto para enviar feedback") }
-                        }.onFailure { error ->
-                            scope.launch { snackbarHostState.showSnackbar("No hay app de correo: ${error.toString()}") }
-                        }
-                    }
-                },
-                padding = padding
-            )
-            else -> { }
+                    )
+                }
+                else -> {}
+            }
         }
 
-        // ===== RESET CONFIRMATION DIALOG (T29) =====
+        // --- DIÁLOGOS ---
         if (showResetDialog) {
             ResetConfirmationDialog(
                 onDismiss = { showResetDialog = false; resetConfirmationText = "" },
                 onConfirm = {
                     viewModel.reiniciarDatos(resetConfirmationText)
                     showResetDialog = false
-                    resetConfirmationText = ""
                 },
                 confirmationText = resetConfirmationText,
                 onTextChange = { resetConfirmationText = it }
             )
         }
 
-        // ===== PIN SETUP/CHANGE DIALOG (T41) =====
         if (showPinSetupDialog) {
             PinEntryScreen(
                 mode = pinSetupMode,
-                securityRepository = securityRepository,
-                biometricAuthenticator = biometricAuthenticator,
+                securityRepository = viewModel.securityRepository,
                 onResult = { result ->
-                    when (result) {
-                        is cu.stockcuba.app.domain.model.Result.Success -> {
-                            if (result.value) {
-                                showPinSetupDialog = false
-                                scope.launch {
-                                    snackbarHostState.showSnackbar(
-                                        if (pinSetupMode == Mode.Setup)
-                                            "PIN configurado correctamente"
-                                        else
-                                            "PIN cambiado correctamente"
-                                    )
-                                }
-                            }
-                        }
-                        is cu.stockcuba.app.domain.model.Result.Failure -> {
-                            scope.launch { snackbarHostState.showSnackbar("Error: ${result.error.toString()}") }
+                    if (result is Result.Success && result.value) {
+                        showPinSetupDialog = false
+                        scope.launch {
+                            snackbarHostState.showSnackbar(if (pinSetupMode == Mode.Setup) "PIN configurado" else "PIN actualizado")
                         }
                     }
                 }
             )
         }
-
-        // ===== BIOMETRIC TOGGLE DIALOG (T41) =====
-        if (showBiometricToggleDialog) {
-            val state = uiState as? AjustesUiState.Success
-            BiometricToggleDialog(
-                onDismiss = { showBiometricToggleDialog = false },
-                currentEnabled = state?.seguridadBiometrica ?: false,
-                onToggle = { enabled ->
-                    scope.launch { viewModel.toggleBiometric(enabled) }
-                    showBiometricToggleDialog = false
-                },
-                requiresPin = (state?.tienePin ?: false) == false
-            )
-        }
     }
 }
 
-/**
- * Loading state composable - shows centered CircularProgressIndicator
- */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AjustesCargando() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+fun AjustesHeader(onBack: () -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)
-        ) {
-            CircularProgressIndicator(
-                modifier = Modifier
-                    .size(48.dp)
-                    .testTag("cargando_progress"),
-                color = MaterialTheme.colorScheme.primary,
-                strokeWidth = 4.dp
-            )
-            Text(
-                text = "Cargando ajustes...",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-/**
- * Error state composable - shows centered error message with retry button
- */
-@Composable
-fun AjustesError(
-    message: String,
-    onRetry: (() -> Unit)? = null
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(StockCubaSpacing.Xl)
-            .testTag("error_container"),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(StockCubaSpacing.Lg),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Lg)
+                .statusBarsPadding()
+                .padding(horizontal = 4.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(48.dp)
-            )
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis
-            )
-            onRetry?.let { retry ->
-                OutlinedButton(
-                    onClick = retry,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = Shape.Grande
-                ) {
-                    Text("Reintentar")
-                }
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
             }
+            Text(
+                "Configuración", 
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                modifier = Modifier.padding(start = 8.dp)
+            )
         }
     }
 }
 
-/**
- * Reusable text field with inline validation error support
- */
 @Composable
-fun CampoTextoAjuste(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    isError: Boolean = false,
-    supportingText: String? = null,
-    keyboardType: KeyboardType = KeyboardType.Text,
-    modifier: Modifier = Modifier,
-    leadingIcon: (@Composable () -> Unit)? = null,
-    trailingIcon: (@Composable () -> Unit)? = null,
-    singleLine: Boolean = true,
-    maxLines: Int = 1
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag("campo_texto_ajuste"),
-        singleLine = singleLine,
-        maxLines = maxLines,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        leadingIcon = leadingIcon,
-        trailingIcon = trailingIcon,
-        isError = isError,
-        supportingText = { if (supportingText != null) Text(supportingText) },
-        shape = Shape.Grande,
-        colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-            unfocusedContainerColor = Color.Transparent,
-            focusedContainerColor = Color.Transparent,
-            disabledContainerColor = Color.Transparent
-        )
-    )
-}
-
-/**
- * Main content composable - LazyColumn with 5 sections:
- * Negocio, Apariencia, Seguridad, Base de Datos, Acerca de
- */
-@Composable
-fun AjustesContenido(
+fun AjustesContenidoModerno(
     state: AjustesUiState.Success,
-    onNombreChange: (String) -> Unit,
-    onDireccionChange: (String) -> Unit,
-    onTelefonoChange: (String) -> Unit,
-    onMonedaChange: (Moneda) -> Unit,
-    onImpuestoChange: (String) -> Unit,
-    onTemaChange: (String) -> Unit,
-    onSeguridadChange: (Boolean) -> Unit,
+    viewModel: AjustesViewModel,
     onExportar: () -> Unit,
     onImportar: () -> Unit,
     onReiniciar: () -> Unit,
     onPinSetup: () -> Unit,
     onPinChange: () -> Unit,
-    onBiometricToggle: () -> Unit,
-    onFeedback: () -> Unit,
-    padding: PaddingValues
+    onFeedback: () -> Unit
 ) {
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(padding),
-        verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Lg),
-        contentPadding = StockCubaSpacing.screenPadding
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(StockCubaSpacing.Lg),
+        verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Lg)
     ) {
-        // ===== SECCIÓN 1: NEGOCIO =====
+        // --- LOGO DE LA APP ---
         item {
-            SeccionAjustes(
-                titulo = "Negocio",
-                icono = Icons.Default.Business,
-                iconColor = MaterialTheme.colorScheme.primary
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(vertical = StockCubaSpacing.Md),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                CampoTextoAjuste(
-                    label = "Nombre del Negocio",
+                Surface(
+                    color = Color.White,
+                    shape = CircleShape,
+                    modifier = Modifier.size(80.dp),
+                    shadowElevation = 4.dp
+                ) {
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.ui.res.painterResource(id = cu.stockcuba.app.R.mipmap.ic_launcher_foreground),
+                        contentDescription = "Logo",
+                        modifier = Modifier.padding(12.dp).fillMaxSize()
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = "StockCuba",
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold)
+                )
+                Text(
+                    text = "Gestión Inteligente",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+
+        // --- SECCIÓN 1: NEGOCIO ---
+        item {
+            SeccionAjustesModerna(titulo = "Mi Negocio", icono = Icons.Default.Storefront) {
+                CampoAjusteModerno(
                     value = state.nombreNegocio,
-                    onValueChange = onNombreChange,
-                    isError = state.nombreError != null,
-                    supportingText = state.nombreError,
-                    leadingIcon = { Icon(Icons.Default.Business, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                    onValueChange = { viewModel.guardarNombreNegocio(it) },
+                    label = "Nombre Comercial",
+                    icon = Icons.Default.Business,
+                    error = state.validationErrors["nombre"]
                 )
-                Spacer(modifier = Modifier.height(StockCubaSpacing.Md))
-                CampoTextoAjuste(
-                    label = "Dirección",
+                CampoAjusteModerno(
                     value = state.direccion,
-                    onValueChange = onDireccionChange,
-                    leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                    onValueChange = { viewModel.guardarDireccion(it) },
+                    label = "Dirección / Localización",
+                    icon = Icons.Default.LocationOn
                 )
-                Spacer(modifier = Modifier.height(StockCubaSpacing.Md))
-                CampoTextoAjuste(
-                    label = "Teléfono",
+                CampoAjusteModerno(
                     value = state.telefono,
-                    onValueChange = onTelefonoChange,
-                    isError = state.telefonoError != null,
-                    supportingText = state.telefonoError,
+                    onValueChange = { viewModel.guardarTelefono(it) },
+                    label = "Teléfono de Contacto",
+                    icon = Icons.Default.Phone,
                     keyboardType = KeyboardType.Phone,
-                    leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                    error = state.validationErrors["telefono"]
                 )
-                Spacer(modifier = Modifier.height(StockCubaSpacing.Md))
-                SelectorMoneda(
-                    monedaActual = state.moneda,
-                    onMonedaChange = onMonedaChange
-                )
-                Spacer(modifier = Modifier.height(StockCubaSpacing.Md))
-                CampoTextoAjuste(
-                    label = "Impuesto predeterminado (%)",
-                    value = "%.0f".format(state.impuesto),
-                    onValueChange = onImpuestoChange,
-                    isError = state.impuestoError != null,
-                    supportingText = state.impuestoError,
-                    keyboardType = KeyboardType.Number,
-                    leadingIcon = { Icon(Icons.Default.Percent, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                
+                Text("Preferencia de Moneda", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                SelectorAjusteModerno(
+                    label = state.moneda.name,
+                    icon = Icons.Default.MonetizationOn,
+                    onClick = { /* Podría abrir un dialog con opciones */ }
                 )
             }
         }
 
-        // ===== SECCIÓN 2: APARIENCIA =====
+        // --- SECCIÓN 2: APARIENCIA ---
         item {
-            SeccionAjustes(
-                titulo = "Apariencia",
-                icono = Icons.Default.Brightness4,
-                iconColor = MaterialTheme.colorScheme.tertiary
-            ) {
-                SelectorTema(
-                    temaActual = state.tema,
-                    onTemaChange = onTemaChange
-                )
-            }
-        }
-
-        // ===== SECCIÓN 3: SEGURIDAD =====
-        item {
-            SeccionAjustes(
-                titulo = "Seguridad",
-                icono = Icons.Default.Lock,
-                iconColor = MaterialTheme.colorScheme.secondary
-            ) {
-                // Biometric toggle
-                FilaAjuste(
-                    titulo = "Autenticación biométrica",
-                    subtitulo = "Usar huella o rostro para desbloquear",
-                    icono = Icons.Default.Fingerprint,
-                    accion = {
-                        Switch(
-                            checked = state.seguridadBiometrica,
-                            onCheckedChange = onSeguridadChange,
-                            modifier = Modifier.testTag("biometric_switch"),
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.primary,
-                                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
-                                uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
-                        )
-                    }
-                )
-                HorizontalDivider()
-                // PIN setup/change
-                FilaAjuste(
-                    titulo = if (state.tienePin) "Cambiar PIN" else "Configurar PIN",
-                    subtitulo = if (state.tienePin) "Modificar PIN actual" else "Crear PIN de 4-6 dígitos",
-                    icono = Icons.Default.Key,
-                    accion = {
-                        TextButton(
-                            onClick = if (state.tienePin) onPinChange else onPinSetup,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = if (state.tienePin) "Cambiar" else "Configurar",
-                                fontWeight = FontWeight.Medium
-                            )
+            SeccionAjustesModerna(titulo = "Apariencia", icono = Icons.Default.Palette, color = Color(0xFF8B5CF6)) {
+                Text("Tema Visual", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                SelectorAjusteModerno(
+                    label = when(state.tema) {
+                        "DARK" -> "Modo Oscuro"
+                        "LIGHT" -> "Modo Claro"
+                        else -> "Seguir Sistema"
+                    },
+                    icon = when(state.tema) {
+                        "DARK" -> Icons.Default.DarkMode
+                        "LIGHT" -> Icons.Default.LightMode
+                        else -> Icons.Default.BrightnessAuto
+                    },
+                    onClick = { 
+                        val next = when(state.tema) {
+                            "SYSTEM" -> "DARK"
+                            "DARK" -> "LIGHT"
+                            else -> "SYSTEM"
                         }
-                    }
-                )
-                HorizontalDivider()
-                // Biometric toggle dialog trigger
-                FilaAjuste(
-                    titulo = "Autenticación biométrica avanzada",
-                    subtitulo = "Configurar opciones biométricas",
-                    icono = Icons.Default.Security,
-                    accion = {
-                        TextButton(
-                            onClick = onBiometricToggle,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "Configurar",
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
+                        viewModel.guardarTema(next)
                     }
                 )
             }
         }
 
-        // ===== SECCIÓN 4: BASE DE DATOS =====
+        // --- SECCIÓN 3: SEGURIDAD ---
         item {
-            SeccionAjustes(
-                titulo = "Base de Datos",
-                icono = Icons.Default.Storage,
-                iconColor = MaterialTheme.colorScheme.primary
-            ) {
-                FilaAjuste(
-                    titulo = "Exportar base de datos",
-                    subtitulo = "Crear copia de seguridad completa",
-                    icono = Icons.Default.Download,
-                    accion = {
-                        Button(
-                            onClick = onExportar,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = Shape.Grande
-                        ) {
-                            Text("Exportar")
-                        }
-                    }
-                )
-                HorizontalDivider()
-                FilaAjuste(
-                    titulo = "Importar base de datos",
-                    subtitulo = "Restaurar desde archivo de respaldo",
-                    icono = Icons.Default.Upload,
-                    accion = {
-                        OutlinedButton(
-                            onClick = onImportar,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = Shape.Grande
-                        ) {
-                            Text("Importar")
-                        }
-                    }
-                )
-                HorizontalDivider()
-                FilaAjuste(
-                    titulo = "Reiniciar todos los datos",
-                    subtitulo = "Elimina productos, ventas, clientes y ajustes (mantiene tema, PIN y biometría)",
-                    icono = Icons.Default.DeleteForever,
-                    iconColor = MaterialTheme.colorScheme.error,
-                    accion = {
-                        Button(
-                            onClick = onReiniciar,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = Shape.Grande,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error,
-                                contentColor = MaterialTheme.colorScheme.onError
-                            )
-                        ) {
-                            Text("Reiniciar")
-                        }
-                    }
+            SeccionAjustesModerna(titulo = "Seguridad", icono = Icons.Default.Shield, color = StockCubaColors.VerdeExito) {
+                FilaAccionAjuste(
+                    titulo = if (state.tienePin) "Cambiar PIN de Acceso" else "Configurar PIN de Seguridad",
+                    subtitulo = "Protege el acceso a tus finanzas e inventario",
+                    icon = Icons.Default.Lock,
+                    onClick = if (state.tienePin) onPinChange else onPinSetup
                 )
             }
         }
 
-        // ===== SECCIÓN 5: ACERCA DE =====
+        // --- SECCIÓN 4: DATOS ---
         item {
-            SeccionAjustes(
-                titulo = "Acerca de",
-                icono = Icons.Default.Info,
-                iconColor = MaterialTheme.colorScheme.outline
-            ) {
-                FilaAjuste(
-                    titulo = "Versión",
-                    subtitulo = "StockCuba ${state.appVersion}",
-                    icono = Icons.Default.Info,
-                    accion = { /* No action */ }
+            SeccionAjustesModerna(titulo = "Gestión de Datos", icono = Icons.Default.Storage, color = Color(0xFFF59E0B)) {
+                FilaAccionAjuste(
+                    titulo = "Copia de Seguridad",
+                    subtitulo = "Exportar base de datos a un archivo",
+                    icon = Icons.Default.CloudUpload,
+                    onClick = onExportar
                 )
-                HorizontalDivider()
-                FilaAjuste(
-                    titulo = "Enviar feedback",
-                    subtitulo = "Reportar errores o sugerencias",
-                    icono = Icons.Default.Mail,
-                    accion = {
-                        TextButton(
-                            onClick = onFeedback,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "Enviar",
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                FilaAccionAjuste(
+                    titulo = "Restaurar Datos",
+                    subtitulo = "Importar desde un archivo externo",
+                    icon = Icons.Default.CloudDownload,
+                    onClick = onImportar
                 )
-                HorizontalDivider()
-                FilaAjuste(
-                    titulo = "Compartir app",
-                    subtitulo = "Recomendar a otros comerciantes",
-                    icono = Icons.Default.Share,
-                    accion = {
-                        TextButton(
-                            onClick = { /* Share intent */ },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "Compartir",
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                FilaAccionAjuste(
+                    titulo = "Borrado Total",
+                    subtitulo = "Eliminar toda la información del negocio",
+                    icon = Icons.Default.DeleteForever,
+                    color = StockCubaColors.CoralAlerta,
+                    onClick = onReiniciar
                 )
             }
+        }
+
+        // --- SECCIÓN 5: SOPORTE ---
+        item {
+            SeccionAjustesModerna(titulo = "Acerca de", icono = Icons.Default.Info) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Versión de la App", style = MaterialTheme.typography.bodyMedium)
+                    Text(state.appVersion, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+                }
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                FilaAccionAjuste(
+                    titulo = "Enviar Sugerencia",
+                    subtitulo = "Ayúdanos a mejorar StockCuba",
+                    icon = Icons.Default.Email,
+                    onClick = onFeedback
+                )
+            }
+        }
+        
+        item { Spacer(modifier = Modifier.height(40.dp)) }
+    }
+}
+
+@Composable
+fun SeccionAjustesModerna(
+    titulo: String,
+    icono: ImageVector,
+    color: Color = MaterialTheme.colorScheme.primary,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = Shape.Grande,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+    ) {
+        Column(
+            modifier = Modifier.padding(StockCubaSpacing.Lg),
+            verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Lg)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(color = color.copy(alpha = 0.1f), shape = CircleShape) {
+                    Icon(icono, contentDescription = null, tint = color, modifier = Modifier.padding(8.dp).size(18.dp))
+                }
+                Spacer(Modifier.width(12.dp))
+                Text(titulo, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = 0.5.sp))
+            }
+            content()
         }
     }
 }
 
-/**
- * Reset confirmation dialog - requires exact "REINICIAR" text
- */
+@Composable
+fun CampoAjusteModerno(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    icon: ImageVector,
+    error: String? = null,
+    keyboardType: KeyboardType = KeyboardType.Text
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp)) },
+        isError = error != null,
+        supportingText = { error?.let { Text(it) } },
+        modifier = Modifier.fillMaxWidth(),
+        shape = Shape.Grande,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Next),
+        colors = OutlinedTextFieldDefaults.colors(
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+            focusedBorderColor = MaterialTheme.colorScheme.primary
+        )
+    )
+}
+
+@Composable
+fun SelectorAjusteModerno(label: String, icon: ImageVector, onClick: () -> Unit) {
+    OutlinedCard(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().height(56.dp),
+        shape = Shape.Grande,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(12.dp))
+                Text(label, style = MaterialTheme.typography.bodyLarge)
+            }
+            Icon(Icons.Default.ChevronRight, contentDescription = null)
+        }
+    }
+}
+
+@Composable
+fun FilaAccionAjuste(
+    titulo: String,
+    subtitulo: String,
+    icon: ImageVector,
+    color: Color = MaterialTheme.colorScheme.onSurface,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        color = Color.Transparent,
+        shape = Shape.Grande
+    ) {
+        Row(
+            modifier = Modifier.padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(color.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
+            }
+            Spacer(Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(titulo, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = color)
+                Text(subtitulo, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+        }
+    }
+}
+
 @Composable
 fun ResetConfirmationDialog(
     onDismiss: () -> Unit,
@@ -660,385 +467,33 @@ fun ResetConfirmationDialog(
     confirmationText: String,
     onTextChange: (String) -> Unit
 ) {
-    val isValid = confirmationText == "REINICIAR"
-
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Confirmar reinicio total") },
+        title = { Text("¿Reiniciar aplicación?", fontWeight = FontWeight.Bold) },
         text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)
-            ) {
-                Text(
-                    text = "Esta acción eliminará TODOS los datos:\n• Productos e inventario\n• Ventas e historial\n• Clientes y proveedores\n• Ajustes de negocio\n\nSe conservarán: tema, PIN y biometría.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                CampoTextoAjuste(
-                    label = "Escribe REINICIAR para confirmar",
+            Column(verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
+                Text("Esta acción eliminará todos tus productos, ventas y clientes. No se puede deshacer.", style = MaterialTheme.typography.bodyMedium)
+                OutlinedTextField(
                     value = confirmationText,
                     onValueChange = onTextChange,
-                    isError = confirmationText.isNotBlank() && !isValid,
-                    supportingText = if (confirmationText.isNotBlank() && !isValid) "Debe escribir exactamente: REINICIAR" else null,
-                    keyboardType = KeyboardType.Text,
-                    singleLine = true,
-                    modifier = Modifier.testTag("reset_confirmation_field")
+                    label = { Text("Escribe REINICIAR") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = Shape.Grande
                 )
             }
         },
         confirmButton = {
             Button(
                 onClick = onConfirm,
-                enabled = isValid,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError
-                )
+                enabled = confirmationText == "REINICIAR",
+                colors = ButtonDefaults.buttonColors(containerColor = StockCubaColors.CoralAlerta),
+                shape = Shape.Grande
             ) {
-                Text("Confirmar reinicio")
+                Text("Borrar Todo")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
-            }
-        },
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false
-        )
-    )
-}
-
-/**
- * Biometric toggle dialog with Switch and PIN requirement warning
- */
-@Composable
-fun BiometricToggleDialog(
-    onDismiss: () -> Unit,
-    currentEnabled: Boolean,
-    onToggle: (Boolean) -> Unit,
-    requiresPin: Boolean = false
-) {
-    var enabled by remember { mutableStateOf(currentEnabled) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Autenticación biométrica") },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)
-            ) {
-                Text(
-                    text = "Permite desbloquear la app usando tu huella digital o reconocimiento facial.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                if (requiresPin) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = StockCubaSpacing.Sm),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Sm)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Info,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Text(
-                                text = "Requiere configurar PIN primero",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                        }
-                    }
-                }
-                Switch(
-                    checked = enabled,
-                    onCheckedChange = { newValue ->
-                        enabled = newValue
-                        onToggle(newValue)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("biometric_switch"),
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = MaterialTheme.colorScheme.primary,
-                        checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
-                        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Listo")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
-            }
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
         }
     )
-}
-
-/**
- * Section container with title and icon
- */
-@Composable
-private fun SeccionAjustes(
-    titulo: String,
-    icono: ImageVector,
-    iconColor: Color = MaterialTheme.colorScheme.primary,
-    content: @Composable () -> Unit
-) {
-    Card(
-        shape = Shape.Grande,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(StockCubaSpacing.Lg),
-            verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Lg)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)
-            ) {
-                Icon(
-                    imageVector = icono,
-                    contentDescription = null,
-                    tint = iconColor,
-                    modifier = Modifier.size(24.dp)
-                )
-                Text(
-                    text = titulo,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            content()
-        }
-    }
-}
-
-/**
- * Row item for settings with title, subtitle, icon, and trailing action
- */
-@Composable
-private fun FilaAjuste(
-    titulo: String,
-    subtitulo: String? = null,
-    icono: ImageVector,
-    iconColor: Color = MaterialTheme.colorScheme.primary,
-    accion: @Composable () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md),
-            modifier = Modifier.weight(1f)
-        ) {
-            Icon(
-                imageVector = icono,
-                contentDescription = null,
-                tint = iconColor,
-                modifier = Modifier.size(24.dp)
-            )
-            Column(
-                verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Xxs)
-            ) {
-                Text(
-                    text = titulo,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                subtitulo?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-        accion()
-    }
-}
-
-/**
- * Moneda selector dropdown
- */
-@Composable
-private fun SelectorMoneda(
-    monedaActual: Moneda,
-    onMonedaChange: (Moneda) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val monedas = Moneda.values()
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Xs)
-    ) {
-        Text(
-            text = "Moneda",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        OutlinedButton(
-            onClick = { expanded = !expanded },
-            modifier = Modifier.fillMaxWidth(),
-            shape = Shape.Grande,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Sm)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AttachMoney,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                        text = monedaActual.name,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                Icon(
-                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-
-        if (expanded) {
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                monedas.forEach { moneda ->
-                    DropdownMenuItem(
-                        text = { Text(moneda.name) },
-                        onClick = {
-                            onMonedaChange(moneda)
-                            expanded = false
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * Tema selector dropdown
- */
-@Composable
-private fun SelectorTema(
-    temaActual: String,
-    onTemaChange: (String) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val temas = listOf("SYSTEM", "LIGHT", "DARK")
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Xs)
-    ) {
-        Text(
-            text = "Tema",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        OutlinedButton(
-            onClick = { expanded = !expanded },
-            modifier = Modifier.fillMaxWidth(),
-            shape = Shape.Grande,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Sm)
-                ) {
-                    Icon(
-                        imageVector = when (temaActual) {
-                            "LIGHT" -> Icons.Default.LightMode
-                            "DARK" -> Icons.Default.DarkMode
-                            else -> Icons.Default.BrightnessAuto
-                        },
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                        text = when (temaActual) {
-                            "SYSTEM" -> "Sistema"
-                            "LIGHT" -> "Claro"
-                            "DARK" -> "Oscuro"
-                            else -> temaActual
-                        },
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                Icon(
-                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-
-        if (expanded) {
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                temas.forEach { tema ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(when (tema) {
-                                "SYSTEM" -> "Sistema"
-                                "LIGHT" -> "Claro"
-                                "DARK" -> "Oscuro"
-                                else -> tema
-                            })
-                        },
-                        onClick = {
-                            onTemaChange(tema)
-                            expanded = false
-                        }
-                    )
-                }
-            }
-        }
-    }
 }

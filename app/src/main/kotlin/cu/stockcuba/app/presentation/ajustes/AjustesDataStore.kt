@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import androidx.datastore.preferences.core.doublePreferencesKey
-import androidx.datastore.preferences.core.booleanPreferencesKey
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -26,12 +25,10 @@ class AjustesDataStore @Inject constructor(
         val MONEDA_KEY = stringPreferencesKey("moneda")
         val IMPUESTO_KEY = doublePreferencesKey("impuesto")
         val TEMA_KEY = stringPreferencesKey("tema")
-        val SEGURIDAD_BIOMETRICA_KEY = booleanPreferencesKey("seguridad_biometrica")
         
-        // PIN/Biometric security keys (T33)
+        // PIN security keys (T33)
         val PIN_HASH_KEY = stringPreferencesKey("pin_hash")
         val PIN_SALT_KEY = stringPreferencesKey("pin_salt")
-        val BIOMETRIC_ENABLED_KEY = booleanPreferencesKey("biometric_enabled")
     }
 
     val nombreNegocio: Flow<String> = dataStore.data
@@ -58,11 +55,7 @@ class AjustesDataStore @Inject constructor(
         .map { it[TEMA_KEY] ?: "SYSTEM" }
         .distinctUntilChanged()
 
-    val seguridadBiometrica: Flow<Boolean> = dataStore.data
-        .map { it[SEGURIDAD_BIOMETRICA_KEY] ?: false }
-        .distinctUntilChanged()
-
-    // PIN/Biometric flows (T33)
+    // PIN flows (T33)
     val pinHash: Flow<String?> = dataStore.data
         .map { it[PIN_HASH_KEY] }
         .distinctUntilChanged()
@@ -71,22 +64,16 @@ class AjustesDataStore @Inject constructor(
         .map { it[PIN_SALT_KEY] }
         .distinctUntilChanged()
 
-    val biometricEnabled: Flow<Boolean> = dataStore.data
-        .map { it[BIOMETRIC_ENABLED_KEY] ?: false }
-        .distinctUntilChanged()
-
     suspend fun guardarNombreNegocio(nombre: String): Result<Unit> = guardarDato(NOMBRE_NEGOCIO_KEY, nombre)
     suspend fun guardarDireccion(direccion: String): Result<Unit> = guardarDato(DIRECCION_KEY, direccion)
     suspend fun guardarTelefono(telefono: String): Result<Unit> = guardarDato(TELEFONO_KEY, telefono)
     suspend fun guardarMoneda(moneda: Moneda): Result<Unit> = guardarDato(MONEDA_KEY, moneda.name)
     suspend fun guardarImpuesto(impuesto: Double): Result<Unit> = guardarDato(IMPUESTO_KEY, impuesto)
     suspend fun guardarTema(tema: String): Result<Unit> = guardarDato(TEMA_KEY, tema)
-    suspend fun guardarSeguridadBiometrica(habilitada: Boolean): Result<Unit> = guardarDato(SEGURIDAD_BIOMETRICA_KEY, habilitada)
 
-    // PIN/Biometric setters (T33)
+    // PIN setters (T33)
     suspend fun guardarPinHash(hash: String): Result<Unit> = guardarDato(PIN_HASH_KEY, hash)
     suspend fun guardarPinSalt(salt: String): Result<Unit> = guardarDato(PIN_SALT_KEY, salt)
-    suspend fun guardarBiometricEnabled(enabled: Boolean): Result<Unit> = guardarDato(BIOMETRIC_ENABLED_KEY, enabled)
 
     private suspend fun <T> guardarDato(key: Preferences.Key<T>, value: T): Result<Unit> {
         return try {
@@ -102,15 +89,15 @@ class AjustesDataStore @Inject constructor(
     /**
      * Clears all DataStore keys except the provided preserved keys.
      * Used for reset functionality (T26).
-     * Preserves: TEMA_KEY, PIN_HASH_KEY, PIN_SALT_KEY, BIOMETRIC_ENABLED_KEY by default.
+     * Preserves: TEMA_KEY, PIN_HASH_KEY, PIN_SALT_KEY by default.
      */
     suspend fun clearAll(exceptKeys: Set<Preferences.Key<*>> = setOf(
-        TEMA_KEY, PIN_HASH_KEY, PIN_SALT_KEY, BIOMETRIC_ENABLED_KEY
+        TEMA_KEY, PIN_HASH_KEY, PIN_SALT_KEY
     )): Result<Unit> {
         return try {
             dataStore.edit { preferences ->
-                // Get all keys from the preferences map
-                val allKeys = (preferences as Map<Preferences.Key<*>, Any?>).keys.toList()
+                // Properly access all keys in MutablePreferences (T59)
+                val allKeys = preferences.asMap().keys.toList()
                 for (key in allKeys) {
                     if (key !in exceptKeys) {
                         preferences.remove(key)

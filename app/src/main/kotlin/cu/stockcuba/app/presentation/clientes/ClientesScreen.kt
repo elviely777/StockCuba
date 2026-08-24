@@ -1,41 +1,14 @@
 package cu.stockcuba.app.presentation.clientes
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
 import cu.stockcuba.app.domain.model.Cliente
@@ -56,7 +30,7 @@ import cu.stockcuba.app.presentation.theme.StockCubaColors
 import cu.stockcuba.app.presentation.theme.StockCubaSpacing
 import kotlinx.coroutines.launch
 
-@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClientesScreen(
     onBack: () -> Unit,
@@ -72,23 +46,23 @@ fun ClientesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Clientes") },
+                title = { Text("Directorio de Clientes", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
         },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { editingCliente.value = null; showDialog.value = true },
-                containerColor = StockCubaColors.FabFondo,
-                contentColor = StockCubaColors.FabTexto,
-                shape = Shape.Full
+                containerColor = StockCubaColors.VerdeExito,
+                contentColor = Color(0xFF001E1C),
+                shape = Shape.Grande
             ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Agregar", modifier = Modifier.size(28.dp))
+                Icon(imageVector = Icons.Default.PersonAdd, contentDescription = "Agregar", modifier = Modifier.size(28.dp))
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -115,65 +89,179 @@ fun ClientesScreen(
 
     if (showDialog.value) {
         FormularioClienteDialog(
+            cliente = editingCliente.value,
             onDismiss = { showDialog.value = false; editingCliente.value = null },
-            onSave = { nombre, telefono, notas ->
+            onSave = { nombre, ci, telefono, notas ->
                 scope.launch {
-                    val cliente = editingCliente.value
-                    val result = if (cliente != null) {
-                        viewModel.actualizarCliente(cliente.copy(nombre = nombre, telefono = telefono, notas = notas))
+                    val current = editingCliente.value
+                    val result = if (current != null) {
+                        viewModel.actualizarCliente(current.copy(nombre = nombre, ci = ci, telefono = telefono, notas = notas))
                     } else {
-                        viewModel.crearCliente(nombre, telefono, notas)
+                        viewModel.crearCliente(nombre, ci, telefono, notas)
                     }
                     result.onSuccess {
                         showDialog.value = false
-                        launch { snackbarHostState.showSnackbar("Guardado") }
+                        launch { snackbarHostState.showSnackbar("Cliente guardado correctamente") }
+                    }.onFailure {
+                        launch { snackbarHostState.showSnackbar("Error al guardar") }
                     }
                 }
-            },
-            cliente = editingCliente.value
+            }
         )
     }
 }
 
 @Composable
-fun ClientesContenido(state: ClientesUiState.Success, queryText: String, onQueryChange: (String) -> Unit, onEditar: (Cliente) -> Unit, onEliminar: (String) -> Unit, padding: PaddingValues) {
+fun ClientesContenido(
+    state: ClientesUiState.Success, 
+    queryText: String, 
+    onQueryChange: (String) -> Unit, 
+    onEditar: (Cliente) -> Unit, 
+    onEliminar: (String) -> Unit, 
+    padding: PaddingValues
+) {
     Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-        TextField(
+        OutlinedTextField(
             value = queryText,
             onValueChange = onQueryChange,
-            placeholder = { Text("Buscar...") },
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
-            colors = TextFieldDefaults.colors()
+            placeholder = { Text("Buscar por nombre o CI...") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            modifier = Modifier.fillMaxWidth().padding(StockCubaSpacing.Md),
+            shape = Shape.Grande,
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                unfocusedBorderColor = Color.Transparent
+            )
         )
-        if (state.clientes.isEmpty()) ClientesVacio() else {
-            LazyColumn { items(state.clientes) { cliente -> ClienteRow(cliente, onEditar, { onEliminar(cliente.id) }) } }
-        }
-    }
-}
-
-@Composable
-fun ClienteRow(cliente: Cliente, onEditar: (Cliente) -> Unit, onEliminar: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth().padding(4.dp)) {
-        Row(modifier = Modifier.padding(8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Column { Text(cliente.nombre, fontWeight = FontWeight.Bold); cliente.telefono?.let { Text(it) } }
-            Row {
-                IconButton(onClick = { onEditar(cliente) }) { Icon(imageVector = Icons.Default.Edit, contentDescription = "Editar") }
-                IconButton(onClick = onEliminar) { Icon(imageVector = Icons.Default.Delete, contentDescription = "Borrar", tint = Color.Red) }
+        
+        if (state.clientes.isEmpty()) {
+            ClientesVacio()
+        } else {
+            LazyColumn(
+                contentPadding = PaddingValues(StockCubaSpacing.Md),
+                verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Sm)
+            ) {
+                items(state.clientes) { cliente ->
+                    ClienteCard(cliente, onEditar, { onEliminar(cliente.id) })
+                }
             }
         }
     }
 }
 
 @Composable
-fun FormularioClienteDialog(onDismiss: () -> Unit, onSave: (String, String?, String?) -> Unit, cliente: Cliente?) {
+fun ClienteCard(cliente: Cliente, onEditar: (Cliente) -> Unit, onEliminar: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = Shape.Grande,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+    ) {
+        Row(
+            modifier = Modifier.padding(StockCubaSpacing.Md), 
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(cliente.nombre, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                Text("CI: ${cliente.ci}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (!cliente.telefono.isNullOrBlank()) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+                        Icon(Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(4.dp))
+                        Text(cliente.telefono, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+            Row {
+                IconButton(onClick = { onEditar(cliente) }) { Icon(imageVector = Icons.Default.Edit, contentDescription = "Editar", tint = MaterialTheme.colorScheme.primary) }
+                IconButton(onClick = onEliminar) { Icon(imageVector = Icons.Default.DeleteOutline, contentDescription = "Borrar", tint = StockCubaColors.CoralAlerta) }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FormularioClienteDialog(
+    cliente: Cliente?,
+    onDismiss: () -> Unit,
+    onSave: (String, String, String?, String?) -> Unit
+) {
     val nombre = remember { mutableStateOf(cliente?.nombre ?: "") }
+    val ci = remember { mutableStateOf(cliente?.ci ?: "") }
     val telefono = remember { mutableStateOf(cliente?.telefono ?: "") }
-    AlertDialog(onDismissRequest = onDismiss, confirmButton = { Button(onClick = { onSave(nombre.value, telefono.value, null) }) { Text("OK") } }, title = { Text("Cliente") }, text = { Column { TextField(nombre.value, { nombre.value = it }) } })
+    val notas = remember { mutableStateOf(cliente?.notas ?: "") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (cliente == null) "Nuevo Cliente" else "Editar Cliente", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
+                OutlinedTextField(
+                    value = nombre.value, 
+                    onValueChange = { nombre.value = it },
+                    label = { Text("Nombre Completo *") },
+                    shape = Shape.Grande,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = ci.value, 
+                    onValueChange = { if (it.length <= 11 && it.all { char -> char.isDigit() }) ci.value = it },
+                    label = { Text("Carnet de Identidad *") },
+                    shape = Shape.Grande,
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    supportingText = { Text("${ci.value.length}/11 dígitos") }
+                )
+                OutlinedTextField(
+                    value = telefono.value, 
+                    onValueChange = { telefono.value = it },
+                    label = { Text("Teléfono") },
+                    shape = Shape.Grande,
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(nombre.value, ci.value, telefono.value, notas.value) },
+                enabled = nombre.value.isNotBlank() && ci.value.length == 11,
+                shape = Shape.Grande
+            ) {
+                Text("Guardar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+        }
+    )
 }
 
 @Composable
-fun ClientesVacio() { Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Vacío") } }
+fun ClientesVacio() {
+    Box(modifier = Modifier.fillMaxSize().padding(StockCubaSpacing.Xl), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(Icons.Default.PeopleOutline, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+            Spacer(Modifier.height(16.dp))
+            Text("No hay clientes registrados", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
 @Composable
-fun ClientesCargando() { Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
+fun ClientesCargando() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(color = StockCubaColors.VerdeExito)
+    }
+}
+
 @Composable
-fun ClientesError(message: String) { Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(message, color = Color.Red) } }
+fun ClientesError(message: String) {
+    Box(modifier = Modifier.fillMaxSize().padding(StockCubaSpacing.Xl), contentAlignment = Alignment.Center) {
+        Text(message, color = StockCubaColors.CoralAlerta, textAlign = TextAlign.Center)
+    }
+}

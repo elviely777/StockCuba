@@ -60,4 +60,27 @@ class CategoriaRepositoryImpl @Inject constructor(
 
     override fun countProductosInCategoria(categoriaId: String): Flow<Int> =
         categoriaDao.countProductosInCategoria(categoriaId)
+
+    override suspend fun prepopular(): Result<Unit> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        try {
+            val count = categoriaDao.getByIdSync("otros")
+            if (count == null) {
+                val categoriasDefecto = listOf(
+                    Categoria("alimentos", "Alimentos", 0xFFFF9800.toInt()),
+                    Categoria("bebidas", "Bebidas", 0xFF2196F3.toInt()),
+                    Categoria("limpieza", "Limpieza e Higiene", 0xFFF44336.toInt()),
+                    Categoria("hogar", "Hogar y Construcción", 0xFF795548.toInt()),
+                    Categoria("electronica", "Electrónica", 0xFF9C27B0.toInt()),
+                    Categoria("ferreteria", "Ferretería", 0xFF607D8B.toInt()),
+                    Categoria("ropa", "Ropa y Calzado", 0xFFE91E63.toInt()),
+                    Categoria("papeleria", "Papelería", 0xFF4CAF50.toInt()),
+                    Categoria("otros", "Otros", 0xFF9E9E9E.toInt())
+                )
+                categoriaDao.insertAll(categoriasDefecto.map { it.toEntity() })
+            }
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Failure(DomainError.DatabaseError(e))
+        }
+    }
 }

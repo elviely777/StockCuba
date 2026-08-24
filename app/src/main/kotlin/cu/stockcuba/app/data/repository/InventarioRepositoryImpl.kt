@@ -1,5 +1,6 @@
 package cu.stockcuba.app.data.repository
 
+import cu.stockcuba.app.data.local.database.StockCubaDatabase
 import cu.stockcuba.app.data.local.dao.MovimientoInventarioDao
 import cu.stockcuba.app.data.mapper.*
 import cu.stockcuba.app.domain.model.DomainError
@@ -9,12 +10,14 @@ import cu.stockcuba.app.domain.repository.InventarioRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import androidx.room.withTransaction
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class InventarioRepositoryImpl @Inject constructor(
-    private val movimientoDao: MovimientoInventarioDao
+    private val movimientoDao: MovimientoInventarioDao,
+    private val database: StockCubaDatabase
 ) : InventarioRepository {
 
     override fun getHistorialPorProducto(productoId: String): Flow<List<MovimientoInventario>> =
@@ -25,7 +28,13 @@ class InventarioRepositoryImpl @Inject constructor(
 
     override suspend fun registrarMovimiento(movimiento: MovimientoInventario): Result<Unit> {
         return try {
-            movimientoDao.insert(movimiento.toEntity())
+            database.withTransaction {
+                movimientoDao.insert(movimiento.toEntity())
+                
+                // Actualizar el stock real en la tabla de productos (T58)
+                val productoDao = database.productoDao()
+                productoDao.updateStock(movimiento.productoId, movimiento.cantidadConSigno)
+            }
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Failure(DomainError.DatabaseError(e))
@@ -34,7 +43,15 @@ class InventarioRepositoryImpl @Inject constructor(
 
     override suspend fun registrarMovimientos(movimientos: List<MovimientoInventario>): Result<Unit> {
         return try {
-            movimientoDao.insertAll(movimientos.map { it.toEntity() })
+            database.withTransaction {
+                val entities = movimientos.map { it.toEntity() }
+                movimientoDao.insertAll(entities)
+                
+                val productoDao = database.productoDao()
+                movimientos.forEach { mov ->
+                    productoDao.updateStock(mov.productoId, mov.cantidadConSigno)
+                }
+            }
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Failure(DomainError.DatabaseError(e))

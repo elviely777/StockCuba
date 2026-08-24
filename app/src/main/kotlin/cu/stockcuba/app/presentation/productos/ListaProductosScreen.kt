@@ -1,65 +1,27 @@
 package cu.stockcuba.app.presentation.productos
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -70,22 +32,12 @@ import cu.stockcuba.app.domain.model.Categoria
 import cu.stockcuba.app.domain.model.Producto
 import cu.stockcuba.app.presentation.dashboard.formatoCUP
 import cu.stockcuba.app.presentation.dashboard.formatoCantidad
-import cu.stockcuba.app.presentation.navigation.Screen
+import cu.stockcuba.app.presentation.theme.Shape
 import cu.stockcuba.app.presentation.theme.StockCubaColors
 import cu.stockcuba.app.presentation.theme.StockCubaSpacing
-import cu.stockcuba.app.presentation.theme.Shape
-import cu.stockcuba.app.presentation.theme.StockCubaTheme
 
 /**
- * Pantalla Lista de Productos - Réplica fiel del diseño de Stitch.
- *
- * Elementos:
- * - Header con título y contador
- * - Search bar (estilo Stitch: fondo surface L2, borde focus teal)
- * - Filtro de categoría (chip dropdown)
- * - LazyColumn con tarjetas de producto
- * - Cada tarjeta: nombre, categoría, precio, stock con badge color
- * - FAB "Agregar Producto" (teal con glow)
+ * Pantalla Lista de Productos - Rediseño Moderno e Inmersivo.
  */
 @Composable
 fun ListaProductosScreen(
@@ -95,220 +47,228 @@ fun ListaProductosScreen(
     viewModel: ListaProductosViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val queryText = remember { mutableStateOf("") }
-    val showCategoriaMenu = remember { mutableStateOf(false) }
-
-    Box(modifier = Modifier.fillMaxSize()) {
+    
+    Scaffold(
+        topBar = {
+            ListaProductosHeader(
+                count = (uiState as? ListaProductosUiState.Success)?.productos?.size ?: 0,
+                query = (uiState as? ListaProductosUiState.Success)?.query ?: "",
+                onQueryChange = { viewModel.setQuery(it) }
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onAgregar,
+                containerColor = StockCubaColors.VerdeExito,
+                contentColor = Color(0xFF001E1C),
+                shape = Shape.Grande,
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Agregar", modifier = Modifier.size(28.dp))
+            }
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(StockCubaSpacing.Md),
-            verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)
+                .padding(padding)
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            // ===== HEADER =====
-            ListaProductosHeader(queryText = queryText, onQueryChange = { text ->
-                queryText.value = text
-                viewModel.setQuery(text)
-            })
+            // ===== BARRA DE CATEGORÍAS (CHIPS MODERNOS) =====
+            if (uiState is ListaProductosUiState.Success) {
+                val state = uiState as ListaProductosUiState.Success
+                CategoriasBarraHorizontal(
+                    categorias = state.categorias,
+                    seleccionada = state.categoriaSeleccionada,
+                    onSelect = { viewModel.setCategoria(it) }
+                )
+            }
 
-            // ===== BARRA DE FILTROS =====
-            FiltrosBarra(
-                categorias = when (uiState) {
-                    is ListaProductosUiState.Success -> uiState.categorias
-                    else -> emptyList()
-                },
-                categoriaSeleccionada = when (uiState) {
-                    is ListaProductosUiState.Success -> uiState.categoriaSeleccionada
-                    else -> null
-                },
-                onCategoriaClick = { categoriaId ->
-                    viewModel.setCategoria(categoriaId)
-                    showCategoriaMenu.value = false
-                },
-                onLimpiarFiltros = { viewModel.limpiarFiltros() },
-                showCategoriaMenu = showCategoriaMenu
-            )
-
-            // ===== LISTA DE PRODUCTOS =====
-            when (val state = uiState) {
-                is ListaProductosUiState.Loading -> ListaProductosSkeleton()
-                is ListaProductosUiState.Error -> ListaProductosError(message = state.message)
-                is ListaProductosUiState.Success -> {
-                    if (state.productos.isEmpty()) {
-                        ListaProductosVacia(onAgregar = onAgregar)
-                    } else {
-                        ListaProductosContenido(
-                            productos = state.productos,
-                            categorias = state.categorias,
-                            onDetalle = onDetalle,
-                            onEditar = onEditar
-                        )
+            // ===== CONTENIDO PRINCIPAL =====
+            Box(modifier = Modifier.fillMaxSize()) {
+                when (val state = uiState) {
+                    is ListaProductosUiState.Loading -> ListaProductosSkeleton()
+                    is ListaProductosUiState.Error -> ListaProductosError(state.message)
+                    is ListaProductosUiState.Success -> {
+                        if (state.productos.isEmpty()) {
+                            ListaProductosVacia(
+                                isFiltered = state.query.isNotEmpty() || state.categoriaSeleccionada != null,
+                                onClear = { viewModel.limpiarFiltros() },
+                                onAgregar = onAgregar
+                            )
+                        } else {
+                            ListaProductosLazy(
+                                productos = state.productos,
+                                categorias = state.categorias,
+                                onDetalle = onDetalle,
+                                onEditar = onEditar
+                            )
+                        }
                     }
                 }
             }
         }
-
-        // ===== FAB AGREGAR =====
-        FloatingActionButtonAgregar(onClick = onAgregar)
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListaProductosHeader(
-    queryText: androidx.compose.runtime.MutableState<String>,
+    count: Int,
+    query: String,
     onQueryChange: (String) -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp
     ) {
-        Column(horizontalAlignment = Alignment.Start) {
-            Text("Productos", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
-            Text(
-                "Catálogo completo",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        // Search Bar estilo Stitch - Rediseñado para centrado vertical perfecto
-        BasicTextField(
-            value = queryText.value,
-            onValueChange = onQueryChange,
+        Column(
             modifier = Modifier
-                .width(280.dp)
-                .height(40.dp)
-                .background(StockCubaColors.InputFondo, Shape.Full),
-            textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
-            singleLine = true,
-            cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
-            decorationBox = { innerTextField ->
-                Row(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                .fillMaxWidth()
+                .padding(horizontal = StockCubaSpacing.Lg, vertical = StockCubaSpacing.Md)
+                .statusBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        "Productos",
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)
+                    )
+                    Text(
+                        "$count artículos en inventario",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Surface(
+                    color = StockCubaColors.VerdeExito.copy(alpha = 0.1f),
+                    shape = Shape.Full
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Search,
+                        Icons.Default.Inventory,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
+                        tint = StockCubaColors.VerdeExito,
+                        modifier = Modifier.padding(8.dp).size(24.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Box(modifier = Modifier.weight(1f)) {
-                        if (queryText.value.isEmpty()) {
-                            Text(
-                                text = "Buscar productos...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                            )
-                        }
-                        innerTextField()
-                    }
-                    if (queryText.value.isNotEmpty()) {
-                        IconButton(
-                            onClick = { queryText.value = ""; onQueryChange("") },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Limpiar",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
                 }
             }
-        )
+
+            // Barra de búsqueda moderna
+            OutlinedTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                placeholder = { Text("Buscar por nombre o descripción...", fontSize = 14.sp) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                trailingIcon = if (query.isNotEmpty()) {
+                    {
+                        IconButton(onClick = { onQueryChange("") }) {
+                            Icon(Icons.Default.Close, contentDescription = "Limpiar", modifier = Modifier.size(18.dp))
+                        }
+                    }
+                } else null,
+                modifier = Modifier.fillMaxWidth(),
+                shape = Shape.Grande,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedBorderColor = StockCubaColors.VerdeExito
+                )
+            )
+        }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FiltrosBarra(
+fun CategoriasBarraHorizontal(
     categorias: List<Categoria>,
-    categoriaSeleccionada: String?,
-    onCategoriaClick: (String?) -> Unit,
-    onLimpiarFiltros: () -> Unit,
-    showCategoriaMenu: androidx.compose.runtime.MutableState<Boolean>
+    seleccionada: String?,
+    onSelect: (String?) -> Unit
 ) {
-    val categoriaNombre = categorias.firstOrNull { it.id == categoriaSeleccionada }?.nombre ?: "Todas"
-
-    Row(
+    LazyRow(
         modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = StockCubaSpacing.Lg, vertical = StockCubaSpacing.Sm),
         horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Sm)
     ) {
-        // Chip categoría (dropdown)
-        Box {
-            FilterChip(
-                selected = true,
-                onClick = { showCategoriaMenu.value = !showCategoriaMenu.value },
-                leadingIcon = { Icon(imageVector = Icons.Default.FilterList, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                label = { Text("$categoriaNombre ▼", style = MaterialTheme.typography.labelMedium) },
-                colors = FilterChipDefaults.filterChipColors(
-                    containerColor = StockCubaColors.InputFondo,
-                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-                shape = Shape.ExtraGrande,
-                modifier = Modifier
-                    .width(160.dp)
-                    .height(40.dp)
+        item {
+            CategoriaChip(
+                nombre = "Todos",
+                isSelected = seleccionada == null,
+                onClick = { onSelect(null) }
             )
-
-            DropdownMenu(
-                expanded = showCategoriaMenu.value,
-                onDismissRequest = { showCategoriaMenu.value = false }
-            ) {
-                // Items del menú
-                DropdownMenuItem(
-                    onClick = { onCategoriaClick(null); showCategoriaMenu.value = false },
-                    text = { Text("Todas las categorías", style = MaterialTheme.typography.bodyMedium) }
-                )
-                categorias.forEach { cat ->
-                    DropdownMenuItem(
-                        onClick = { onCategoriaClick(cat.id); showCategoriaMenu.value = false },
-                        text = { Text(cat.nombre, style = MaterialTheme.typography.bodyMedium) }
-                    )
-                }
-            }
         }
-
-        // Botón limpiar filtros (visible si hay filtro activo)
-        if (categoriaSeleccionada != null) {
-            OutlinedButton(
-                onClick = onLimpiarFiltros,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                shape = Shape.ExtraGrande
-            ) {
-                Text("Limpiar", style = MaterialTheme.typography.labelMedium)
-            }
+        items(categorias) { cat ->
+            CategoriaChip(
+                nombre = cat.nombre,
+                isSelected = seleccionada == cat.id,
+                color = Color(cat.color),
+                onClick = { onSelect(cat.id) }
+            )
         }
     }
 }
 
 @Composable
-fun ListaProductosContenido(
+fun CategoriaChip(
+    nombre: String,
+    isSelected: Boolean,
+    color: Color = StockCubaColors.VerdeExito,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.height(36.dp),
+        shape = Shape.Full,
+        color = if (isSelected) color.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        border = BorderStroke(
+            1.dp,
+            if (isSelected) color else Color.Transparent
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (isSelected) {
+                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(color))
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(
+                text = nombre,
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                ),
+                color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+fun ListaProductosLazy(
     productos: List<Producto>,
     categorias: List<Categoria>,
     onDetalle: (String) -> Unit,
     onEditar: (String) -> Unit
 ) {
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(bottom = 100.dp), // espacio para FAB
-        verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Sm),
-        contentPadding = PaddingValues(StockCubaSpacing.Md)
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(top = StockCubaSpacing.Sm, start = StockCubaSpacing.Lg, end = StockCubaSpacing.Lg, bottom = 80.dp),
+        verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)
     ) {
-        items(productos) { producto ->
-            ProductoCard(
+        items(productos, key = { it.id }) { producto ->
+            val categoria = categorias.find { it.id == producto.categoriaId }
+            ProductoCardModerno(
                 producto = producto,
-                categorias = categorias,
+                categoriaNombre = categoria?.nombre ?: "Sin categoría",
+                categoriaColor = categoria?.let { Color(it.color) } ?: MaterialTheme.colorScheme.outline,
                 onClick = { onDetalle(producto.id) },
                 onLongClick = { onEditar(producto.id) }
             )
@@ -318,91 +278,98 @@ fun ListaProductosContenido(
 
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-fun ProductoCard(
+fun ProductoCardModerno(
     producto: Producto,
-    categorias: List<Categoria>,
+    categoriaNombre: String,
+    categoriaColor: Color,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-    val status = producto.stockStatus()
+    val statusLabel = producto.stockStatusLabel()
     val statusColor = producto.stockStatusColor()
     val statusBg = producto.stockStatusBackground()
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(90.dp)
-            .padding(horizontal = 0.dp)
             .clip(Shape.Grande)
-            .background(MaterialTheme.colorScheme.surfaceContainer),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
-        ),
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
         shape = Shape.Grande,
-        border = BorderStroke(1.dp, StockCubaColors.BordeSutil)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = onLongClick
-                )
-                .padding(StockCubaSpacing.Md)
+        Row(
+            modifier = Modifier.height(IntrinsicSize.Min),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
+            // Barra lateral de color de categoría
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .clip(Shape.Grande)
-                    .background(Color.Transparent),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Info principal
-                Column(horizontalAlignment = Alignment.Start, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = producto.nombre,
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    Text(
-                        text = "Categoría: ${categorias.find { it.id == producto.categoriaId }?.nombre ?: "Desconocida"}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "Precio: ${producto.precioVenta.formatoCUP()} | Costo: ${producto.costoUnitario.formatoCUP()}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                    .fillMaxHeight()
+                    .width(6.dp)
+                    .background(categoriaColor)
+            )
 
-                // Stock badge + precio
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    // Badge de stock
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                            .background(statusBg, Shape.Pequeno)
+            Column(
+                modifier = Modifier.padding(StockCubaSpacing.Md).weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = producto.nombre,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    // Badge de Precio
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                        shape = Shape.Pequeno
                     ) {
                         Text(
-                            text = producto.stockStatusLabel(),
+                            producto.precioVenta.formatoCUP(),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                Text(
+                    text = categoriaNombre,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Storage, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = "${producto.stockActual.formatoCantidad()} ${producto.unidadMedida.name.lowercase()}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    // Status Pill
+                    Surface(
+                        color = statusBg,
+                        shape = Shape.Full
+                    ) {
+                        Text(
+                            text = statusLabel,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             color = statusColor
                         )
                     }
-                    Text(
-                        text = "${producto.stockActual.formatoCantidad()} ${producto.unidadMedida.name.lowercase(java.util.Locale.getDefault())}",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
                 }
             }
         }
@@ -411,79 +378,58 @@ fun ProductoCard(
 
 @Composable
 fun ListaProductosSkeleton() {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(bottom = 100.dp),
-        verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Sm),
-        contentPadding = PaddingValues(StockCubaSpacing.Md)
-    ) {
-        items(6) {
-            Card(
-                modifier = Modifier.fillMaxWidth().height(80.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
-                shape = Shape.Grande
-            ) {
-                Box(modifier = Modifier.fillMaxSize())
-            }
+    Column(modifier = Modifier.padding(StockCubaSpacing.Lg), verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
+        repeat(5) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(90.dp)
+                    .clip(Shape.Grande)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+            )
         }
     }
 }
 
 @Composable
 fun ListaProductosError(message: String) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+    Column(
+        modifier = Modifier.fillMaxSize().padding(StockCubaSpacing.Xl),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = StockCubaColors.CoralAlerta, modifier = Modifier.size(48.dp))
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Error al cargar", style = MaterialTheme.typography.titleMedium, color = StockCubaColors.CoralAlerta)
-            Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        Icon(Icons.Default.ErrorOutline, contentDescription = null, modifier = Modifier.size(64.dp), tint = StockCubaColors.CoralAlerta)
+        Spacer(Modifier.height(16.dp))
+        Text("No se pudo cargar la lista", style = MaterialTheme.typography.titleMedium)
+        Text(message, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
-fun ListaProductosVacia(onAgregar: () -> Unit) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+fun ListaProductosVacia(isFiltered: Boolean, onClear: () -> Unit, onAgregar: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(StockCubaSpacing.Xl),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Lg)
-        ) {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = StockCubaColors.VerdeExito.copy(alpha = 0.15f)),
-                shape = Shape.ExtraGrande
-            ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = StockCubaColors.VerdeExito, modifier = Modifier.size(64.dp).padding(StockCubaSpacing.Lg))
-            }
-            Text("No hay productos", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
-            Text("Comienza agregando tu primer producto", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-            Button(onClick = onAgregar, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary), shape = Shape.ExtraGrande) {
-                Text("Agregar Producto", style = MaterialTheme.typography.labelLarge)
+        val icon = if (isFiltered) Icons.Default.SearchOff else Icons.Default.AddShoppingCart
+        val title = if (isFiltered) "No hay coincidencias" else "Inventario vacío"
+        val desc = if (isFiltered) "Prueba con otros filtros o términos de búsqueda" else "Empieza agregando productos para gestionar tu negocio"
+
+        Surface(modifier = Modifier.size(100.dp), shape = Shape.Full, color = MaterialTheme.colorScheme.surfaceVariant) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(icon, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
             }
         }
-    }
-}
-
-@Composable
-fun FloatingActionButtonAgregar(onClick: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
-        FloatingActionButton(
-            onClick = onClick,
-            containerColor = StockCubaColors.FabFondo,
-            contentColor = StockCubaColors.FabTexto,
-            shape = Shape.Full,
-            elevation = FloatingActionButtonDefaults.elevation(
-                defaultElevation = 8.dp,
-                pressedElevation = 12.dp,
-                focusedElevation = 12.dp
-            ),
-            modifier = Modifier.padding(StockCubaSpacing.Lg)
-        ) {
-            Icon(imageVector = Icons.Default.Add, contentDescription = "Agregar producto", modifier = Modifier.size(28.dp))
+        Spacer(Modifier.height(24.dp))
+        Text(title, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
+        Spacer(Modifier.height(8.dp))
+        Text(desc, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(32.dp))
+        if (isFiltered) {
+            OutlinedButton(onClick = onClear, shape = Shape.Grande) { Text("Limpiar filtros") }
+        } else {
+            Button(onClick = onAgregar, shape = Shape.Grande) { Text("Agregar mi primer producto") }
         }
     }
 }

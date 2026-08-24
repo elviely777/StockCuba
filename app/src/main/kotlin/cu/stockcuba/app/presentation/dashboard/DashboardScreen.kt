@@ -1,42 +1,27 @@
 package cu.stockcuba.app.presentation.dashboard
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -44,19 +29,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import cu.stockcuba.app.domain.model.Venta
+import cu.stockcuba.app.presentation.theme.Shape
 import cu.stockcuba.app.presentation.theme.StockCubaColors
 import cu.stockcuba.app.presentation.theme.StockCubaSpacing
-import cu.stockcuba.app.presentation.theme.Shape
-import cu.stockcuba.app.presentation.theme.StockCubaTheme
+import kotlinx.coroutines.launch
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 /**
- * Pantalla Dashboard - Réplica fiel del diseño de Stitch.
- *
- * Jerarquía visual:
- * 1. Header con saludo y fecha
- * 2. Grid de 4 tarjetas de métricas (Total vendido, Ventas, Ticket promedio, Producto top)
- * 3. Sección "Alerta de Stock Bajo" con chips coral y lista de productos
- * 4. FAB flotante para "Nueva Venta" (Teal con glow)
+ * Pantalla Dashboard - Centro de Mando Moderno e Inmersivo.
  */
 @Composable
 fun DashboardScreen(
@@ -64,257 +46,231 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Lg),
-            contentPadding = PaddingValues(
-                top = StockCubaSpacing.Md,
-                start = StockCubaSpacing.Md,
-                end = StockCubaSpacing.Md,
-                bottom = 100.dp
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = onNavigateToNuevaVenta,
+                icon = { Icon(Icons.Default.Add, null) },
+                text = { Text("Nueva Venta", fontWeight = FontWeight.Bold) },
+                containerColor = StockCubaColors.VerdeExito,
+                contentColor = Color(0xFF001E1C),
+                shape = Shape.Grande
             )
-        ) {
-            // ===== 1. HEADER =====
-            item {
-                DashboardHeader()
-            }
-
-            // ===== 2. MÉTRICAS GRID =====
+        }
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background)) {
             when (val state = uiState) {
-                is DashboardUiState.Loading -> {
-                    items(2) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(bottom = StockCubaSpacing.Md),
-                            horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)
-                        ) {
-                            repeat(2) {
-                                Card(
-                                    modifier = Modifier.weight(1f).height(120.dp),
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
-                                    shape = Shape.Grande
-                                ) { Box(modifier = Modifier.fillMaxSize()) }
+                is DashboardUiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = StockCubaColors.VerdeExito) }
+                is DashboardUiState.Error -> PantallaErrorDashboard(state.message)
+                is DashboardUiState.Success -> DashboardContenidoFull(
+                    state = state,
+                    onRangeChange = { viewModel.setTimeRange(it) },
+                    onExportar = {
+                        scope.launch {
+                            viewModel.exportarReporteDiario().onSuccess {
+                                launch { snackbarHostState.showSnackbar("Reporte guardado en Descargas/StockCuba") }
                             }
                         }
                     }
-                }
-                is DashboardUiState.Error -> {
-                    item {
-                        DashboardErrorState(message = state.message)
-                    }
-                }
-                is DashboardUiState.Success -> {
-                    val metrics = listOf(
-                        MetricData(
-                            title = "Total Vendido",
-                            value = state.totalVendidoHoy.formatoCUP(),
-                            icon = "💰",
-                            color = StockCubaColors.VerdeExito,
-                            trend = state.tendenciaTotalVendido,
-                            trendPositive = !state.tendenciaTotalVendido.startsWith("-") && state.tendenciaTotalVendido != "—"
-                        ),
-                        MetricData(
-                            title = "Ventas Hoy",
-                            value = state.cantidadVentasHoy.formatoCantidad(),
-                            icon = "🧾",
-                            color = StockCubaColors.IndigoMarca,
-                            trend = state.tendenciaCantidadVentas,
-                            trendPositive = !state.tendenciaCantidadVentas.startsWith("-") && state.tendenciaCantidadVentas != "—"
-                        ),
-                        MetricData(
-                            title = "Ticket Promedio",
-                            value = if (state.cantidadVentasHoy > 0)
-                                (state.totalVendidoHoy / state.cantidadVentasHoy).formatoCUP()
-                            else "0 CUP",
-                            icon = "📊",
-                            color = Color(0xFF8B5CF6),
-                            trend = "Estable",
-                            trendPositive = true
-                        ),
-                        MetricData(
-                            title = "Producto Top",
-                            value = state.productoMasVendido?.nombreProducto ?: "—",
-                            icon = "🏆",
-                            color = Color(0xFFF59E0B),
-                            trend = state.productoMasVendido?.let { "${it.cantidadTotal} vendidos" } ?: "—",
-                            trendPositive = true
-                        )
-                    )
-
-                    items(metrics.chunked(2)) { row ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)
-                        ) {
-                            row.forEach { metric ->
-                                MetricCard(metric = metric, modifier = Modifier.weight(1f))
-                            }
-                        }
-                    }
-
-                    // ===== 3. ALERTA STOCK BAJO =====
-                    item {
-                        if (state.listaProductosBajoStock.isNotEmpty()) {
-                            StockBajoSection(productos = state.listaProductosBajoStock)
-                        } else {
-                            StockOkState()
-                        }
-                    }
-                }
-            }
-        }
-
-        // ===== FAB NUEVA VENTA =====
-        FloatingActionButtonNuevaVenta(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(StockCubaSpacing.Lg),
-            onClick = onNavigateToNuevaVenta
-        )
-    }
-}
-
-/**
- * Header superior: Saludo + Fecha actual
- */
-@Composable
-fun DashboardHeader() {
-    val hora = java.time.LocalTime.now()
-    val saludo = when {
-        hora.hour < 12 -> "Buenos días"
-        hora.hour < 18 -> "Buenas tardes"
-        else -> "Buenas noches"
-    }
-    val fecha = java.time.LocalDate.now().format(
-        java.time.format.DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM", java.util.Locale.getDefault())
-    )
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = "$saludo, 👋",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = fecha.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        // Badge de estado de sincronización (placeholder)
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = StockCubaColors.VerdeExito.copy(alpha = 0.15f)
-            ),
-            shape = Shape.Pequeno
-        ) {
-            Box(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier.size(8.dp)
-                            .clip(CircleShape)
-                            .background(StockCubaColors.VerdeExito)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Sincronizado",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = StockCubaColors.VerdeExito
-                    )
-                }
-            }
-        }
-    }
-}
-
-
-data class MetricData(
-    val title: String,
-    val value: String,
-    val icon: String,
-    val color: Color,
-    val trend: String,
-    val trendPositive: Boolean
-)
-
-@Composable
-fun MetricCard(
-    metric: MetricData,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(120.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
-        ),
-        shape = Shape.Grande, // 16dp
-        border = BorderStroke(
-            width = 1.dp,
-            color = StockCubaColors.BordeSutil
-        )
-    ) {
-        androidx.compose.foundation.layout.Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(StockCubaSpacing.Md)
-        ) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
-                // Fila superior: Icono + Trend
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier.size(40.dp)
-                            .clip(CircleShape)
-                            .background(metric.color.copy(alpha = 0.15f))
-                    ) {
-                        Text(
-                            text = metric.icon,
-                            fontSize = 20.sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .wrapContentSize(Alignment.Center)
-                        )
-                    }
-                    Text(
-                        text = metric.trend,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (metric.trendPositive) StockCubaColors.VerdeExito else StockCubaColors.CoralAlerta
-                    )
-                }
-
-                // Valor principal
-                Text(
-                    text = metric.value,
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.ExtraBold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
                 )
+            }
+        }
+    }
+}
 
-                // Título
+@Composable
+fun DashboardContenidoFull(
+    state: DashboardUiState.Success,
+    onRangeChange: (DashboardTimeRange) -> Unit,
+    onExportar: () -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(StockCubaSpacing.Lg),
+        verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Lg)
+    ) {
+        // --- 1. SALUDO Y SELECTOR ---
+        item {
+            HeaderDashboardModerno(
+                currentRange = state.timeRange,
+                onRangeChange = onRangeChange,
+                onExportar = onExportar
+            )
+        }
+
+        // --- 2. META DIARIA (T65) ---
+        item {
+            MetaDelDiaCard(
+                progreso = state.progresoMeta,
+                totalActual = state.totalVendido,
+                meta = state.metaVenta
+            )
+        }
+
+        // --- 3. MÉTRICAS PRINCIPALES ---
+        item {
+            GridMetricas(state)
+        }
+
+        // --- 4. BALANCE DE PAGOS ---
+        item {
+            BalancePagosCard(
+                efectivo = state.montoEfectivo,
+                transferencia = state.montoTransferencia
+            )
+        }
+
+        // --- 5. VALOR DEL INVENTARIO (IPB/IPC) (T66) ---
+        item {
+            ValorInventarioCard(
+                ipb = state.valorInventarioVenta,
+                ipc = state.valorInventarioCosto,
+                ganancia = state.gananciaProyectada
+            )
+        }
+
+        // --- 6. ALERTAS DE STOCK ---
+        if (state.listaProductosBajoStock.isNotEmpty()) {
+            item {
+                AlertaStockBajoModerno(productos = state.listaProductosBajoStock)
+            }
+        }
+
+        // --- 6. ACTIVIDAD RECIENTE ---
+        item {
+            ActividadRecienteSection(ventas = state.ventasRecientes)
+        }
+
+        item { Spacer(Modifier.height(80.dp)) }
+    }
+}
+
+@Composable
+fun HeaderDashboardModerno(
+    currentRange: DashboardTimeRange,
+    onRangeChange: (DashboardTimeRange) -> Unit,
+    onExportar: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
                 Text(
-                    text = metric.title,
-                    style = MaterialTheme.typography.labelMedium,
+                    text = "Panel de Control",
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)
+                )
+                Text(
+                    text = "Estado actual de tu negocio",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onExportar) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        shape = CircleShape
+                    ) {
+                        Icon(
+                            Icons.Default.Download,
+                            contentDescription = "Exportar Excel",
+                            modifier = Modifier.padding(8.dp).size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                
+                Spacer(Modifier.width(8.dp))
+                
+                Surface(
+                    color = Color.White,
+                    shape = CircleShape,
+                    modifier = Modifier.size(44.dp),
+                    shadowElevation = 2.dp
+                ) {
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.ui.res.painterResource(id = cu.stockcuba.app.R.mipmap.ic_launcher_foreground),
+                        contentDescription = "Logo",
+                        modifier = Modifier.padding(4.dp).fillMaxSize()
+                    )
+                }
+            }
+        }
+
+        // Selector de Rango (Chips)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Sm)) {
+            items(DashboardTimeRange.entries) { range ->
+                val isSelected = currentRange == range
+                FilterChip(
+                    selected = isSelected,
+                    onClick = { onRangeChange(range) },
+                    label = { Text(range.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                    shape = Shape.Full,
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MetaDelDiaCard(progreso: Float, totalActual: Double, meta: Double) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = Shape.Grande,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+    ) {
+        Column(modifier = Modifier.padding(StockCubaSpacing.Lg)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("Crecimiento vs Ayer", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        if (totalActual >= meta) "¡Meta Superada! 🚀" else "Camino a la meta",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
+                Text(
+                    text = "${(progreso * 100).toInt()}%",
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
+                    color = if (progreso >= 1f) StockCubaColors.VerdeExito else MaterialTheme.colorScheme.primary
+                )
+            }
+            
+            Spacer(Modifier.height(12.dp))
+            
+            // Barra de progreso animada
+            val animProgreso by animateFloatAsState(
+                targetValue = progreso.coerceIn(0f, 1f),
+                animationSpec = tween(1000, easing = FastOutSlowInEasing)
+            )
+            
+            LinearProgressIndicator(
+                progress = { animProgreso },
+                modifier = Modifier.fillMaxWidth().height(12.dp).clip(Shape.Full),
+                color = if (progreso >= 1f) StockCubaColors.VerdeExito else MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+            
+            if (meta > 0) {
+                Text(
+                    text = "Ayer vendiste ${meta.formatoCUP()}",
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(top = 8.dp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -322,204 +278,208 @@ fun MetricCard(
     }
 }
 
-
 @Composable
-fun DashboardErrorState(message: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = StockCubaColors.CoralAlertaContainer.copy(alpha = 0.2f)
-        ),
-        shape = Shape.Grande,
-        border = BorderStroke(1.dp, StockCubaColors.CoralAlerta)
-    ) {
-        androidx.compose.foundation.layout.Box(
-            modifier = Modifier.padding(StockCubaSpacing.Md)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Warning,
-                    contentDescription = null,
-                    tint = StockCubaColors.CoralAlerta,
-                    modifier = Modifier.padding(end = 12.dp).size(24.dp)
-                )
-                Column {
-                    Text("Error al cargar dashboard", style = MaterialTheme.typography.titleMedium, color = StockCubaColors.CoralAlerta)
-                    Text(message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+fun GridMetricas(state: DashboardUiState.Success) {
+    val items = listOf(
+        MetricItem("Total Ventas", state.totalVendido.formatoCUP(), state.tendenciaTotal, Icons.Default.Payments, StockCubaColors.VerdeExito),
+        MetricItem("Cant. Ventas", state.cantidadVentas.toString(), state.tendenciaVentas, Icons.Default.ConfirmationNumber, Color(0xFF6366F1)),
+        MetricItem("Ticket Prom.", state.ticketPromedio.formatoCUP(), "", Icons.Default.TrendingUp, Color(0xFF8B5CF6)),
+        MetricItem("Top Producto", state.productoMasVendido?.nombreProducto ?: "—", state.productoMasVendido?.let { "${it.cantidadTotal} vendidos" } ?: "", Icons.Default.Star, Color(0xFFF59E0B))
+    )
+
+    Column(verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
+        items.chunked(2).forEach { row ->
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
+                row.forEach { item ->
+                    CardMetricaModerna(item, Modifier.weight(1f))
                 }
             }
         }
     }
 }
 
-/**
- * Sección "Alerta de Stock Bajo" - diseño fiel a Stitch
- * Fondo coral sutil, chips coral, lista de productos con badge de stock
- */
 @Composable
-fun StockBajoSection(productos: List<cu.stockcuba.app.domain.model.Producto>) {
+fun CardMetricaModerna(item: MetricItem, modifier: Modifier = Modifier) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = StockCubaColors.CoralAlertaContainer.copy(alpha = 0.1f)
-        ),
+        modifier = modifier.height(130.dp),
         shape = Shape.Grande,
-        border = BorderStroke(1.dp, StockCubaColors.CoralAlerta.copy(alpha = 0.3f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(StockCubaSpacing.Md),
-            verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)
-        ) {
-            // Header sección
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Warning,
-                        contentDescription = null,
-                        tint = StockCubaColors.CoralAlerta,
-                        modifier = Modifier.padding(end = 8.dp).size(20.dp)
-                    )
+        Column(modifier = Modifier.padding(StockCubaSpacing.Md), verticalArrangement = Arrangement.SpaceBetween) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Surface(color = item.color.copy(alpha = 0.1f), shape = CircleShape) {
+                    Icon(item.icon, null, modifier = Modifier.padding(6.dp).size(16.dp), tint = item.color)
+                }
+                if (item.trend.isNotEmpty()) {
                     Text(
-                        text = "⚠️ Stock Bajo (${productos.size})",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = StockCubaColors.CoralAlerta
+                        item.trend, 
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = if (item.trend.startsWith("+")) StockCubaColors.VerdeExito else if (item.trend.startsWith("-")) StockCubaColors.CoralAlerta else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Text(
-                    text = "Ver todos",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = StockCubaColors.CoralAlerta
-                )
             }
-
-            // Lista de productos con stock bajo
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Sm)
-            ) {
-                productos.take(5).forEach { producto ->
-                    StockBajoItem(producto = producto)
-                }
-            }
-
-            if (productos.size > 5) {
+            
+            Column {
                 Text(
-                    text = "Y ${productos.size - 5} productos más...",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = StockCubaSpacing.Xs)
+                    text = item.value, 
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
+                Text(text = item.title, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
 }
 
 @Composable
-fun StockBajoItem(producto: cu.stockcuba.app.domain.model.Producto) {
-    val esCritico = producto.stockActual <= 0
-    val colorStock = if (esCritico) StockCubaColors.CoralAlerta else StockCubaColors.ChipStockBajoTexto
-    val fondoStock = if (esCritico) StockCubaColors.ChipStockBajoFondo else StockCubaColors.ChipStockBajoFondo
+fun BalancePagosCard(efectivo: Double, transferencia: Double) {
+    val total = efectivo + transferencia
+    val pEfectivo = if (total > 0) (efectivo / total).toFloat() else 0.5f
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = StockCubaSpacing.Xs),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(horizontalAlignment = Alignment.Start) {
-            Text(
-                text = producto.nombre,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = "${producto.stockActual.formatoCantidad()} ${producto.unidadMedida.name.lowercase(java.util.Locale.getDefault())} (mín: ${producto.stockMinimo})",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        // Badge de stock
-        Card(
-            colors = CardDefaults.cardColors(containerColor = fondoStock),
-            shape = Shape.Pequeno // 8dp
-        ) {
-            Text(
-                text = if (esCritico) "SIN STOCK" else "BAJO",
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = colorStock,
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-            )
-        }
-    }
-}
-
-/**
- * Estado vacío - todo OK
- */
-@Composable
-fun StockOkState() {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = StockCubaColors.VerdeExito.copy(alpha = 0.1f)
-        ),
         shape = Shape.Grande,
-        border = BorderStroke(1.dp, StockCubaColors.VerdeExito.copy(alpha = 0.3f))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        androidx.compose.foundation.layout.Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(StockCubaSpacing.Lg)
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = null,
-                    tint = StockCubaColors.VerdeExito,
-                    modifier = Modifier.padding(end = 12.dp).size(24.dp)
-                )
+        Column(modifier = Modifier.padding(StockCubaSpacing.Lg)) {
+            Text("Balance de Caja", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+            Spacer(Modifier.height(16.dp))
+            
+            Row(modifier = Modifier.fillMaxWidth().height(10.dp).clip(Shape.Full)) {
+                Box(modifier = Modifier.fillMaxHeight().weight(pEfectivo.coerceAtLeast(0.01f)).background(Color(0xFF2DD4BF)))
+                Box(modifier = Modifier.fillMaxHeight().weight((1f - pEfectivo).coerceAtLeast(0.01f)).background(Color(0xFF6366F1)))
+            }
+            
+            Spacer(Modifier.height(12.dp))
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
-                    Text("✅ Todo en orden", style = MaterialTheme.typography.titleMedium, color = StockCubaColors.VerdeExito)
-                    Text("No hay productos con stock bajo", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF2DD4BF)))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Efectivo", style = MaterialTheme.typography.labelSmall)
+                    }
+                    Text(efectivo.formatoCUP(), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Transferencia", style = MaterialTheme.typography.labelSmall)
+                        Spacer(Modifier.width(8.dp))
+                        Box(Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF6366F1)))
+                    }
+                    Text(transferencia.formatoCUP(), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
                 }
             }
         }
     }
 }
 
-/**
- * FAB "Nueva Venta" - Teal con glow, posición bottom-end
- */
 @Composable
-fun FloatingActionButtonNuevaVenta(
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    FloatingActionButton(
-        onClick = onClick,
-        modifier = modifier,
-        containerColor = StockCubaColors.FabFondo,
-        contentColor = StockCubaColors.FabTexto,
-        shape = Shape.Full,
-        elevation = FloatingActionButtonDefaults.elevation(
-            defaultElevation = 8.dp,
-            pressedElevation = 12.dp,
-            focusedElevation = 12.dp
-        )
+fun ValorInventarioCard(ipb: Double, ipc: Double, ganancia: Double) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = Shape.Grande,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
-        Icon(
-            imageVector = Icons.Default.Add,
-            contentDescription = "Nueva venta",
-            modifier = Modifier.size(28.dp)
-        )
+        Column(modifier = Modifier.padding(StockCubaSpacing.Lg)) {
+            Text("Valor del Inventario", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+            Spacer(Modifier.height(16.dp))
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("IPB (Venta)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(ipb.formatoCUP(), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("IPC (Costo)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(ipc.formatoCUP(), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
+                }
+            }
+            
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Ganancia Proyectada", style = MaterialTheme.typography.bodyMedium)
+                Text(ganancia.formatoCUP(), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold), color = StockCubaColors.VerdeExito)
+            }
+        }
     }
 }
+
+@Composable
+fun AlertaStockBajoModerno(productos: List<cu.stockcuba.app.domain.model.Producto>) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = Shape.Grande,
+        colors = CardDefaults.cardColors(containerColor = StockCubaColors.CoralAlerta.copy(alpha = 0.05f)),
+        border = BorderStroke(1.dp, StockCubaColors.CoralAlerta.copy(alpha = 0.2f))
+    ) {
+        Column(modifier = Modifier.padding(StockCubaSpacing.Md), verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Sm)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Warning, null, tint = StockCubaColors.CoralAlerta, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Alertas de Inventario (${productos.size})", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), color = StockCubaColors.CoralAlerta)
+            }
+            
+            productos.take(3).forEach { producto ->
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(producto.nombre, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                    Text("${producto.stockActual} unid.", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold), color = StockCubaColors.CoralAlerta)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ActividadRecienteSection(ventas: List<Venta>) {
+    Column(verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Actividad Reciente", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+            TextButton(onClick = { /* Navegar a historial */ }) {
+                Text("Ver todo")
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(16.dp))
+            }
+        }
+        
+        if (ventas.isEmpty()) {
+            Text("No hay ventas registradas todavía", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            ventas.forEach { venta ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = Shape.Grande,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.1f))
+                ) {
+                    Row(modifier = Modifier.padding(StockCubaSpacing.Md), verticalAlignment = Alignment.CenterVertically) {
+                        Surface(color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f), shape = CircleShape) {
+                            Icon(Icons.AutoMirrored.Filled.ReceiptLong, null, modifier = Modifier.padding(8.dp).size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                        }
+                        Spacer(Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Venta #${venta.id.take(6).uppercase()}", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+                            Text(venta.metodoPago.name, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Text(venta.total.formatoCUP(), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.ExtraBold))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PantallaErrorDashboard(message: String) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(Icons.Default.ErrorOutline, null, modifier = Modifier.size(48.dp), tint = StockCubaColors.CoralAlerta)
+            Text(message, textAlign = TextAlign.Center)
+        }
+    }
+}
+
+data class MetricItem(val title: String, val value: String, val trend: String, val icon: ImageVector, val color: Color)

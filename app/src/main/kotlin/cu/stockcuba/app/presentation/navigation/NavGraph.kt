@@ -1,14 +1,19 @@
 package cu.stockcuba.app.presentation.navigation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -18,8 +23,10 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Construction
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.Person
@@ -30,6 +37,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -52,6 +62,8 @@ import cu.stockcuba.app.presentation.security.SecurityGate
 import cu.stockcuba.app.presentation.security.SecurityViewModel
 import cu.stockcuba.app.presentation.ventas.HistorialVentasScreen
 import cu.stockcuba.app.presentation.ventas.NuevaVentaScreen
+import cu.stockcuba.app.presentation.ventas.DetalleVentaScreen
+import cu.stockcuba.app.presentation.theme.StockCubaColors
 import cu.stockcuba.app.presentation.theme.StockCubaSpacing
 import cu.stockcuba.app.presentation.theme.Shape
 
@@ -67,7 +79,6 @@ fun AppNavHost() {
     // Security dependencies (injected via Hilt ViewModel to avoid direct Object to ViewModel cast crash)
     val securityViewModel: SecurityViewModel = hiltViewModel()
     val securityRepository = securityViewModel.securityRepository
-    val biometricAuthenticator = securityViewModel.biometricAuthenticator
 
     // Bottom nav items
     val bottomNavItems = listOf(
@@ -123,7 +134,6 @@ fun AppNavHost() {
                 composable(Screen.Ventas.route) {
                     SecurityGate(
                         securityRepository = securityRepository,
-                        biometricAuthenticator = biometricAuthenticator,
                         onUnlocked = { /* unlocked */ }
                     ) {
                         VentasScreen(
@@ -136,7 +146,6 @@ fun AppNavHost() {
                 composable(Screen.NuevaVenta.route) {
                     SecurityGate(
                         securityRepository = securityRepository,
-                        biometricAuthenticator = biometricAuthenticator,
                         onUnlocked = { /* unlocked */ }
                     ) {
                         NuevaVentaScreen(onComplete = { navController.popBackStack() })
@@ -145,7 +154,6 @@ fun AppNavHost() {
                 composable(Screen.HistorialVentas.route) {
                     SecurityGate(
                         securityRepository = securityRepository,
-                        biometricAuthenticator = biometricAuthenticator,
                         onUnlocked = { /* unlocked */ }
                     ) {
                         HistorialVentasScreen(
@@ -161,10 +169,9 @@ fun AppNavHost() {
                     val ventaId = backStackEntry.arguments?.getString("ventaId") ?: ""
                     SecurityGate(
                         securityRepository = securityRepository,
-                        biometricAuthenticator = biometricAuthenticator,
                         onUnlocked = { /* unlocked */ }
                     ) {
-                        DetalleVentaScreen(ventaId = ventaId)
+                        DetalleVentaScreen(ventaId = ventaId, onBack = { navController.popBackStack() })
                     }
                 }
             }
@@ -203,7 +210,16 @@ fun AppNavHost() {
                     arguments = listOf(navArgument("productoId") { type = NavType.StringType })
                 ) { backStackEntry ->
                     val productoId = backStackEntry.arguments?.getString("productoId") ?: ""
-                    DetalleProductoScreen(productoId = productoId)
+                    DetalleProductoScreen(
+                        productoId = productoId,
+                        onEditar = { id -> 
+                            navController.navigate(Screen.FormularioProducto("editar", id).route) {
+                                // Evitar duplicados en el backstack
+                                popUpTo(Screen.Productos.route)
+                            }
+                        },
+                        onBack = { navController.popBackStack() }
+                    )
                 }
             }
 
@@ -212,7 +228,6 @@ fun AppNavHost() {
                 composable(Screen.Inventario.route) {
                     SecurityGate(
                         securityRepository = securityRepository,
-                        biometricAuthenticator = biometricAuthenticator,
                         onUnlocked = { /* unlocked */ }
                     ) {
                         InventarioScreen(
@@ -228,7 +243,6 @@ fun AppNavHost() {
                     val productoId = backStackEntry.arguments?.getString("productoId") ?: ""
                     SecurityGate(
                         securityRepository = securityRepository,
-                        biometricAuthenticator = biometricAuthenticator,
                         onUnlocked = { /* unlocked */ }
                     ) {
                         AjusteInventarioScreen(productoId = productoId, onComplete = { navController.popBackStack() })
@@ -241,7 +255,6 @@ fun AppNavHost() {
                     val productoId = backStackEntry.arguments?.getString("productoId") ?: ""
                     SecurityGate(
                         securityRepository = securityRepository,
-                        biometricAuthenticator = biometricAuthenticator,
                         onUnlocked = { /* unlocked */ }
                     ) {
                         HistorialMovimientosScreen(productoId = productoId, onBack = { navController.popBackStack() })
@@ -263,7 +276,6 @@ fun AppNavHost() {
                 composable(Screen.Ajustes.route) {
                     SecurityGate(
                         securityRepository = securityRepository,
-                        biometricAuthenticator = biometricAuthenticator,
                         onUnlocked = { /* unlocked */ }
                     ) {
                         AjustesScreen(onBack = { navController.popBackStack() }, navController = navController)
@@ -293,13 +305,13 @@ fun VentasScreen(onNuevaVenta: () -> Unit, onHistorial: () -> Unit, onDetalleVen
 }
 
 @Composable
-fun DetalleVentaScreen(ventaId: String) {
-    PlaceholderScreen("Detalle Venta", "Venta #$ventaId", "Cerrar", { })
-}
-
-@Composable
-fun DetalleProductoScreen(productoId: String) {
-    PlaceholderScreen("Detalle Producto", "ID: $productoId", "Editar", { })
+fun DetalleProductoScreen(productoId: String, onEditar: (String) -> Unit, onBack: () -> Unit) {
+    PlaceholderScreen(
+        title = "Detalle Producto", 
+        subtitle = "ID del producto: $productoId", 
+        actionLabel = "Editar Producto", 
+        onAction = { onEditar(productoId) }
+    )
 }
 
 @Composable
@@ -309,11 +321,27 @@ fun MasScreen(onAjustes: () -> Unit, onClientes: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Lg)
         ) {
+            Surface(
+                color = Color.White,
+                shape = CircleShape,
+                modifier = Modifier.size(80.dp),
+                shadowElevation = 4.dp
+            ) {
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(id = cu.stockcuba.app.R.mipmap.ic_launcher_foreground),
+                    contentDescription = "Logo",
+                    modifier = Modifier.padding(12.dp).fillMaxSize()
+                )
+            }
+            
             Text(
-                text = "Más", 
-                style = MaterialTheme.typography.displaySmall,
+                text = "StockCuba", 
+                style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.ExtraBold),
                 color = MaterialTheme.colorScheme.onSurface
             )
+            
+            Spacer(Modifier.height(StockCubaSpacing.Md))
+            
             Button(
                 onClick = onAjustes,
                 shape = Shape.ExtraGrande,
@@ -346,11 +374,49 @@ fun MasScreen(onAjustes: () -> Unit, onClientes: () -> Unit) {
 
 @Composable
 fun PlaceholderScreen(title: String, subtitle: String, actionLabel: String, onAction: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Lg)) {
-            Text(text = title, style = MaterialTheme.typography.displaySmall)
-            Text(text = subtitle, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
-            Button(onClick = onAction, shape = Shape.ExtraGrande) { Text(actionLabel) }
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally, 
+            verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Lg),
+            modifier = Modifier.padding(StockCubaSpacing.Xl)
+        ) {
+            Surface(
+                modifier = Modifier.size(120.dp),
+                shape = Shape.Full,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Construction,
+                        contentDescription = null,
+                        modifier = Modifier.size(56.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+            Text(
+                text = title, 
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = subtitle, 
+                style = MaterialTheme.typography.bodyLarge, 
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(StockCubaSpacing.Md))
+            Button(
+                onClick = onAction, 
+                shape = Shape.Grande,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = StockCubaColors.VerdeExito,
+                    contentColor = Color(0xFF001E1C)
+                )
+            ) { 
+                Text(actionLabel, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)) 
+            }
         }
     }
 }
