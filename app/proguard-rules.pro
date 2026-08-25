@@ -224,6 +224,48 @@
 -dontwarn com.google.errorprone.annotations.**
 -dontwarn edu.umd.cs.findbugs.annotations.**
 
+# POI schemas we don't use (Word, PowerPoint, etc. - only need spreadsheetml for Excel)
+-dontwarn org.openxmlformats.schemas.presentationml.**
+-dontwarn org.openxmlformats.schemas.wordprocessingml.**
+-dontwarn org.openxmlformats.schemas.drawingml.**
+-dontwarn org.openxmlformats.schemas.schemaLibrary.**
+-dontwarn org.openxmlformats.schemas.officeDocument.**
+-dontwarn org.openxmlformats.schemas.spreadsheetml.**  # poi-ooxml-lite doesn't include all spreadsheetml schemas
+-dontwarn org.w3c.dom.events.**
+-dontwarn org.w3c.dom.traversal.**
+
+# POI optional deps that aren't on Android / not needed for basic Excel
+-dontwarn com.github.javaparser.**
+-dontwarn org.apache.xmlbeans.impl.config.**
+-dontwarn com.sun.org.apache.xml.internal.resolver.**
+-dontwarn de.rototor.pdfbox.**
+-dontwarn javax.swing.**
+-dontwarn javax.xml.crypto.**
+-dontwarn org.apache.jcp.xml.dsig.internal.dom.**
+-dontwarn org.apache.maven.**
+-dontwarn org.apache.tools.ant.**
+-dontwarn org.apache.xml.security.**
+-dontwarn org.ietf.jgss.**
+-dontwarn org.apache.pdfbox.**
+
+# ===== KEEP APACHE POI CLASSES USED IN REPORTS =====
+-keep class org.apache.poi.** { *; }
+-keep class org.apache.poi.xssf.** { *; }
+-keep class org.apache.poi.ss.** { *; }
+-keep class org.apache.poi.ooxml.** { *; }
+-keep class org.openxmlformats.schemas.** { *; }
+-keep class org.apache.xmlbeans.** { *; }
+
+# ===== KEEP MEDIASTORE / CONTENTRESOLVER =====
+-keep class android.provider.MediaStore { *; }
+-keep class android.content.ContentResolver { *; }
+-keep class android.content.ContentValues { *; }
+-keep class android.net.Uri { *; }
+
+# ===== KEEP COROUTINES FOR REPORT GENERATION =====
+-keep class kotlinx.coroutines.** { *; }
+-keepclassmembers class kotlinx.coroutines.** { *; }
+
 # ===== OPTIMIZATIONS =====
 # Allow optimization of unused code
 -allowaccessmodification

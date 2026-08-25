@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cu.stockcuba.app.domain.model.Venta
+import cu.stockcuba.app.domain.model.DomainError
 import cu.stockcuba.app.presentation.theme.Shape
 import cu.stockcuba.app.presentation.theme.StockCubaColors
 import cu.stockcuba.app.presentation.theme.StockCubaSpacing
@@ -71,9 +72,21 @@ fun DashboardScreen(
                     onRangeChange = { viewModel.setTimeRange(it) },
                     onExportar = {
                         scope.launch {
-                            viewModel.exportarReporteDiario().onSuccess {
-                                launch { snackbarHostState.showSnackbar("Reporte guardado en Descargas/StockCuba") }
-                            }
+                            viewModel.exportarReporteDiario().fold(
+                                onSuccess = { uri ->
+                                    launch { snackbarHostState.showSnackbar("Reporte guardado en Descargas/StockCuba") }
+                                },
+                                onFailure = { error ->
+                                    val msg = when (error) {
+                                        is DomainError.DatabaseError -> error.cause?.message ?: "Error de base de datos"
+                                        is DomainError.InvalidOperation -> error.reason
+                                        is DomainError.NetworkError -> error.cause?.message ?: "Error de red"
+                                        is DomainError.Unknown -> error.message
+                                        else -> error.toString()
+                                    }
+                                    launch { snackbarHostState.showSnackbar("Error: $msg") }
+                                }
+                            )
                         }
                     }
                 )
