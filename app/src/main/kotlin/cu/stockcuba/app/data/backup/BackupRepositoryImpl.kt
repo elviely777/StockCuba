@@ -38,77 +38,57 @@ class BackupRepositoryImpl @Inject constructor(
             val baseFileName = "stockcuba_${LocalDate.now().format(dateFormatter)}"
             val relativePath = "${Environment.DIRECTORY_DOWNLOADS}/StockCuba/"
 
-            // Get the database directory and all 3 files
+            // Get the database directory and force WAL checkpoint so all data is in main .db
             val dbFile = context.getDatabasePath(databaseName)
             val dbDir = dbFile.parentFile
             
-            val filesToExport = mutableListOf<File>()
-            filesToExport.add(dbFile) // main .db file
-            
-            if (dbDir != null) {
-                val walFile = File(dbDir, "${databaseName}-wal")
-                val shmFile = File(dbDir, "${databaseName}-shm")
-                if (walFile.exists()) filesToExport.add(walFile)
-                if (shmFile.exists()) filesToExport.add(shmFile)
+            // Force WAL checkpoint to flush all transactions to main .db file
+            try {
+                val checkpointDb = android.database.sqlite.SQLiteDatabase.openDatabase(
+                    dbFile.absolutePath,
+                    null,
+                    android.database.sqlite.SQLiteDatabase.OPEN_READWRITE
+                )
+                checkpointDb.execSQL("PRAGMA wal_checkpoint(TRUNCATE)")
+                checkpointDb.close()
+            } catch (e: Exception) {
+                android.util.Log.w("BackupRepo", "WAL checkpoint failed, continuing anyway", e)
             }
 
-            var mainDbUri: Uri? = null
-            var success = true
-            var lastException: Exception? = null
-
-            // Export each file as separate MediaStore entry
-            for (file in filesToExport) {
-                val fileName = when {
-                    file.name.endsWith("-wal") -> "${baseFileName}-wal"
-                    file.name.endsWith("-shm") -> "${baseFileName}-shm"
-                    else -> "${baseFileName}.db"
-                }
-
-                val contentValues = ContentValues().apply {
-                    put(MediaStore.Downloads.DISPLAY_NAME, fileName)
-                    put(MediaStore.Downloads.RELATIVE_PATH, relativePath)
-                    put(MediaStore.Downloads.IS_PENDING, 1)
-                    put(MediaStore.Downloads.MIME_TYPE, "application/x-sqlite3")
-                }
-
-                val pendingUri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
-                    ?: return@withContext Result.Failure(DomainError.DatabaseError(IOException("Failed to create MediaStore entry for $fileName")))
-
-                // Save the main .db URI to return
-                if (fileName.endsWith(".db")) {
-                    mainDbUri = pendingUri
-                }
-
-                // Open output stream for this file
-                val outputStream = contentResolver.openOutputStream(pendingUri)
-                    ?: return@withContext Result.Failure(DomainError.DatabaseError(IOException("Failed to open output stream for $fileName")))
-
-                try {
-                    copyFile(file, outputStream)
-                } catch (e: Exception) {
-                    success = false
-                    lastException = e
-                } finally {
-                    outputStream.close()
-                }
-
-                if (!success) {
-                    // Clean up pending entry on failure
-                    contentResolver.delete(pendingUri, null, null)
-                    return@withContext Result.Failure(DomainError.DatabaseError(lastException ?: IOException("Unknown copy error for $fileName")))
-                }
-
-                // Publish the file by setting IS_PENDING=0
-                val publishValues = ContentValues().apply {
-                    put(MediaStore.Downloads.IS_PENDING, 0)
-                }
-                val updated = contentResolver.update(pendingUri, publishValues, null, null)
-                if (updated <= 0) {
-                    return@withContext Result.Failure(DomainError.DatabaseError(IOException("Failed to publish MediaStore entry for $fileName")))
-                }
+            // Export ONLY the main .db file (now contains all data after checkpoint)
+            val contentValues = ContentValues().apply {
+                put(MediaStore.Downloads.DISPLAY_NAME, "${baseFileName}.db")
+                put(MediaStore.Downloads.RELATIVE_PATH, relativePath)
+                put(MediaStore.Downloads.IS_PENDING, 1)
+                put(MediaStore.Downloads.MIME_TYPE, "application/x-sqlite3")
             }
 
-            Result.Success(mainDbUri ?: throw IOException("Main DB URI not created"))
+            val pendingUri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                ?: return@withContext Result.Failure(DomainError.DatabaseError(IOException("Failed to create MediaStore entry")))
+
+            val outputStream = contentResolver.openOutputStream(pendingUri)
+                ?: return@withContext Result.Failure(DomainError.DatabaseError(IOException("Failed to open output stream")))
+
+            try {
+                copyFile(dbFile, outputStream)
+            } catch (e: Exception) {
+                contentResolver.delete(pendingUri, null, null)
+                return@withContext Result.Failure(DomainError.DatabaseError(e))
+            } finally {
+                outputStream.close()
+            }
+
+            // Publish the file
+            val publishValues = ContentValues().apply {
+                put(MediaStore.Downloads.IS_PENDING, 0)
+            }
+            val updated = contentResolver.update(pendingUri, publishValues, null, null)
+            if (updated <= 0) {
+                contentResolver.delete(pendingUri, null, null)
+                return@withContext Result.Failure(DomainError.DatabaseError(IOException("Failed to publish MediaStore entry")))
+            }
+
+            Result.Success(pendingUri)
         } catch (e: Exception) {
             Result.Failure(DomainError.DatabaseError(e))
         }
