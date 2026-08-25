@@ -126,7 +126,11 @@ fun AppNavHost() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Dashboard.route) {
-                DashboardScreen(onNavigateToNuevaVenta = { navController.navigate(Screen.NuevaVenta.route) })
+                DashboardScreen(
+                    onNavigateToNuevaVenta = { navController.navigate(Screen.NuevaVenta.route) },
+                    onNavigateToHistorial = { navController.navigate(Screen.HistorialVentas.route) },
+                    onNavigateToInventario = { navController.navigate(Screen.Inventario.route) }
+                )
             }
 
             // ===== PROTECTED: Ventas =====
@@ -232,7 +236,8 @@ fun AppNavHost() {
                     ) {
                         InventarioScreen(
                             onAjuste = { producto -> navController.navigate(Screen.AjusteInventario(producto.id).route) },
-                            onHistorial = { producto -> navController.navigate(Screen.HistorialMovimientos(producto.id).route) }
+                            onHistorial = { producto -> navController.navigate(Screen.HistorialMovimientos(producto.id).route) },
+                            onBack = { navController.popBackStack() }
                         )
                     }
                 }

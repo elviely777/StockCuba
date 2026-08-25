@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -40,6 +41,7 @@ import cu.stockcuba.app.presentation.theme.StockCubaSpacing
 fun InventarioScreen(
     onAjuste: (Producto) -> Unit,
     onHistorial: (Producto) -> Unit,
+    onBack: (() -> Unit)? = null,
     viewModel: InventarioViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -49,7 +51,8 @@ fun InventarioScreen(
             InventarioHeader(
                 totalArticulos = (uiState as? InventarioUiState.Success)?.totalArticulos ?: 0,
                 query = (uiState as? InventarioUiState.Success)?.query ?: "",
-                onQueryChange = { viewModel.setQuery(it) }
+                onQueryChange = { viewModel.setQuery(it) },
+                onBack = onBack
             )
         }
     ) { padding ->
@@ -111,7 +114,8 @@ fun InventarioScreen(
 fun InventarioHeader(
     totalArticulos: Int,
     query: String,
-    onQueryChange: (String) -> Unit
+    onQueryChange: (String) -> Unit,
+    onBack: (() -> Unit)? = null
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surface,
@@ -126,10 +130,16 @@ fun InventarioHeader(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                if (onBack != null) {
+                    IconButton(onClick = onBack) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
+                    }
+                }
+                
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         "Inventario",
                         style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)

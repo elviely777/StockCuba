@@ -44,6 +44,8 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun DashboardScreen(
     onNavigateToNuevaVenta: () -> Unit,
+    onNavigateToHistorial: () -> Unit,
+    onNavigateToInventario: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -100,7 +102,9 @@ fun DashboardScreen(
                                 }
                             )
                         }
-                    }
+                    },
+                    onNavigateToHistorial = onNavigateToHistorial,
+                    onNavigateToInventario = onNavigateToInventario
                 )
             }
         }
@@ -112,7 +116,9 @@ fun DashboardContenidoFull(
     state: DashboardUiState.Success,
     onRangeChange: (DashboardTimeRange) -> Unit,
     onExportar: () -> Unit,
-    onCierre: () -> Unit
+    onCierre: () -> Unit,
+    onNavigateToHistorial: () -> Unit,
+    onNavigateToInventario: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -170,13 +176,19 @@ fun DashboardContenidoFull(
         // --- 7. ALERTAS DE STOCK ---
         if (state.listaProductosBajoStock.isNotEmpty()) {
             item {
-                AlertaStockBajoModerno(productos = state.listaProductosBajoStock)
+                AlertaStockBajoModerno(
+                    productos = state.listaProductosBajoStock,
+                    onClick = onNavigateToInventario
+                )
             }
         }
 
         // --- 8. ACTIVIDAD RECIENTE ---
         item {
-            ActividadRecienteSection(ventas = state.ventasRecientes)
+            ActividadRecienteSection(
+                ventas = state.ventasRecientes,
+                onVerTodo = onNavigateToHistorial
+            )
         }
 
         item { Spacer(Modifier.height(80.dp)) }
@@ -444,18 +456,36 @@ fun ValorInventarioCard(ipb: Double, ipc: Double, ganancia: Double) {
 }
 
 @Composable
-fun AlertaStockBajoModerno(productos: List<cu.stockcuba.app.domain.model.Producto>) {
+fun AlertaStockBajoModerno(productos: List<cu.stockcuba.app.domain.model.Producto>, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         shape = Shape.Grande,
         colors = CardDefaults.cardColors(containerColor = StockCubaColors.CoralAlerta.copy(alpha = 0.05f)),
         border = BorderStroke(1.dp, StockCubaColors.CoralAlerta.copy(alpha = 0.2f))
     ) {
         Column(modifier = Modifier.padding(StockCubaSpacing.Md), verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Sm)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Warning, null, tint = StockCubaColors.CoralAlerta, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Alertas de Inventario (${productos.size})", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), color = StockCubaColors.CoralAlerta)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Warning, null, tint = StockCubaColors.CoralAlerta, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "Alertas de Inventario (${productos.size})", 
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), 
+                        color = StockCubaColors.CoralAlerta
+                    )
+                }
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowForward, 
+                    null, 
+                    modifier = Modifier.size(16.dp), 
+                    tint = StockCubaColors.CoralAlerta.copy(alpha = 0.6f)
+                )
             }
             
             productos.take(3).forEach { producto ->
@@ -464,16 +494,25 @@ fun AlertaStockBajoModerno(productos: List<cu.stockcuba.app.domain.model.Product
                     Text("${producto.stockActual} unid.", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold), color = StockCubaColors.CoralAlerta)
                 }
             }
+            
+            if (productos.size > 3) {
+                Text(
+                    text = "y ${productos.size - 3} productos más...",
+                    style = MaterialTheme.typography.labelSmall.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
         }
     }
 }
 
 @Composable
-fun ActividadRecienteSection(ventas: List<Venta>) {
+fun ActividadRecienteSection(ventas: List<Venta>, onVerTodo: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("Actividad Reciente", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
-            TextButton(onClick = { /* Navegar a historial */ }) {
+            TextButton(onClick = onVerTodo) {
                 Text("Ver todo")
                 Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(16.dp))
             }
