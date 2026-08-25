@@ -88,6 +88,18 @@ fun DashboardScreen(
                                 }
                             )
                         }
+                    },
+                    onCierre = {
+                        scope.launch {
+                            viewModel.realizarCierreDelDia().fold(
+                                onSuccess = { uri ->
+                                    launch { snackbarHostState.showSnackbar("Cierre realizado y reporte guardado") }
+                                },
+                                onFailure = { error ->
+                                    launch { snackbarHostState.showSnackbar("Error al realizar cierre") }
+                                }
+                            )
+                        }
                     }
                 )
             }
@@ -99,14 +111,15 @@ fun DashboardScreen(
 fun DashboardContenidoFull(
     state: DashboardUiState.Success,
     onRangeChange: (DashboardTimeRange) -> Unit,
-    onExportar: () -> Unit
+    onExportar: () -> Unit,
+    onCierre: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(StockCubaSpacing.Lg),
         verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Lg)
     ) {
-        // --- 1. SALUDO Y SELECTOR ---
+        // ... items ...
         item {
             HeaderDashboardModerno(
                 currentRange = state.timeRange,
@@ -146,14 +159,19 @@ fun DashboardContenidoFull(
             )
         }
 
-        // --- 6. ALERTAS DE STOCK ---
+        // --- 6. CIERRE DEL DÍA (NUEVO) ---
+        item {
+            CierreDelDiaCard(onCierre = onCierre)
+        }
+
+        // --- 7. ALERTAS DE STOCK ---
         if (state.listaProductosBajoStock.isNotEmpty()) {
             item {
                 AlertaStockBajoModerno(productos = state.listaProductosBajoStock)
             }
         }
 
-        // --- 6. ACTIVIDAD RECIENTE ---
+        // --- 8. ACTIVIDAD RECIENTE ---
         item {
             ActividadRecienteSection(ventas = state.ventasRecientes)
         }
@@ -491,6 +509,46 @@ fun PantallaErrorDashboard(message: String) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(Icons.Default.ErrorOutline, null, modifier = Modifier.size(48.dp), tint = StockCubaColors.CoralAlerta)
             Text(message, textAlign = TextAlign.Center)
+        }
+    }
+}
+
+@Composable
+fun CierreDelDiaCard(onCierre: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = Shape.Grande,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+    ) {
+        Row(
+            modifier = Modifier.padding(StockCubaSpacing.Lg),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Finalizar Jornada",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+                Text(
+                    "Realiza el cierre formal y genera el reporte consolidado",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            Button(
+                onClick = onCierre,
+                shape = Shape.Mediano,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Icon(Icons.Default.LockClock, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Cerrar Día")
+            }
         }
     }
 }

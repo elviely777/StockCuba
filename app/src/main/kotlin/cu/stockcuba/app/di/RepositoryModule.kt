@@ -1,6 +1,7 @@
 package cu.stockcuba.app.di
 
 import cu.stockcuba.app.data.repository.CategoriaRepositoryImpl
+import cu.stockcuba.app.data.repository.CierreRepositoryImpl
 import cu.stockcuba.app.data.repository.ClienteRepositoryImpl
 import cu.stockcuba.app.data.repository.InventarioRepositoryImpl
 import cu.stockcuba.app.data.repository.ProductoRepositoryImpl
@@ -8,6 +9,7 @@ import cu.stockcuba.app.data.repository.ReportRepositoryImpl
 import cu.stockcuba.app.data.repository.SyncRepository
 import cu.stockcuba.app.data.repository.VentaRepositoryImpl
 import cu.stockcuba.app.domain.repository.CategoriaRepository
+import cu.stockcuba.app.domain.repository.CierreRepository
 import cu.stockcuba.app.domain.repository.ClienteRepository
 import cu.stockcuba.app.domain.repository.InventarioRepository
 import cu.stockcuba.app.domain.repository.ProductoRepository
@@ -44,9 +46,11 @@ abstract class RepositoryModule {
     @Singleton
     abstract fun bindInventarioRepository(impl: InventarioRepositoryImpl): InventarioRepository
 
-    companion object {
-        @Provides
-        @Singleton
-        fun provideReportRepository(impl: ReportRepositoryImpl): ReportRepository = impl
-    }
+    @Binds
+    @Singleton
+    abstract fun bindReportRepository(impl: ReportRepositoryImpl): ReportRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCierreRepository(impl: CierreRepositoryImpl): CierreRepository
 }

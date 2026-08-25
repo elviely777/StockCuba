@@ -13,7 +13,7 @@ interface ReportRepository {
      * Genera un reporte detallado del día seleccionado y lo exporta a .xlsx
      * con una hoja por categoría de producto (movimientos + datos del producto).
      */
-    suspend fun generarReporteDiarioXlsx(): Result<Uri>
+    suspend fun generarReporteDiarioXlsx(fecha: Long = System.currentTimeMillis()): Result<Uri>
 
     /**
      * Genera un reporte del estado actual del inventario (IPB/IPC) a CSV.

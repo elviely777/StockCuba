@@ -17,9 +17,10 @@ import java.io.File
         VentaEntity::class,
         VentaItemEntity::class,
         ClienteEntity::class,
-        MovimientoInventarioEntity::class
+        MovimientoInventarioEntity::class,
+        CierreDiarioEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -30,6 +31,7 @@ abstract class StockCubaDatabase : RoomDatabase() {
     abstract fun ventaDao(): VentaDao
     abstract fun clienteDao(): ClienteDao
     abstract fun movimientoInventarioDao(): MovimientoInventarioDao
+    abstract fun cierreDao(): CierreDao
 
     /**
      * Clears all operation tables in the database, respecting foreign key order (T27).
@@ -39,8 +41,9 @@ abstract class StockCubaDatabase : RoomDatabase() {
         val database = this
         database.withTransaction {
             // Delete in reverse dependency order to avoid FK violations
-            // MovimientoInventario -> VentaItem -> Venta -> Producto -> Cliente -> Categoria
+            // MovimientoInventario -> CierreDiario -> VentaItem -> Venta -> Producto -> Cliente -> Categoria
             movimientoInventarioDao().deleteAll()
+            cierreDao().deleteAll()
             ventaDao().deleteAllItems()
             ventaDao().deleteAll()
             productoDao().deleteAll()

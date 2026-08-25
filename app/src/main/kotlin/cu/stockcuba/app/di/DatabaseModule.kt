@@ -5,6 +5,7 @@ import androidx.room.Room
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import cu.stockcuba.app.data.local.dao.CategoriaDao
+import cu.stockcuba.app.data.local.dao.CierreDao
 import cu.stockcuba.app.data.local.dao.ClienteDao
 import cu.stockcuba.app.data.local.dao.MovimientoInventarioDao
 import cu.stockcuba.app.data.local.dao.ProductoDao
@@ -50,4 +51,8 @@ object DatabaseModule {
     @Singleton
     fun provideMovimientoInventarioDao(database: StockCubaDatabase): MovimientoInventarioDao =
         database.movimientoInventarioDao()
+
+    @Provides
+    @Singleton
+    fun provideCierreDao(database: StockCubaDatabase): CierreDao = database.cierreDao()
 }

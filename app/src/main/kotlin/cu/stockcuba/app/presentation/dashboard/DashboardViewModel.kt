@@ -5,14 +5,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cu.stockcuba.app.domain.model.Result
 import cu.stockcuba.app.domain.model.Venta
-import cu.stockcuba.app.domain.repository.ProductoRepository
-import cu.stockcuba.app.domain.repository.ReportRepository
-import cu.stockcuba.app.domain.repository.VentaRepository
+import cu.stockcuba.app.domain.repository.*
 import cu.stockcuba.app.domain.usecase.ObtenerProductosBajoStockUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
@@ -23,6 +22,7 @@ class DashboardViewModel @Inject constructor(
     private val ventaRepository: VentaRepository,
     private val productoRepository: ProductoRepository,
     private val reportRepository: ReportRepository,
+    private val cierreRepository: CierreRepository,
     private val obtenerProductosBajoStockUseCase: ObtenerProductosBajoStockUseCase
 ) : ViewModel() {
 
@@ -106,6 +106,19 @@ class DashboardViewModel @Inject constructor(
     }
 
     suspend fun exportarReporteDiario(): Result<Uri> {
+        return reportRepository.generarReporteDiarioXlsx()
+    }
+
+    /**
+     * Realiza el cierre formal del día actual y genera el reporte Excel.
+     */
+    suspend fun realizarCierreDelDia(notas: String = ""): Result<Uri> {
+        val hoy = Instant.now()
+        // 1. Registrar el cierre en la base de datos
+        val cierreResult = cierreRepository.realizarCierre(hoy, notas)
+        if (cierreResult is Result.Failure) return Result.Failure(cierreResult.error)
+
+        // 2. Generar el reporte Excel (que ahora representa el estado final del día)
         return reportRepository.generarReporteDiarioXlsx()
     }
 

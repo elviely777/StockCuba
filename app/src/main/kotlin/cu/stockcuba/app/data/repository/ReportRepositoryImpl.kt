@@ -15,6 +15,7 @@ import kotlinx.coroutines.withContext
 import java.io.BufferedWriter
 import java.io.IOException
 import java.io.OutputStreamWriter
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -49,11 +50,13 @@ class ReportRepositoryImpl @Inject constructor(
     private fun getReportsDir(): String = "${Environment.DIRECTORY_DOWNLOADS}/StockCuba/Reportes/"
 
     // ==========================================================
-    //  REPORTE DE CIERRE DIARIO — 4 hojas
+    //  REPORTE DE CIERRE DIARIO — 5 hojas
     // ==========================================================
-    override suspend fun generarReporteDiarioXlsx(): Result<Uri> = withContext(Dispatchers.IO) {
+    override suspend fun generarReporteDiarioXlsx(fecha: Long): Result<Uri> = withContext(Dispatchers.IO) {
         return@withContext try {
-            val startOfDay = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            val zoneId = ZoneId.systemDefault()
+            val localDate = Instant.ofEpochMilli(fecha).atZone(zoneId).toLocalDate()
+            val startOfDay = localDate.atStartOfDay(zoneId).toInstant().toEpochMilli()
             val endOfDay   = startOfDay + 24 * 60 * 60 * 1000 - 1
 
             val ventas = ventaRepository.getVentasPorRango(startOfDay, endOfDay).first()
@@ -73,9 +76,6 @@ class ReportRepositoryImpl @Inject constructor(
             val ticketPromedio = if (cantidadVentas > 0) totalRecaudado / cantidadVentas else 0.0
 
             // ---- Agregación por producto vendido ----
-            // ⚠️ VERIFICAR: asumo que VentaItem tiene el campo "productoId".
-            // Si tu VentaItem usa otro nombre (ej. idProducto, sku), cambia
-            // la referencia "item.productoId" en el bloque de abajo.
             data class VentaProducto(
                 var unidades: Int = 0,
                 var totalFacturado: Double = 0.0
@@ -85,7 +85,7 @@ class ReportRepositoryImpl @Inject constructor(
                 venta.items.forEach { item ->
                     val acumulado = ventasPorProducto.getOrPut(item.productoId) { VentaProducto() }
                     acumulado.unidades += item.cantidad
-                    acumulado.totalFacturado += item.cantidad * (productosMap[item.productoId]?.precioVenta ?: 0.0)
+                    acumulado.totalFacturado += item.subtotal
                 }
             }
 
@@ -145,7 +145,7 @@ class ReportRepositoryImpl @Inject constructor(
             fila = escribirTitulo(sheetResumen, "STOCKCUBA – GESTIÓN INTELIGENTE", fila)
             fila = escribirTitulo(sheetResumen, "RESUMEN EJECUTIVO – CIERRE DEL DÍA", fila)
             fila = escribirTitulo(sheetResumen, "Negocio: $nombreNegocio", fila)
-            fila = escribirTitulo(sheetResumen, "Fecha: ${LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM yyyy"))}", fila)
+            fila = escribirTitulo(sheetResumen, "Fecha: ${localDate.format(DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM yyyy"))}", fila)
             fila = escribirTitulo(sheetResumen, "Generado: ${LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy hh:mm a"))}", fila)
             fila++
 
@@ -188,7 +188,7 @@ class ReportRepositoryImpl @Inject constructor(
             // ==========================================================
             val sheetRanking = workbook.createSheet("Ranking de Productos")
             val encabezadoRanking = sheetRanking.createRow(0)
-            listOf("PRODUCTO", "CATEGORÍA", "UNIDADES VENDIDAS", "TOTAL FACTURADO", "COSTO UNITARIO", "PRECIO VENTA", "MARGEN UNITARIO", "GANANCIA TOTAL", "STOCK ACTUAL")
+            listOf("PRODUCTO", "CATEGORÍA", "UNIDADES VENDIDAS", "TOTAL FACTURADO", "COSTO UNITARIO", "PRECIO VENTA", "MARGEN UNITARIO", "GANANCIA TOTAL", "STOCK RESTANTE")
                 .forEachIndexed { idx, titulo ->
                     encabezadoRanking.createCell(idx).setCellValue(titulo)
                     encabezadoRanking.getCell(idx).setCellStyle(crearEstiloTitulo(workbook))
@@ -219,15 +219,9 @@ class ReportRepositoryImpl @Inject constructor(
                 }
             }
 
-            sheetRanking.setColumnWidth(0, 7500)  // Producto
-            sheetRanking.setColumnWidth(1, 5500)  // Categoría
-            sheetRanking.setColumnWidth(2, 4500)  // Unidades
-            sheetRanking.setColumnWidth(3, 4500)  // Total facturado
-            sheetRanking.setColumnWidth(4, 4000)  // Costo unitario
-            sheetRanking.setColumnWidth(5, 4000)  // Precio venta
-            sheetRanking.setColumnWidth(6, 4000)  // Margen unitario
-            sheetRanking.setColumnWidth(7, 4500)  // Ganancia total
-            sheetRanking.setColumnWidth(8, 3500)  // Stock actual
+            sheetRanking.setColumnWidth(0, 7500)
+            sheetRanking.setColumnWidth(1, 5500)
+            sheetRanking.setColumnWidth(3, 4500)
 
             // ==========================================================
             //  HOJA 3 — DETALLE DE VENTAS
@@ -242,8 +236,7 @@ class ReportRepositoryImpl @Inject constructor(
 
             ventas.sortedBy { it.fecha }.forEachIndexed { idx, venta ->
                 val row = sheetDetalle.createRow(idx + 1)
-                val hora = venta.fecha.atZone(ZoneId.systemDefault())
-                    .format(DateTimeFormatter.ofPattern("hh:mm a"))
+                val hora = venta.fecha.atZone(zoneId).format(DateTimeFormatter.ofPattern("hh:mm a"))
                 val clienteNombre = venta.clienteId?.let { clientes[it]?.nombre } ?: "Consumidor Final"
                 val resumenProductos = venta.items.joinToString(" | ") {
                     "${it.nombreProducto} (x${it.cantidad})"
@@ -261,16 +254,39 @@ class ReportRepositoryImpl @Inject constructor(
                 }
             }
 
-            sheetDetalle.setColumnWidth(0, 3500)  // Hora
-            sheetDetalle.setColumnWidth(1, 5000)  // Cliente
-            sheetDetalle.setColumnWidth(2, 9000)  // Productos vendidos
-            sheetDetalle.setColumnWidth(3, 3500)  // Método
-            sheetDetalle.setColumnWidth(4, 4000)  // Efectivo
-            sheetDetalle.setColumnWidth(5, 4000)  // Transferencia
-            sheetDetalle.setColumnWidth(6, 4000)  // Total
+            sheetDetalle.setColumnWidth(2, 12000)
 
             // ==========================================================
-            //  HOJA 4 — ANÁLISIS POR CATEGORÍA
+            //  HOJA 4 — ESTADO DEL INVENTARIO (DETALLADO)
+            // ==========================================================
+            val sheetInv = workbook.createSheet("Estado del Inventario")
+            val encabezadoInv = sheetInv.createRow(0)
+            listOf("PRODUCTO", "CATEGORÍA", "STOCK ACTUAL", "U.M.", "COSTO UNIT.", "PRECIO VENTA", "VALOR COSTO", "VALOR VENTA")
+                .forEachIndexed { idx, titulo ->
+                    encabezadoInv.createCell(idx).setCellValue(titulo)
+                    encabezadoInv.getCell(idx).setCellStyle(crearEstiloTitulo(workbook))
+                }
+
+            productosActivos.sortedBy { it.nombre }.forEachIndexed { idx, p ->
+                val row = sheetInv.createRow(idx + 1)
+                val cat = categoriasMap[p.categoriaId]?.nombre ?: "Sin categoría"
+                row.createCell(0).setCellValue(p.nombre)
+                row.createCell(1).setCellValue(cat)
+                row.createCell(2).setCellValue(p.stockActual.toDouble())
+                row.createCell(3).setCellValue(p.unidadMedida.name)
+                row.createCell(4).setCellValue(p.costoUnitario.formatoCUP())
+                row.createCell(5).setCellValue(p.precioVenta.formatoCUP())
+                row.createCell(6).setCellValue((p.stockActual * p.costoUnitario).formatoCUP())
+                row.createCell(7).setCellValue((p.stockActual * p.precioVenta).formatoCUP())
+                if (idx % 2 == 0) {
+                    (0..7).forEach { row.getCell(it).setCellStyle(crearEstiloFilaPar(workbook)) }
+                }
+            }
+            sheetInv.setColumnWidth(0, 7500)
+            sheetInv.setColumnWidth(1, 5500)
+
+            // ==========================================================
+            //  HOJA 5 — ANÁLISIS POR CATEGORÍA
             // ==========================================================
             val sheetCategoria = workbook.createSheet("Análisis por Categoría")
             val encabezadoCategoria = sheetCategoria.createRow(0)
@@ -296,14 +312,8 @@ class ReportRepositoryImpl @Inject constructor(
                 }
             }
 
-            sheetCategoria.setColumnWidth(0, 6000)  // Categoría
-            sheetCategoria.setColumnWidth(1, 4500)  // Unidades
-            sheetCategoria.setColumnWidth(2, 4500)  // Total facturado
-            sheetCategoria.setColumnWidth(3, 4500)  // % del total
-            sheetCategoria.setColumnWidth(4, 4500)  // Ganancia
-
             // ---- Persistir el archivo ----
-            val fileName = "ReporteDiario_${LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))}.xlsx"
+            val fileName = "ReporteDiario_${localDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))}.xlsx"
             val contentValues = ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
                 put(MediaStore.MediaColumns.MIME_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")

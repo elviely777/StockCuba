@@ -107,7 +107,7 @@ fun NuevaVentaScreen(
             when (val state = uiState) {
                 is NuevaVentaUiState.Saving -> PantallaCargandoVenta("Registrando venta...")
                 is NuevaVentaUiState.Error -> PantallaErrorVenta(state.message, onRetry = { viewModel.cargarDatosIniciales() })
-                is NuevaVentaUiState.Saved -> PantallaExitoVenta(onContinue = { viewModel.resetVenta() })
+                is NuevaVentaUiState.Saved -> PantallaExitoVenta(onContinue = onComplete)
                 is NuevaVentaUiState.Editing -> {
                     if (state.isLoading && state.productosDisponibles.isEmpty()) {
                         PantallaCargandoVenta("Cargando catálogo...")
@@ -812,7 +812,7 @@ fun PantallaExitoVenta(onContinue: () -> Unit) {
         Text("La venta ha sido registrada y el inventario actualizado.", textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(32.dp))
         Button(onClick = onContinue, modifier = Modifier.fillMaxWidth().height(56.dp), shape = Shape.Grande) {
-            Text("Nueva Venta")
+            Text("Continuar")
         }
     }
 }

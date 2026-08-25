@@ -124,6 +124,18 @@ fun AjustesScreen(
                                     scope.launch { snackbarHostState.showSnackbar("No se encontró app de correo") }
                                 }
                             }
+                        },
+                        onSembrar = {
+                            scope.launch {
+                                viewModel.sembrarDatosPrueba().fold(
+                                    onSuccess = { 
+                                        launch { snackbarHostState.showSnackbar("Datos de prueba generados") }
+                                    },
+                                    onFailure = { error ->
+                                        launch { snackbarHostState.showSnackbar("Error: $error") }
+                                    }
+                                )
+                            }
                         }
                     )
                 }
@@ -222,7 +234,8 @@ fun AjustesContenidoModerno(
     onPinChange: () -> Unit,
     onPinRemove: () -> Unit,
     onExportarInventario: () -> Unit,
-    onFeedback: () -> Unit
+    onFeedback: () -> Unit,
+    onSembrar: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -391,6 +404,23 @@ fun AjustesContenidoModerno(
                     subtitulo = "Ayúdanos a mejorar StockCuba",
                     icon = Icons.Default.Email,
                     onClick = onFeedback
+                )
+            }
+        }
+
+        // --- SECCIÓN 6: DESARROLLO (PRUEBAS) ---
+        item {
+            SeccionAjustesModerna(
+                titulo = "Modo Desarrollador", 
+                icono = Icons.Default.BugReport, 
+                color = Color(0xFF64748B)
+            ) {
+                FilaAccionAjuste(
+                    titulo = "Generar Datos de Prueba",
+                    subtitulo = "Inserta productos, clientes y ventas de ejemplo",
+                    icon = Icons.Default.Science,
+                    color = Color(0xFF64748B),
+                    onClick = onSembrar
                 )
             }
         }
