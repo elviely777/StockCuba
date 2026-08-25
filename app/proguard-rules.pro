@@ -206,6 +206,24 @@
     public static *** throwIfNot...(...);
 }
 
+# ===== APACHE POI (optional desktop deps not on Android) =====
+# POI pulls in Batik (SVG), Saxon (XPath), AWT/ImageIO, OSGi - all optional
+-dontwarn org.apache.batik.**
+-dontwarn org.apache.fop.**
+-dontwarn org.apache.xmlgraphics.**
+-dontwarn net.sf.saxon.**
+-dontwarn javax.xml.stream.**
+-dontwarn javax.imageio.**
+-dontwarn java.awt.**
+-dontwarn aQute.bnd.annotation.**
+-dontwarn org.osgi.**
+-dontwarn org.jspecify.annotations.**
+-dontwarn org.w3c.dom.svg.**
+
+# POI transitive deps: Log4j uses ErrorProne & FindBugs annotations (optional)
+-dontwarn com.google.errorprone.annotations.**
+-dontwarn edu.umd.cs.findbugs.annotations.**
+
 # ===== OPTIMIZATIONS =====
 # Allow optimization of unused code
 -allowaccessmodification
