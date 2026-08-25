@@ -47,7 +47,7 @@ fun InventarioScreen(
     Scaffold(
         topBar = {
             InventarioHeader(
-                totalArticulos = (uiState as? InventarioUiState.Success)?.productos?.size ?: 0,
+                totalArticulos = (uiState as? InventarioUiState.Success)?.totalArticulos ?: 0,
                 query = (uiState as? InventarioUiState.Success)?.query ?: "",
                 onQueryChange = { viewModel.setQuery(it) }
             )
@@ -64,7 +64,11 @@ fun InventarioScreen(
                 is InventarioUiState.Error -> InventarioError(state.message, onRetry = { viewModel.limpiarFiltros() })
                 is InventarioUiState.Success -> {
                     // ===== 1. RESUMEN RÁPIDO (OK, BAJO, SIN) =====
-                    ResumenInventarioModerno(productos = state.productos)
+                    ResumenInventarioModerno(
+                        ok = state.totalOk,
+                        bajo = state.totalBajo,
+                        sin = state.totalSinStock
+                    )
 
                     // ===== 2. FILTROS DE ESTADO (HORIZONTAL) =====
                     FiltrosStockBarra(
@@ -178,11 +182,7 @@ fun InventarioHeader(
 }
 
 @Composable
-fun ResumenInventarioModerno(productos: List<ProductoConStock>) {
-    val ok = productos.count { it.stockStatus == StockStatus.OK }
-    val bajo = productos.count { it.stockStatus == StockStatus.BAJO }
-    val sin = productos.count { it.stockStatus == StockStatus.SIN_STOCK }
-
+fun ResumenInventarioModerno(ok: Int, bajo: Int, sin: Int) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

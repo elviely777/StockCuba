@@ -33,8 +33,9 @@ class DashboardViewModel @Inject constructor(
         _timeRange,
         obtenerProductosBajoStockUseCase(),
         ventaRepository.getAll(),
-        productoRepository.getAll()
-    ) { range, productosBajoStock, allVentas, allProductos ->
+        productoRepository.getAll(),
+        cierreRepository.getHistoricoCierres()
+    ) { range, productosBajoStock, allVentas, allProductos, cierres ->
         val now = LocalDate.now()
         val startAndEnd = range.getTimestamps(now)
         val periodStart = startAndEnd.first
@@ -44,6 +45,10 @@ class DashboardViewModel @Inject constructor(
         
         val periodVentas = allVentas.filter { it.fecha.toEpochMilli() in periodStart..periodEnd }
         val prevVentas = allVentas.filter { it.fecha.toEpochMilli() in prevStartAndEnd.first..prevStartAndEnd.second }
+
+        // Buscar si hay cierre hoy
+        val inicioHoy = now.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val cierreHoy = cierres.find { it.fecha.toEpochMilli() == inicioHoy }
 
         val totalVendido = periodVentas.sumOf { it.total }
         val totalPrevio = prevVentas.sumOf { it.total }
@@ -93,6 +98,7 @@ class DashboardViewModel @Inject constructor(
             ventasRecientes = allVentas.take(5),
             tendenciaTotal = tendenciaTotal,
             tendenciaVentas = tendenciaVentas,
+            ultimoCierre = cierreHoy,
             isLoading = false
         )
     }.stateIn(

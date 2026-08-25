@@ -13,7 +13,11 @@ sealed interface InventarioUiState {
         val productos: List<ProductoConStock> = emptyList(),
         val query: String = "",
         val filtroStock: FiltroStock = FiltroStock.TODOS,
-        val isLoading: Boolean = false
+        val isLoading: Boolean = false,
+        val totalOk: Int = 0,
+        val totalBajo: Int = 0,
+        val totalSinStock: Int = 0,
+        val totalArticulos: Int = 0
     ) : InventarioUiState
 
     data object Loading : InventarioUiState

@@ -17,6 +17,7 @@ sealed interface NuevaVentaUiState {
         val metodoPago: MetodoPago = MetodoPago.EFECTIVO,
         val efectivoRecibido: String = "",
         val transferenciaMonto: String = "",
+        val idTransferencia: String = "",
         val clienteId: String? = null,
         val clientes: List<ClienteSimple> = emptyList(),
         val isLoading: Boolean = false,

@@ -45,6 +45,9 @@ data class VentaEntity(
     @ColumnInfo(name = "monto_transferencia")
     val montoTransferencia: Double = 0.0,
 
+    @ColumnInfo(name = "id_transferencia")
+    val idTransferencia: String? = null,
+
     @ColumnInfo(name = "fecha_creacion")
     val fechaCreacion: Long = System.currentTimeMillis(),
 

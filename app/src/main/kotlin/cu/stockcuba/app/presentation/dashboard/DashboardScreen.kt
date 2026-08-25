@@ -161,7 +161,10 @@ fun DashboardContenidoFull(
 
         // --- 6. CIERRE DEL DÍA (NUEVO) ---
         item {
-            CierreDelDiaCard(onCierre = onCierre)
+            CierreDelDiaCard(
+                ultimoCierre = state.ultimoCierre,
+                onCierre = onCierre
+            )
         }
 
         // --- 7. ALERTAS DE STOCK ---
@@ -514,12 +517,23 @@ fun PantallaErrorDashboard(message: String) {
 }
 
 @Composable
-fun CierreDelDiaCard(onCierre: () -> Unit) {
+fun CierreDelDiaCard(ultimoCierre: cu.stockcuba.app.domain.model.CierreDiario?, onCierre: () -> Unit) {
+    val isClosed = ultimoCierre != null
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = Shape.Grande,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+        colors = CardDefaults.cardColors(
+            containerColor = if (isClosed) 
+                StockCubaColors.VerdeExito.copy(alpha = 0.05f)
+            else 
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+        ),
+        border = BorderStroke(
+            1.dp, 
+            if (isClosed) StockCubaColors.VerdeExito.copy(alpha = 0.3f) 
+            else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+        )
     ) {
         Row(
             modifier = Modifier.padding(StockCubaSpacing.Lg),
@@ -528,26 +542,42 @@ fun CierreDelDiaCard(onCierre: () -> Unit) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Finalizar Jornada",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    if (isClosed) "Jornada Cerrada" else "Finalizar Jornada",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = if (isClosed) StockCubaColors.VerdeExito else MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    "Realiza el cierre formal y genera el reporte consolidado",
+                    if (isClosed) "Cierre realizado con éxito. El reporte consolidado ya fue generado." 
+                    else "Realiza el cierre formal y genera el reporte consolidado",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             
-            Button(
-                onClick = onCierre,
-                shape = Shape.Mediano,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Icon(Icons.Default.LockClock, null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Cerrar Día")
+            if (isClosed) {
+                Surface(
+                    color = StockCubaColors.VerdeExito.copy(alpha = 0.1f),
+                    shape = Shape.Full
+                ) {
+                    Icon(
+                        Icons.Default.CheckCircle, 
+                        null, 
+                        modifier = Modifier.padding(8.dp).size(24.dp),
+                        tint = StockCubaColors.VerdeExito
+                    )
+                }
+            } else {
+                Button(
+                    onClick = onCierre,
+                    shape = Shape.Mediano,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Icon(Icons.Default.LockClock, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Cerrar Día")
+                }
             }
         }
     }

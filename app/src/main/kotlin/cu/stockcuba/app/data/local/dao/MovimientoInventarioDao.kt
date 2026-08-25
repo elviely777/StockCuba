@@ -25,6 +25,9 @@ interface MovimientoInventarioDao {
     @Query("SELECT * FROM movimientos_inventario WHERE producto_id = :productoId AND fecha BETWEEN :startDate AND :endDate ORDER BY fecha DESC")
     fun getByProductoAndDateRange(productoId: String, startDate: Long, endDate: Long): Flow<List<MovimientoInventarioEntity>>
 
+    @Query("SELECT * FROM movimientos_inventario WHERE fecha BETWEEN :startDate AND :endDate ORDER BY fecha DESC")
+    fun getByDateRange(startDate: Long, endDate: Long): Flow<List<MovimientoInventarioEntity>>
+
     @Query("SELECT * FROM movimientos_inventario WHERE tipo = :tipo ORDER BY fecha DESC")
     fun getByTipo(tipo: String): Flow<List<MovimientoInventarioEntity>>
 

@@ -105,6 +105,15 @@ class NuevaVentaViewModel @Inject constructor(
         }
     }
 
+    fun setIdTransferencia(id: String) {
+        _uiState.update { state ->
+            when (state) {
+                is NuevaVentaUiState.Editing -> state.copy(idTransferencia = id)
+                else -> state
+            }
+        }
+    }
+
     fun setMontoExacto() {
         _uiState.update { state ->
             when (state) {
@@ -440,7 +449,8 @@ class NuevaVentaViewModel @Inject constructor(
             items = items,
             clienteId = state.clienteId,
             montoEfectivo = montoEfectivo,
-            montoTransferencia = montoTransferencia
+            montoTransferencia = montoTransferencia,
+            idTransferencia = state.idTransferencia.takeIf { it.isNotBlank() }
         )
     }
 
@@ -453,6 +463,7 @@ class NuevaVentaViewModel @Inject constructor(
                     metodoPago = MetodoPago.EFECTIVO,
                     efectivoRecibido = "",
                     transferenciaMonto = "",
+                    idTransferencia = "",
                     clienteId = null,
                     showSuccess = false,
                     errors = emptyMap()

@@ -28,8 +28,10 @@ import cu.stockcuba.app.domain.repository.VentaRepository
 import cu.stockcuba.app.domain.repository.ProductoRepository
 import cu.stockcuba.app.domain.repository.ClienteRepository
 import cu.stockcuba.app.domain.repository.CategoriaRepository
+import cu.stockcuba.app.domain.repository.InventarioRepository
 import cu.stockcuba.app.domain.model.Result
 import cu.stockcuba.app.domain.model.DomainError
+import cu.stockcuba.app.domain.model.TipoMovimientoInventario
 import cu.stockcuba.app.presentation.dashboard.formatoCUP
 
 import cu.stockcuba.app.domain.repository.ReportRepository
@@ -42,6 +44,7 @@ class ReportRepositoryImpl @Inject constructor(
     private val productoRepository: ProductoRepository,
     private val clienteRepository: ClienteRepository,
     private val categoriaRepository: CategoriaRepository,
+    private val inventarioRepository: InventarioRepository,
     private val ajustesDataStore: AjustesDataStore
 ) : ReportRepository {
 
@@ -50,7 +53,7 @@ class ReportRepositoryImpl @Inject constructor(
     private fun getReportsDir(): String = "${Environment.DIRECTORY_DOWNLOADS}/StockCuba/Reportes/"
 
     // ==========================================================
-    //  REPORTE DE CIERRE DIARIO — 5 hojas
+    //  REPORTE DE CIERRE DIARIO — 6 hojas
     // ==========================================================
     override suspend fun generarReporteDiarioXlsx(fecha: Long): Result<Uri> = withContext(Dispatchers.IO) {
         return@withContext try {
@@ -60,6 +63,7 @@ class ReportRepositoryImpl @Inject constructor(
             val endOfDay   = startOfDay + 24 * 60 * 60 * 1000 - 1
 
             val ventas = ventaRepository.getVentasPorRango(startOfDay, endOfDay).first()
+            val movimientos = inventarioRepository.getHistorialPorRango(startOfDay, endOfDay).first()
             val clientes = clienteRepository.getAll().first().associateBy { it.id }
             val nombreNegocio = ajustesDataStore.nombreNegocio.first()
 
@@ -228,7 +232,7 @@ class ReportRepositoryImpl @Inject constructor(
             // ==========================================================
             val sheetDetalle = workbook.createSheet("Detalle de Ventas")
             val encabezadoDetalle = sheetDetalle.createRow(0)
-            listOf("HORA", "CLIENTE", "PRODUCTOS VENDIDOS", "MÉTODO", "EFECTIVO", "TRANSF.", "TOTAL VENTA")
+            listOf("HORA", "CLIENTE", "PRODUCTOS VENDIDOS", "MÉTODO", "EFECTIVO", "TRANSF.", "ID TRANSF.", "TOTAL VENTA")
                 .forEachIndexed { idx, titulo ->
                     encabezadoDetalle.createCell(idx).setCellValue(titulo)
                     encabezadoDetalle.getCell(idx).setCellStyle(crearEstiloTitulo(workbook))
@@ -248,38 +252,57 @@ class ReportRepositoryImpl @Inject constructor(
                 row.createCell(3).setCellValue(venta.metodoPago.name)
                 row.createCell(4).setCellValue(venta.montoEfectivo.formatoCUP())
                 row.createCell(5).setCellValue(venta.montoTransferencia.formatoCUP())
-                row.createCell(6).setCellValue(venta.total.formatoCUP())
+                row.createCell(6).setCellValue(venta.idTransferencia ?: "—")
+                row.createCell(7).setCellValue(venta.total.formatoCUP())
                 if (idx % 2 == 0) {
-                    (0..6).forEach { row.getCell(it).setCellStyle(crearEstiloFilaPar(workbook)) }
+                    (0..7).forEach { row.getCell(it).setCellStyle(crearEstiloFilaPar(workbook)) }
                 }
             }
 
             sheetDetalle.setColumnWidth(2, 12000)
+            sheetDetalle.setColumnWidth(6, 4500)
 
             // ==========================================================
             //  HOJA 4 — ESTADO DEL INVENTARIO (DETALLADO)
             // ==========================================================
             val sheetInv = workbook.createSheet("Estado del Inventario")
             val encabezadoInv = sheetInv.createRow(0)
-            listOf("PRODUCTO", "CATEGORÍA", "STOCK ACTUAL", "U.M.", "COSTO UNIT.", "PRECIO VENTA", "VALOR COSTO", "VALOR VENTA")
+            listOf("PRODUCTO", "CATEGORÍA", "ESTADO", "STOCK INICIAL", "ENTRADAS", "VENTAS", "AJUSTES", "STOCK FINAL", "U.M.", "VALOR COSTO", "VALOR VENTA")
                 .forEachIndexed { idx, titulo ->
                     encabezadoInv.createCell(idx).setCellValue(titulo)
                     encabezadoInv.getCell(idx).setCellStyle(crearEstiloTitulo(workbook))
                 }
 
+            val movsPorProducto = movimientos.groupBy { it.productoId }
+
             productosActivos.sortedBy { it.nombre }.forEachIndexed { idx, p ->
                 val row = sheetInv.createRow(idx + 1)
                 val cat = categoriasMap[p.categoriaId]?.nombre ?: "Sin categoría"
+                val estado = when {
+                    p.stockActual <= 0 -> "CRÍTICO (SIN STOCK)"
+                    p.stockActual <= p.stockMinimo -> "BAJO"
+                    else -> "OK"
+                }
+
+                val entradas = movsPorProducto[p.id]?.filter { it.tipo == TipoMovimientoInventario.ENTRADA }?.sumOf { it.cantidad } ?: 0
+                val salidas = movsPorProducto[p.id]?.filter { it.tipo == TipoMovimientoInventario.SALIDA || it.tipo == TipoMovimientoInventario.VENTA }?.sumOf { it.cantidad } ?: 0
+                val ajustes = movsPorProducto[p.id]?.filter { it.tipo == TipoMovimientoInventario.AJUSTE }?.sumOf { it.cantidadConSigno } ?: 0
+                val stockInicial = p.stockActual - (entradas - salidas + ajustes)
+                
                 row.createCell(0).setCellValue(p.nombre)
                 row.createCell(1).setCellValue(cat)
-                row.createCell(2).setCellValue(p.stockActual.toDouble())
-                row.createCell(3).setCellValue(p.unidadMedida.name)
-                row.createCell(4).setCellValue(p.costoUnitario.formatoCUP())
-                row.createCell(5).setCellValue(p.precioVenta.formatoCUP())
-                row.createCell(6).setCellValue((p.stockActual * p.costoUnitario).formatoCUP())
-                row.createCell(7).setCellValue((p.stockActual * p.precioVenta).formatoCUP())
+                row.createCell(2).setCellValue(estado)
+                row.createCell(3).setCellValue(stockInicial.toDouble())
+                row.createCell(4).setCellValue(entradas.toDouble())
+                row.createCell(5).setCellValue(salidas.toDouble())
+                row.createCell(6).setCellValue(ajustes.toDouble())
+                row.createCell(7).setCellValue(p.stockActual.toDouble())
+                row.createCell(8).setCellValue(p.unidadMedida.name)
+                row.createCell(9).setCellValue((p.stockActual * p.costoUnitario).formatoCUP())
+                row.createCell(10).setCellValue((p.stockActual * p.precioVenta).formatoCUP())
+                
                 if (idx % 2 == 0) {
-                    (0..7).forEach { row.getCell(it).setCellStyle(crearEstiloFilaPar(workbook)) }
+                    (0..10).forEach { row.getCell(it).setCellStyle(crearEstiloFilaPar(workbook)) }
                 }
             }
             sheetInv.setColumnWidth(0, 7500)

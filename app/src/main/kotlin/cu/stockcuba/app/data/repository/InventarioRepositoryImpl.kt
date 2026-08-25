@@ -26,6 +26,9 @@ class InventarioRepositoryImpl @Inject constructor(
     override fun getHistorialPorProductoYRango(productoId: String, desde: Long, hasta: Long): Flow<List<MovimientoInventario>> =
         movimientoDao.getByProductoAndDateRange(productoId, desde, hasta).map { it.map { it.toDomain() } }
 
+    override fun getHistorialPorRango(desde: Long, hasta: Long): Flow<List<MovimientoInventario>> =
+        movimientoDao.getByDateRange(desde, hasta).map { it.map { it.toDomain() } }
+
     override suspend fun registrarMovimiento(movimiento: MovimientoInventario): Result<Unit> {
         return try {
             database.withTransaction {

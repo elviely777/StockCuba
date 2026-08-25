@@ -16,7 +16,8 @@ fun VentaEntity.toDomain(): Venta = Venta(
     items = emptyList(), 
     clienteId = clienteId,
     montoEfectivo = montoEfectivo,
-    montoTransferencia = montoTransferencia
+    montoTransferencia = montoTransferencia,
+    idTransferencia = idTransferencia
 )
 
 fun VentaWithItems.toDomain(): Venta = Venta(
@@ -27,7 +28,8 @@ fun VentaWithItems.toDomain(): Venta = Venta(
     items = items.map { it.toDomain() },
     clienteId = venta.clienteId,
     montoEfectivo = venta.montoEfectivo,
-    montoTransferencia = venta.montoTransferencia
+    montoTransferencia = venta.montoTransferencia,
+    idTransferencia = venta.idTransferencia
 )
 
 fun Venta.toEntity(): VentaEntity = VentaEntity(
@@ -38,6 +40,7 @@ fun Venta.toEntity(): VentaEntity = VentaEntity(
     clienteId = clienteId,
     montoEfectivo = montoEfectivo,
     montoTransferencia = montoTransferencia,
+    idTransferencia = idTransferencia,
     fechaCreacion = Instant.now().toEpochMilli(),
     syncStatus = "SYNCED"
 )
@@ -71,6 +74,7 @@ fun Venta.toEntityWithItems(): Pair<VentaEntity, List<VentaItemEntity>> {
         clienteId = clienteId,
         montoEfectivo = montoEfectivo,
         montoTransferencia = montoTransferencia,
+        idTransferencia = idTransferencia,
         fechaCreacion = Instant.now().toEpochMilli(),
         syncStatus = "SYNCED"
     )

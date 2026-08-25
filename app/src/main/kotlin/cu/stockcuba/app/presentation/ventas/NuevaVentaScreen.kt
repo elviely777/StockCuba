@@ -318,6 +318,19 @@ fun NuevaVentaContenidoModerno(
                                 Spacer(Modifier.width(12.dp))
                                 Text("Confirma la recepción de ${totales.total.formatoCUP()} en tu cuenta.", style = MaterialTheme.typography.bodySmall)
                             }
+                            
+                            OutlinedTextField(
+                                value = state.idTransferencia,
+                                onValueChange = { viewModel.setIdTransferencia(it) },
+                                label = { Text("ID de Transacción / Comprobante") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = Shape.Grande,
+                                singleLine = true,
+                                leadingIcon = { Icon(Icons.Default.ConfirmationNumber, null, modifier = Modifier.size(20.dp)) },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                )
+                            )
                         }
                         
                         if (state.metodoPago == MetodoPago.MIXTO) {
@@ -335,6 +348,19 @@ fun NuevaVentaContenidoModerno(
                                 value = state.transferenciaMonto,
                                 onValueChange = { viewModel.setTransferenciaMonto(it) },
                                 error = state.errors["transferencia"]
+                            )
+
+                            OutlinedTextField(
+                                value = state.idTransferencia,
+                                onValueChange = { viewModel.setIdTransferencia(it) },
+                                label = { Text("ID de Transacción (Transferencia)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = Shape.Grande,
+                                singleLine = true,
+                                leadingIcon = { Icon(Icons.Default.ConfirmationNumber, null, modifier = Modifier.size(20.dp)) },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                )
                             )
                             
                             val efectivo = state.efectivoRecibido.toDoubleOrNull() ?: 0.0

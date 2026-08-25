@@ -1,5 +1,6 @@
 package cu.stockcuba.app.presentation.dashboard
 
+import cu.stockcuba.app.domain.model.CierreDiario
 import cu.stockcuba.app.domain.model.Producto
 import cu.stockcuba.app.domain.model.Venta
 import cu.stockcuba.app.domain.repository.VentaRepository
@@ -44,6 +45,7 @@ sealed interface DashboardUiState {
         val tendenciaTotal: String = "—",
         val tendenciaVentas: String = "—",
         
+        val ultimoCierre: CierreDiario? = null,
         val isLoading: Boolean = false
     ) : DashboardUiState
 

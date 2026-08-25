@@ -36,9 +36,11 @@ class InventarioViewModel @Inject constructor(
         _filtroQuery,
         _filtroStock
     ) { allProductos, query, filtro ->
-        val filtered = allProductos
+        val activeProductos = allProductos
             .filter { it.activo }
             .map { it.toProductoConStock() }
+
+        val filtered = activeProductos
             .filter { productoConStock ->
                 val matchesQuery = query.isBlank() ||
                     productoConStock.producto.nombre.lowercase(java.util.Locale.getDefault()).contains(query.lowercase(java.util.Locale.getDefault())) ||
@@ -59,7 +61,11 @@ class InventarioViewModel @Inject constructor(
             productos = filtered,
             query = query,
             filtroStock = filtro,
-            isLoading = false
+            isLoading = false,
+            totalOk = activeProductos.count { it.stockStatus == StockStatus.OK },
+            totalBajo = activeProductos.count { it.stockStatus == StockStatus.BAJO },
+            totalSinStock = activeProductos.count { it.stockStatus == StockStatus.SIN_STOCK },
+            totalArticulos = activeProductos.size
         )
     }
         .stateIn(
