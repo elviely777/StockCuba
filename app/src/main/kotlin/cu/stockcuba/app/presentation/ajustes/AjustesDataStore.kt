@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import androidx.datastore.preferences.core.doublePreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,6 +30,9 @@ class AjustesDataStore @Inject constructor(
         // PIN security keys (T33)
         val PIN_HASH_KEY = stringPreferencesKey("pin_hash")
         val PIN_SALT_KEY = stringPreferencesKey("pin_salt")
+
+        // Trial keys
+        val INSTALL_DATE_KEY = longPreferencesKey("install_date")
     }
 
     val nombreNegocio: Flow<String> = dataStore.data
@@ -64,6 +68,10 @@ class AjustesDataStore @Inject constructor(
         .map { it[PIN_SALT_KEY] }
         .distinctUntilChanged()
 
+    val fechaInstalacion: Flow<Long?> = dataStore.data
+        .map { it[INSTALL_DATE_KEY] }
+        .distinctUntilChanged()
+
     suspend fun guardarNombreNegocio(nombre: String): Result<Unit> = guardarDato(NOMBRE_NEGOCIO_KEY, nombre)
     suspend fun guardarDireccion(direccion: String): Result<Unit> = guardarDato(DIRECCION_KEY, direccion)
     suspend fun guardarTelefono(telefono: String): Result<Unit> = guardarDato(TELEFONO_KEY, telefono)
@@ -74,6 +82,8 @@ class AjustesDataStore @Inject constructor(
     // PIN setters (T33)
     suspend fun guardarPinHash(hash: String): Result<Unit> = guardarDato(PIN_HASH_KEY, hash)
     suspend fun guardarPinSalt(salt: String): Result<Unit> = guardarDato(PIN_SALT_KEY, salt)
+
+    suspend fun guardarFechaInstalacion(fecha: Long): Result<Unit> = guardarDato(INSTALL_DATE_KEY, fecha)
 
     suspend fun eliminarPin(): Result<Unit> {
         return try {
