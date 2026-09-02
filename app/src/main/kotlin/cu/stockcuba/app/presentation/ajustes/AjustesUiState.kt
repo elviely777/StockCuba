@@ -1,11 +1,6 @@
 package cu.stockcuba.app.presentation.ajustes
 
-/**
- * Monedas soportadas.
- */
-enum class Moneda {
-    CUP, USD, MLC, EUR
-}
+import cu.stockcuba.app.domain.model.Moneda
 
 /**
  * Estado de UI para la pantalla de Ajustes.

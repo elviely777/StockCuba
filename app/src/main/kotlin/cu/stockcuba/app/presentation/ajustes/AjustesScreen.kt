@@ -33,6 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.compose.ui.window.DialogProperties
+import cu.stockcuba.app.domain.model.Moneda
 import cu.stockcuba.app.domain.model.Result
 import cu.stockcuba.app.presentation.navigation.Screen
 import cu.stockcuba.app.presentation.security.PinEntryScreen
@@ -59,6 +60,7 @@ fun AjustesScreen(
     var showPinSetupDialog by remember { mutableStateOf(false) }
     var pinSetupMode by remember { mutableStateOf<Mode>(Mode.Setup) }
     var showPinRemoveDialog by remember { mutableStateOf(false) }
+    var showMonedaDialog by remember { mutableStateOf(false) }
 
     // SAF launcher for importing database file
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
@@ -139,7 +141,8 @@ fun AjustesScreen(
                         },
                         onNavigateToVinculacion = {
                             navController.navigate(Screen.VinculacionNegocio.route)
-                        }
+                        },
+                        onMonedaClick = { showMonedaDialog = true }
                     )
                 }
                 else -> {}
@@ -147,6 +150,17 @@ fun AjustesScreen(
         }
 
         // --- DIÁLOGOS ---
+        if (showMonedaDialog) {
+            MonedaSelectionDialog(
+                currentMoneda = (uiState as? AjustesUiState.Success)?.moneda ?: Moneda.CUP,
+                onDismiss = { showMonedaDialog = false },
+                onSelect = { 
+                    viewModel.guardarMoneda(it)
+                    showMonedaDialog = false 
+                }
+            )
+        }
+
         if (showResetDialog) {
             ResetConfirmationDialog(
                 onDismiss = { showResetDialog = false; resetConfirmationText = "" },
@@ -239,7 +253,8 @@ fun AjustesContenidoModerno(
     onExportarInventario: () -> Unit,
     onFeedback: () -> Unit,
     onSembrar: () -> Unit,
-    onNavigateToVinculacion: () -> Unit
+    onNavigateToVinculacion: () -> Unit,
+    onMonedaClick: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -304,9 +319,12 @@ fun AjustesContenidoModerno(
                 
                 Text("Preferencia de Moneda", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                 SelectorAjusteModerno(
-                    label = state.moneda.name,
+                    label = when(state.moneda) {
+                        Moneda.CLASICA -> "CLÁSICA"
+                        else -> state.moneda.name
+                    },
                     icon = Icons.Default.MonetizationOn,
-                    onClick = { /* Podría abrir un dialog con opciones */ }
+                    onClick = onMonedaClick
                 )
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
@@ -593,6 +611,54 @@ fun ResetConfirmationDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancelar") }
+        }
+    )
+}
+
+@Composable
+fun MonedaSelectionDialog(
+    currentMoneda: Moneda,
+    onDismiss: () -> Unit,
+    onSelect: (Moneda) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Seleccionar Moneda", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Moneda.entries.forEach { moneda ->
+                    val isSelected = moneda == currentMoneda
+                    Surface(
+                        onClick = { onSelect(moneda) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = Shape.Grande,
+                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                        border = if (isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = { onSelect(moneda) }
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                text = when(moneda) {
+                                    Moneda.CLASICA -> "CLÁSICA"
+                                    else -> moneda.name
+                                },
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Cerrar") }
         }
     )
 }

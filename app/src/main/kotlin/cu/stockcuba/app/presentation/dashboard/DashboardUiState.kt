@@ -3,6 +3,7 @@ package cu.stockcuba.app.presentation.dashboard
 import cu.stockcuba.app.domain.model.CierreDiario
 import cu.stockcuba.app.domain.model.Producto
 import cu.stockcuba.app.domain.model.Venta
+import cu.stockcuba.app.domain.model.Moneda
 import cu.stockcuba.app.domain.repository.VentaRepository
 
 /**
