@@ -14,17 +14,25 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Construction
 import androidx.compose.material.icons.filled.Dashboard
@@ -47,6 +55,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
@@ -72,11 +81,14 @@ import cu.stockcuba.app.presentation.theme.Shape
  * NavGraph principal con Scaffold + Bottom Navigation Bar.
  * Wraps sensitive routes (ventas_root, inventario_root, ajustes) with SecurityGate (T40).
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavHost() {
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
     val snackbarHostState = remember { SnackbarHostState() }
-    
+
     // Security dependencies (injected via Hilt ViewModel to avoid direct Object to ViewModel cast crash)
     val securityViewModel: SecurityViewModel = hiltViewModel()
     val securityRepository = securityViewModel.securityRepository
@@ -97,11 +109,29 @@ fun AppNavHost() {
                 containerColor = MaterialTheme.colorScheme.surfaceContainer
             ) {
                 bottomNavItems.forEach { item ->
-                    val isSelected = navController.currentDestination?.route?.startsWith(item.screen.route) == true
+                    val isSelected = currentDestination?.route?.startsWith(item.screen.route) == true
                     NavigationBarItem(
-                        icon = { Icon(item.icon, contentDescription = item.label) },
-                        label = { Text(item.label, style = MaterialTheme.typography.labelSmall) },
+                        icon = { 
+                            Icon(
+                                item.icon, 
+                                contentDescription = item.label,
+                            ) 
+                        },
+                        label = { 
+                            Text(
+                                item.label, 
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
+                            ) 
+                        },
                         selected = isSelected,
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.primary,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
                         onClick = {
                             if (isSelected) {
                                 // Si ya está seleccionado, volver a la raíz de la pestaña (T28)
@@ -299,16 +329,59 @@ data class BottomNavItem(val screen: Screen, val icon: androidx.compose.ui.graph
 
 // --- Placeholder Screens para completar el flujo ---
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VentasScreen(onNuevaVenta: () -> Unit, onHistorial: () -> Unit, onDetalleVenta: (String) -> Unit) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Lg)
-        ) {
-            Text(text = "Ventas", style = MaterialTheme.typography.displaySmall)
-            Button(onClick = onNuevaVenta, shape = Shape.ExtraGrande) { Text("Nueva Venta") }
-            Button(onClick = onHistorial, shape = Shape.ExtraGrande) { Text("Historial") }
+    Scaffold(
+        topBar = {
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 2.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = StockCubaSpacing.Lg, vertical = StockCubaSpacing.Md)
+                        .statusBarsPadding()
+                ) {
+                    Text(
+                        "Ventas",
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)
+                    )
+                    Text(
+                        "Gestión de transacciones",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Lg)
+            ) {
+                Button(
+                    onClick = onNuevaVenta, 
+                    shape = Shape.ExtraGrande,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = StockCubaSpacing.Xl)
+                ) { 
+                    Icon(Icons.Default.Add, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Nueva Venta") 
+                }
+                Button(
+                    onClick = onHistorial, 
+                    shape = Shape.ExtraGrande,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = StockCubaSpacing.Xl),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
+                ) { 
+                    Icon(Icons.Default.History, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Historial") 
+                }
+            }
         }
     }
 }
@@ -325,57 +398,83 @@ fun DetalleProductoScreen(productoId: String, onEditar: (String) -> Unit, onBack
 
 @Composable
 fun MasScreen(onAjustes: () -> Unit, onClientes: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Lg)
-        ) {
+    Scaffold(
+        topBar = {
             Surface(
-                color = Color.White,
-                shape = CircleShape,
-                modifier = Modifier.size(80.dp),
-                shadowElevation = 4.dp
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 2.dp
             ) {
-                androidx.compose.foundation.Image(
-                    painter = androidx.compose.ui.res.painterResource(id = cu.stockcuba.app.R.mipmap.ic_launcher_foreground),
-                    contentDescription = "Logo",
-                    modifier = Modifier.padding(12.dp).fillMaxSize()
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = StockCubaSpacing.Lg, vertical = StockCubaSpacing.Md)
+                        .statusBarsPadding()
+                ) {
+                    Text(
+                        "Más Opciones",
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)
+                    )
+                    Text(
+                        "Configuración y herramientas adicionales",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
-            
-            Text(
-                text = "StockCuba", 
-                style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.ExtraBold),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            
-            Spacer(Modifier.height(StockCubaSpacing.Md))
-            
-            Button(
-                onClick = onAjustes,
-                shape = Shape.ExtraGrande,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = StockCubaSpacing.Xl),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
+        }
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Lg)
             ) {
-                Icon(Icons.Default.Settings, contentDescription = null)
-                Spacer(Modifier.size(StockCubaSpacing.Sm))
-                Text("Ajustes")
-            }
-            Button(
-                onClick = onClientes,
-                shape = Shape.ExtraGrande,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = StockCubaSpacing.Xl),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
+                Surface(
+                    color = Color.White,
+                    shape = CircleShape,
+                    modifier = Modifier.size(80.dp),
+                    shadowElevation = 4.dp
+                ) {
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.ui.res.painterResource(id = cu.stockcuba.app.R.mipmap.ic_launcher_foreground),
+                        contentDescription = "Logo",
+                        modifier = Modifier.padding(12.dp).fillMaxSize()
+                    )
+                }
+                
+                Text(
+                    text = "StockCuba", 
+                    style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.ExtraBold),
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-            ) {
-                Icon(Icons.Default.Person, contentDescription = null)
-                Spacer(Modifier.size(StockCubaSpacing.Sm))
-                Text("Clientes")
+                
+                Spacer(Modifier.height(StockCubaSpacing.Md))
+                
+                Button(
+                    onClick = onAjustes,
+                    shape = Shape.ExtraGrande,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = StockCubaSpacing.Xl),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Icon(Icons.Default.Settings, contentDescription = null)
+                    Spacer(Modifier.size(StockCubaSpacing.Sm))
+                    Text("Ajustes")
+                }
+                Button(
+                    onClick = onClientes,
+                    shape = Shape.ExtraGrande,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = StockCubaSpacing.Xl),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Icon(Icons.Default.Person, contentDescription = null)
+                    Spacer(Modifier.size(StockCubaSpacing.Sm))
+                    Text("Clientes")
+                }
             }
         }
     }
