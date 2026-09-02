@@ -46,6 +46,7 @@ sealed interface DashboardUiState {
         val tendenciaVentas: String = "—",
         
         val ultimoCierre: CierreDiario? = null,
+        val facturacionEstimada: Double = 0.0,
         val isLoading: Boolean = false
     ) : DashboardUiState
 

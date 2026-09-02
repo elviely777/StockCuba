@@ -33,6 +33,11 @@ class AjustesDataStore @Inject constructor(
 
         // Trial keys
         val INSTALL_DATE_KEY = longPreferencesKey("install_date")
+
+        // Firebase / Multinegocio keys (Facturación)
+        val BUSINESS_ID_KEY = stringPreferencesKey("business_id")
+        val POS_ID_KEY = stringPreferencesKey("pos_id")
+        val POS_NOMBRE_KEY = stringPreferencesKey("pos_nombre")
     }
 
     val nombreNegocio: Flow<String> = dataStore.data
@@ -72,6 +77,22 @@ class AjustesDataStore @Inject constructor(
         .map { it[INSTALL_DATE_KEY] }
         .distinctUntilChanged()
 
+    val businessId: Flow<String?> = dataStore.data
+        .map { it[BUSINESS_ID_KEY] }
+        .distinctUntilChanged()
+
+    val posId: Flow<String?> = dataStore.data
+        .map { it[POS_ID_KEY] }
+        .distinctUntilChanged()
+
+    val posNombre: Flow<String?> = dataStore.data
+        .map { it[POS_NOMBRE_KEY] }
+        .distinctUntilChanged()
+
+    val isVinculado: Flow<Boolean> = dataStore.data
+        .map { it[BUSINESS_ID_KEY] != null && it[POS_ID_KEY] != null }
+        .distinctUntilChanged()
+
     suspend fun guardarNombreNegocio(nombre: String): Result<Unit> = guardarDato(NOMBRE_NEGOCIO_KEY, nombre)
     suspend fun guardarDireccion(direccion: String): Result<Unit> = guardarDato(DIRECCION_KEY, direccion)
     suspend fun guardarTelefono(telefono: String): Result<Unit> = guardarDato(TELEFONO_KEY, telefono)
@@ -84,6 +105,32 @@ class AjustesDataStore @Inject constructor(
     suspend fun guardarPinSalt(salt: String): Result<Unit> = guardarDato(PIN_SALT_KEY, salt)
 
     suspend fun guardarFechaInstalacion(fecha: Long): Result<Unit> = guardarDato(INSTALL_DATE_KEY, fecha)
+
+    suspend fun guardarVinculacion(businessId: String, posId: String, posNombre: String): Result<Unit> {
+        return try {
+            dataStore.edit { preferences ->
+                preferences[BUSINESS_ID_KEY] = businessId
+                preferences[POS_ID_KEY] = posId
+                preferences[POS_NOMBRE_KEY] = posNombre
+            }
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Failure(DomainError.DatabaseError(e))
+        }
+    }
+
+    suspend fun desvincular(): Result<Unit> {
+        return try {
+            dataStore.edit { preferences ->
+                preferences.remove(BUSINESS_ID_KEY)
+                preferences.remove(POS_ID_KEY)
+                preferences.remove(POS_NOMBRE_KEY)
+            }
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Failure(DomainError.DatabaseError(e))
+        }
+    }
 
     suspend fun eliminarPin(): Result<Unit> {
         return try {

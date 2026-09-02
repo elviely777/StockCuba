@@ -44,6 +44,7 @@ hiltNavigationCompose = "1.2.0"
 # Coroutines
 coroutines = "1.8.1"
 coroutinesTest = "1.8.1"
+coroutinesPlayServices = "1.8.1"
 turbine = "1.0.0"
 
 # Coil (Image loading)
@@ -60,6 +61,10 @@ processPhoenix = "2.2.0"
 
 # CSV Export
 kotlin-csv = "1.10.0"
+
+# Firebase
+firebaseBom = "33.1.2"
+googleServices = "4.4.2"
 
 # Testing
 junit = "4.13.2"
@@ -115,6 +120,7 @@ navigation-compose = { group = "androidx.navigation", name = "navigation-compose
 coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutinesTest" }
+coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutinesPlayServices" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 
 # Coil (Image loading)
@@ -134,6 +140,12 @@ process-phoenix = { group = "com.jakewharton", name = "process-phoenix", version
 # CSV Export
 csvExport = { group = "com.github.doyaaaaaken", name = "kotlin-csv-jvm", version.ref = "kotlin-csv" }
 
+# Firebase
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore-ktx" }
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics-ktx" }
+google-services = { group = "com.google.gms", name = "google-services", version.ref = "googleServices" }
+
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
@@ -151,3 +163,4 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "composeCompiler" }
 # kotlin-kapt = { id = "org.jetbrains.kotlin.plugin.kapt", version.ref = "kotlin" }  // Built into Kotlin plugin
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }

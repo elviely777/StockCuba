@@ -94,8 +94,14 @@ interface VentaDao {
     @Query("SELECT * FROM ventas WHERE sync_status = 'PENDING' ORDER BY fecha ASC")
     suspend fun getVentasNoSincronizadas(): List<VentaEntity>
 
+    @Query("SELECT * FROM ventas WHERE sync_status = 'PENDING' ORDER BY fecha ASC")
+    fun getVentasNoSincronizadasFlow(): Flow<List<VentaEntity>>
+
     @Query("UPDATE ventas SET sync_status = 'SYNCED' WHERE id IN (:ids)")
     suspend fun marcarComoSincronizadas(ids: List<String>): Int
+
+    @Query("UPDATE ventas SET sync_status = 'SYNCED' WHERE id = :id")
+    suspend fun marcarComoSincronizada(id: String): Int
 
     data class DailyTotal(
         val fecha: Long,

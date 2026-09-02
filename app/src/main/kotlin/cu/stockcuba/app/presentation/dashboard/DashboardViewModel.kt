@@ -3,6 +3,8 @@ package cu.stockcuba.app.presentation.dashboard
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import cu.stockcuba.app.domain.model.CierreDiario
+import cu.stockcuba.app.domain.model.Producto
 import cu.stockcuba.app.domain.model.Result
 import cu.stockcuba.app.domain.model.Venta
 import cu.stockcuba.app.domain.repository.*
@@ -23,6 +25,7 @@ class DashboardViewModel @Inject constructor(
     private val productoRepository: ProductoRepository,
     private val reportRepository: ReportRepository,
     private val cierreRepository: CierreRepository,
+    private val businessRepository: BusinessRepository,
     private val obtenerProductosBajoStockUseCase: ObtenerProductosBajoStockUseCase
 ) : ViewModel() {
 
@@ -34,8 +37,16 @@ class DashboardViewModel @Inject constructor(
         obtenerProductosBajoStockUseCase(),
         ventaRepository.getAll(),
         productoRepository.getAll(),
-        cierreRepository.getHistoricoCierres()
-    ) { range, productosBajoStock, allVentas, allProductos, cierres ->
+        cierreRepository.getHistoricoCierres(),
+        businessRepository.getFacturacionEstimada(LocalDate.now().monthValue - 1, LocalDate.now().year)
+    ) { array ->
+        val range = array[0] as DashboardTimeRange
+        val productosBajoStock = array[1] as List<Producto>
+        val allVentas = array[2] as List<Venta>
+        val allProductos = array[3] as List<Producto>
+        val cierres = array[4] as List<CierreDiario>
+        val facturacion = array[5] as Double
+
         val now = LocalDate.now()
         val startAndEnd = range.getTimestamps(now)
         val periodStart = startAndEnd.first
@@ -99,6 +110,7 @@ class DashboardViewModel @Inject constructor(
             tendenciaTotal = tendenciaTotal,
             tendenciaVentas = tendenciaVentas,
             ultimoCierre = cierreHoy,
+            facturacionEstimada = facturacion,
             isLoading = false
         )
     }.stateIn(

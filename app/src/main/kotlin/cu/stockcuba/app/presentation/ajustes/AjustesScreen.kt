@@ -136,6 +136,9 @@ fun AjustesScreen(
                                     }
                                 )
                             }
+                        },
+                        onNavigateToVinculacion = {
+                            navController.navigate(Screen.VinculacionNegocio.route)
                         }
                     )
                 }
@@ -235,7 +238,8 @@ fun AjustesContenidoModerno(
     onPinRemove: () -> Unit,
     onExportarInventario: () -> Unit,
     onFeedback: () -> Unit,
-    onSembrar: () -> Unit
+    onSembrar: () -> Unit,
+    onNavigateToVinculacion: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -303,6 +307,16 @@ fun AjustesContenidoModerno(
                     label = state.moneda.name,
                     icon = Icons.Default.MonetizationOn,
                     onClick = { /* Podría abrir un dialog con opciones */ }
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+
+                FilaAccionAjuste(
+                    titulo = "Centralización y Sincronización",
+                    subtitulo = if (state.isVinculado) "Vinculado a: ${state.businessId}" else "Vincular mi negocio a la nube",
+                    icon = Icons.Default.CloudSync,
+                    color = if (state.isVinculado) StockCubaColors.VerdeExito else MaterialTheme.colorScheme.primary,
+                    onClick = onNavigateToVinculacion
                 )
             }
         }

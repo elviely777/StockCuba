@@ -4,9 +4,11 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("org.jetbrains.kotlin.kapt") version "2.0.21"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21"
     id("org.jetbrains.kotlin.plugin.compose") version "2.0.21"
     id("com.google.dagger.hilt.android") version "2.52"
-    id("kotlin-kapt")
+    // alias(libs.plugins.google.services)  // REMOVIDO - migración a Supabase
 }
 
 android {
@@ -131,6 +133,9 @@ defaultConfig {
 }
 
 dependencies {
+    configurations.all {
+        exclude(group = "org.jetbrains.kotlinx", module = "kotlinx-coroutines-slf4j")
+    }
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     // Core AndroidX
     implementation(libs.androidx.core.ktx)
@@ -195,6 +200,19 @@ dependencies {
 
     // Apache POI para crear archivos .xlsx
     implementation("org.apache.poi:poi-ooxml:5.4.0")
+
+    // Supabase / Ktor / Serialization
+    implementation("io.ktor:ktor-client-core:2.3.8")
+    implementation("io.ktor:ktor-client-okhttp:2.3.8")
+    implementation("io.ktor:ktor-client-content-negotiation:2.3.8")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.8")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
+
+    // Firebase REMOVIDO - migración a Supabase
+    // implementation(platform(libs.firebase.bom))
+    // implementation(libs.firebase.firestore)
+    // implementation(libs.firebase.analytics)
 
     // Testing
     testImplementation(libs.junit)

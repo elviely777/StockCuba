@@ -42,7 +42,7 @@ fun Venta.toEntity(): VentaEntity = VentaEntity(
     montoTransferencia = montoTransferencia,
     idTransferencia = idTransferencia,
     fechaCreacion = Instant.now().toEpochMilli(),
-    syncStatus = "SYNCED"
+    syncStatus = "PENDING"
 )
 
 fun VentaItemEntity.toDomain(): VentaItem = VentaItem(
@@ -76,7 +76,7 @@ fun Venta.toEntityWithItems(): Pair<VentaEntity, List<VentaItemEntity>> {
         montoTransferencia = montoTransferencia,
         idTransferencia = idTransferencia,
         fechaCreacion = Instant.now().toEpochMilli(),
-        syncStatus = "SYNCED"
+        syncStatus = "PENDING"
     )
     val itemsEntities = items.map { it.toEntity(id) }
     return Pair(ventaEntity, itemsEntities)

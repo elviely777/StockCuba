@@ -6,27 +6,27 @@ import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
 import androidx.lifecycle.ProcessLifecycleOwner
 import dagger.hilt.android.HiltAndroidApp
+import cu.stockcuba.app.data.supabase.SupabaseSyncRepository
 import javax.inject.Inject
 
 @HiltAndroidApp
 class StockCubaApplication : Application(), LifecycleObserver {
 
     @Inject
-    lateinit var syncRepository: cu.stockcuba.app.data.repository.SyncRepository
+    lateinit var supabaseSyncRepository: SupabaseSyncRepository
 
     override fun onCreate() {
         super.onCreate()
-        // Observar el ciclo de vida del proceso para iniciar/detener sync
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
     }
 
     @OnLifecycleEvent(Lifecycle.Event.ON_START)
     fun onAppStart() {
-        syncRepository.startSyncObserver()
+        supabaseSyncRepository.startSync()
     }
 
     @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     fun onAppStop() {
-        syncRepository.stopSyncObserver()
+        supabaseSyncRepository.stopSync()
     }
 }

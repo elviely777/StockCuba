@@ -21,6 +21,8 @@ sealed interface AjustesUiState {
         val seguridadBiometrica: Boolean = false,
         val tienePin: Boolean = false,
         val appVersion: String = "1.0.0",
+        val isVinculado: Boolean = false,
+        val businessId: String = "",
         val isLoading: Boolean = false,
         val validationErrors: Map<String, String> = emptyMap()
     ) : AjustesUiState {

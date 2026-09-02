@@ -125,7 +125,6 @@ fun DashboardContenidoFull(
         contentPadding = PaddingValues(StockCubaSpacing.Lg),
         verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Lg)
     ) {
-        // ... items ...
         item {
             HeaderDashboardModerno(
                 currentRange = state.timeRange,
@@ -156,6 +155,13 @@ fun DashboardContenidoFull(
             )
         }
 
+        // --- 4b. FACTURACIÓN ESTIMADA ---
+        item {
+            FacturacionEstimadaCard(
+                monto = state.facturacionEstimada
+            )
+        }
+
         // --- 5. VALOR DEL INVENTARIO (IPB/IPC) (T66) ---
         item {
             ValorInventarioCard(
@@ -165,7 +171,7 @@ fun DashboardContenidoFull(
             )
         }
 
-        // --- 6. CIERRE DEL DÍA (NUEVO) ---
+        // --- 6. CIERRE DEL DÍA ---
         item {
             CierreDelDiaCard(
                 ultimoCierre = state.ultimoCierre,
@@ -551,6 +557,59 @@ fun PantallaErrorDashboard(message: String) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(Icons.Default.ErrorOutline, null, modifier = Modifier.size(48.dp), tint = StockCubaColors.CoralAlerta)
             Text(message, textAlign = TextAlign.Center)
+        }
+    }
+}
+
+@Composable
+fun FacturacionEstimadaCard(monto: Double) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = Shape.Grande,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+    ) {
+        Row(
+            modifier = Modifier.padding(StockCubaSpacing.Lg),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Lg)
+        ) {
+            Surface(
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                shape = CircleShape
+            ) {
+                Icon(
+                    Icons.Default.CloudSync,
+                    contentDescription = null,
+                    modifier = Modifier.padding(10.dp).size(24.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Facturación Mensual",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    "Estimado actual",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            }
+            
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    monto.formatoCUP(),
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    "Base 500 + 3%",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

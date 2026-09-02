@@ -69,6 +69,8 @@ class AjustesViewModel @Inject constructor(
                     ajustesDataStore.moneda,
                     ajustesDataStore.impuesto,
                     ajustesDataStore.tema,
+                    ajustesDataStore.isVinculado,
+                    ajustesDataStore.businessId,
                     hasPinFlow
                 )
             ) { array ->
@@ -78,7 +80,9 @@ class AjustesViewModel @Inject constructor(
                 val moneda = array[3] as Moneda
                 val impuesto = array[4] as Double
                 val tema = array[5] as String
-                val tienePin = array[6] as Boolean
+                val isVinculado = array[6] as Boolean
+                val bId = (array[7] as? String) ?: ""
+                val tienePin = array[8] as Boolean
 
                 AjustesUiState.Success(
                     nombreNegocio = nombre,
@@ -89,6 +93,8 @@ class AjustesViewModel @Inject constructor(
                     tema = tema,
                     seguridadBiometrica = false,
                     tienePin = tienePin,
+                    isVinculado = isVinculado,
+                    businessId = bId,
                     appVersion = "1.0.0",
                     validationErrors = emptyMap()
                 )
