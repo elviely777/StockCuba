@@ -123,64 +123,41 @@ class ReportRepositoryImpl @Inject constructor(
             val sheetResumen = workbook.createSheet("Resumen Ejecutivo")
             var fila = 0
 
-            fun escribirTitulo(sheet: Sheet, texto: String, filaIdx: Int): Int {
-                val row = sheet.createRow(filaIdx)
-                row.createCell(0).setCellValue(texto)
-                row.getCell(0).setCellStyle(crearEstiloTitulo(workbook))
-                return filaIdx + 1
-            }
-
-            fun escribirSubtitulo(sheet: Sheet, texto: String, filaIdx: Int): Int {
-                val row = sheet.createRow(filaIdx)
-                row.createCell(0).setCellValue(texto)
-                row.getCell(0).setCellStyle(crearEstiloSubtitulo(workbook))
-                return filaIdx + 1
-            }
-
-            fun escribirDato(sheet: Sheet, etiqueta: String, valor: String, filaIdx: Int): Int {
-                val row = sheet.createRow(filaIdx)
-                row.createCell(0).setCellValue(etiqueta)
-                row.createCell(1).setCellValue(valor)
-                row.getCell(0).setCellStyle(crearEstiloTitulo(workbook))
-                row.getCell(1).setCellStyle(crearEstiloDatos(workbook))
-                return filaIdx + 1
-            }
-
-            fila = escribirTitulo(sheetResumen, "STOCKCUBA – GESTIÓN INTELIGENTE", fila)
-            fila = escribirTitulo(sheetResumen, "RESUMEN EJECUTIVO – CIERRE DEL DÍA", fila)
-            fila = escribirTitulo(sheetResumen, "Negocio: $nombreNegocio", fila)
-            fila = escribirTitulo(sheetResumen, "Fecha: ${localDate.format(DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM yyyy"))}", fila)
-            fila = escribirTitulo(sheetResumen, "Generado: ${LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy hh:mm a"))}", fila)
+            fila = escribirTitulo(workbook, sheetResumen, "STOCKCUBA – GESTIÓN INTELIGENTE", fila)
+            fila = escribirTitulo(workbook, sheetResumen, "RESUMEN EJECUTIVO – CIERRE DEL DÍA", fila)
+            fila = escribirTitulo(workbook, sheetResumen, "Negocio: $nombreNegocio", fila)
+            fila = escribirTitulo(workbook, sheetResumen, "Fecha: ${localDate.format(DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM yyyy"))}", fila)
+            fila = escribirTitulo(workbook, sheetResumen, "Generado: ${LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy hh:mm a"))}", fila)
             fila++
 
-            fila = escribirSubtitulo(sheetResumen, "=== RESUMEN DE CAJA ===", fila)
-            fila = escribirDato(sheetResumen, "Total Recaudado", totalRecaudado.formatoCUP(), fila)
-            fila = escribirDato(sheetResumen, "Cobrado en Efectivo", totalEfectivo.formatoCUP(), fila)
-            fila = escribirDato(sheetResumen, "Cobrado por Transferencia", totalTransferencia.formatoCUP(), fila)
-            fila = escribirDato(sheetResumen, "Cantidad de Ventas", cantidadVentas.toString(), fila)
-            fila = escribirDato(sheetResumen, "Ticket Promedio", ticketPromedio.formatoCUP(), fila)
+            fila = escribirSubtitulo(workbook, sheetResumen, "=== RESUMEN DE CAJA ===", fila)
+            fila = escribirDato(workbook, sheetResumen, "Total Recaudado", totalRecaudado.formatoCUP(), fila)
+            fila = escribirDato(workbook, sheetResumen, "Cobrado en Efectivo", totalEfectivo.formatoCUP(), fila)
+            fila = escribirDato(workbook, sheetResumen, "Cobrado por Transferencia", totalTransferencia.formatoCUP(), fila)
+            fila = escribirDato(workbook, sheetResumen, "Cantidad de Ventas", cantidadVentas.toString(), fila)
+            fila = escribirDato(workbook, sheetResumen, "Ticket Promedio", ticketPromedio.formatoCUP(), fila)
             fila++
 
             val gananciaDia = ventasPorCategoria.values.sumOf { it.ganancia }
             val margenPorcentaje = if (totalRecaudado > 0) (gananciaDia / totalRecaudado) * 100 else 0.0
-            fila = escribirSubtitulo(sheetResumen, "=== INDICADORES DEL DÍA ===", fila)
-            fila = escribirDato(sheetResumen, "Ganancia Bruta del Día", gananciaDia.formatoCUP(), fila)
-            fila = escribirDato(sheetResumen, "Margen sobre Ventas", "%.2f%%".format(margenPorcentaje), fila)
-            fila = escribirDato(sheetResumen, "Unidades Totales Vendidas", ventasPorProducto.values.sumOf { it.unidades }.toString(), fila)
+            fila = escribirSubtitulo(workbook, sheetResumen, "=== INDICADORES DEL DÍA ===", fila)
+            fila = escribirDato(workbook, sheetResumen, "Ganancia Bruta del Día", gananciaDia.formatoCUP(), fila)
+            fila = escribirDato(workbook, sheetResumen, "Margen sobre Ventas", "%.2f%%".format(margenPorcentaje), fila)
+            fila = escribirDato(workbook, sheetResumen, "Unidades Totales Vendidas", ventasPorProducto.values.sumOf { it.unidades }.toString(), fila)
             fila++
 
-            fila = escribirSubtitulo(sheetResumen, "=== VALOR DE INVENTARIO RESTANTE ===", fila)
-            fila = escribirDato(sheetResumen, "IPB (a Precio de Venta)", ipb.formatoCUP(), fila)
-            fila = escribirDato(sheetResumen, "IPC (a Precio de Costo)", ipc.formatoCUP(), fila)
-            fila = escribirDato(sheetResumen, "Utilidad Proyectada", utilidadProyectada.formatoCUP(), fila)
+            fila = escribirSubtitulo(workbook, sheetResumen, "=== VALOR DE INVENTARIO RESTANTE ===", fila)
+            fila = escribirDato(workbook, sheetResumen, "IPB (a Precio de Venta)", ipb.formatoCUP(), fila)
+            fila = escribirDato(workbook, sheetResumen, "IPC (a Precio de Costo)", ipc.formatoCUP(), fila)
+            fila = escribirDato(workbook, sheetResumen, "Utilidad Proyectada", utilidadProyectada.formatoCUP(), fila)
             fila++
 
-            fila = escribirSubtitulo(sheetResumen, "=== ALERTAS DE STOCK BAJO ===", fila)
+            fila = escribirSubtitulo(workbook, sheetResumen, "=== ALERTAS DE STOCK BAJO ===", fila)
             if (productosStockBajo.isEmpty()) {
-                fila = escribirDato(sheetResumen, "Estado", "Sin alertas de stock bajo", fila)
+                fila = escribirDato(workbook, sheetResumen, "Estado", "Sin alertas de stock bajo", fila)
             } else {
                 productosStockBajo.forEach { p ->
-                    fila = escribirDato(sheetResumen, p.nombre, "Stock: ${p.stockActual} (mínimo: ${p.stockMinimo})", fila)
+                    fila = escribirDato(workbook, sheetResumen, p.nombre, "Stock: ${p.stockActual} (mínimo: ${p.stockMinimo})", fila)
                 }
             }
 
@@ -366,6 +343,112 @@ class ReportRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun generarReporteMensualXlsx(mes: Int, anio: Int): Result<Uri> = withContext(Dispatchers.IO) {
+        return@withContext try {
+            val zoneId = ZoneId.systemDefault()
+            val yearMonth = java.time.YearMonth.of(anio, mes)
+            val startOfMonth = yearMonth.atDay(1).atStartOfDay(zoneId).toInstant().toEpochMilli()
+            val endOfMonth   = yearMonth.atEndOfMonth().atTime(23, 59, 59, 999999999).atZone(zoneId).toInstant().toEpochMilli()
+
+            val ventas = ventaRepository.getVentasPorRango(startOfMonth, endOfMonth).first()
+            val productos = productoRepository.getAll().first()
+            val productosMap = productos.associateBy { it.id }
+            val nombreNegocio = ajustesDataStore.nombreNegocio.first()
+
+            val workbook = XSSFWorkbook()
+
+            // 1. Resumen Ejecutivo Mensual
+            val sheetResumen = workbook.createSheet("Resumen Mensual")
+            var fila = 0
+            fila = escribirTitulo(workbook, sheetResumen, "STOCKCUBA – REPORTE MENSUAL", fila)
+            fila = escribirTitulo(workbook, sheetResumen, "Mes: ${yearMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale("es", "CU")))}", fila)
+            fila = escribirTitulo(workbook, sheetResumen, "Negocio: $nombreNegocio", fila)
+            fila++
+
+            val totalRecaudado = ventas.sumOf { it.total }
+            val totalEfectivo = ventas.sumOf { it.montoEfectivo }
+            val totalTransferencia = ventas.sumOf { it.montoTransferencia }
+            val diasVenta = ventas.groupBy { it.fecha.atZone(zoneId).toLocalDate() }.size
+            val promedioDiario = if (diasVenta > 0) totalRecaudado / diasVenta else 0.0
+
+            fila = escribirDato(workbook, sheetResumen, "Total Facturado Mes", totalRecaudado.formatoCUP(), fila)
+            fila = escribirDato(workbook, sheetResumen, "Total Efectivo", totalEfectivo.formatoCUP(), fila)
+            fila = escribirDato(workbook, sheetResumen, "Total Transferencia", totalTransferencia.formatoCUP(), fila)
+            fila = escribirDato(workbook, sheetResumen, "Días con Actividad", diasVenta.toString(), fila)
+            fila = escribirDato(workbook, sheetResumen, "Promedio Venta Diaria", promedioDiario.formatoCUP(), fila)
+            fila++
+
+            // 2. Tendencia Diaria
+            val sheetTendencia = workbook.createSheet("Tendencia Diaria")
+            val headTendencia = sheetTendencia.createRow(0)
+            listOf("DÍA", "VENTAS", "EFECTIVO", "TRANSF.", "TOTAL").forEachIndexed { i, t -> 
+                headTendencia.createCell(i).setCellValue(t)
+                headTendencia.getCell(i).setCellStyle(crearEstiloTitulo(workbook))
+            }
+            
+            val ventasPorDia = ventas.groupBy { it.fecha.atZone(zoneId).toLocalDate() }
+                .toSortedMap()
+            
+            var rIdx = 1
+            ventasPorDia.forEach { (fecha, vList) ->
+                val row = sheetTendencia.createRow(rIdx++)
+                row.createCell(0).setCellValue(fecha.format(DateTimeFormatter.ISO_LOCAL_DATE))
+                row.createCell(1).setCellValue(vList.size.toDouble())
+                row.createCell(2).setCellValue(vList.sumOf { it.montoEfectivo }.formatoCUP())
+                row.createCell(3).setCellValue(vList.sumOf { it.montoTransferencia }.formatoCUP())
+                row.createCell(4).setCellValue(vList.sumOf { it.total }.formatoCUP())
+            }
+
+            // 3. Ranking de Productos (Mes)
+            val sheetRank = workbook.createSheet("Ranking Mensual")
+            val headRank = sheetRank.createRow(0)
+            listOf("PRODUCTO", "UNIDADES", "FACTURADO", "GANANCIA EST.").forEachIndexed { i, t ->
+                headRank.createCell(i).setCellValue(t)
+                headRank.getCell(i).setCellStyle(crearEstiloTitulo(workbook))
+            }
+
+            val rankData = ventas.flatMap { it.items }
+                .groupBy { it.productoId }
+                .map { (pid, items) ->
+                    val p = productosMap[pid]
+                    val unidades = items.sumOf { it.cantidad }
+                    val facturado = items.sumOf { it.subtotal }
+                    val ganancia = if (p != null) unidades * (p.precioVenta - p.costoUnitario) else 0.0
+                    Triple(p?.nombre ?: "Desconocido", unidades, facturado) to ganancia
+                }.sortedByDescending { it.first.third }
+
+            rIdx = 1
+            rankData.forEach { (info, ganancia) ->
+                val row = sheetRank.createRow(rIdx++)
+                row.createCell(0).setCellValue(info.first)
+                row.createCell(1).setCellValue(info.second.toDouble())
+                row.createCell(2).setCellValue(info.third.formatoCUP())
+                row.createCell(3).setCellValue(ganancia.formatoCUP())
+            }
+
+            // Guardar
+            val fileName = "ReporteMensual_${anio}_${mes.toString().padStart(2, '0')}.xlsx"
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                put(MediaStore.MediaColumns.MIME_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, getReportsDir())
+                    put(MediaStore.MediaColumns.IS_PENDING, 1)
+                }
+            }
+            val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) MediaStore.Downloads.EXTERNAL_CONTENT_URI else MediaStore.Files.getContentUri("external")
+            val uri = contentResolver.insert(collection, contentValues) ?: throw IOException("Error")
+            contentResolver.openOutputStream(uri)?.use { workbook.write(it) }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                contentResolver.update(uri, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
+            }
+            workbook.close()
+            Result.Success(uri)
+        } catch (e: Exception) {
+            Result.Failure(DomainError.DatabaseError(e))
+        }
+    }
+
     // ==========================================================
     //  REPORTE DE INVENTARIO EN CSV (sin cambios, sin dependencias externas)
     // ==========================================================
@@ -448,6 +531,29 @@ class ReportRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Result.Failure(DomainError.DatabaseError(e))
         }
+    }
+
+    private fun escribirTitulo(wb: Workbook, sheet: Sheet, texto: String, filaIdx: Int): Int {
+        val row = sheet.createRow(filaIdx)
+        row.createCell(0).setCellValue(texto)
+        row.getCell(0).setCellStyle(crearEstiloTitulo(wb))
+        return filaIdx + 1
+    }
+
+    private fun escribirSubtitulo(wb: Workbook, sheet: Sheet, texto: String, filaIdx: Int): Int {
+        val row = sheet.createRow(filaIdx)
+        row.createCell(0).setCellValue(texto)
+        row.getCell(0).setCellStyle(crearEstiloSubtitulo(wb))
+        return filaIdx + 1
+    }
+
+    private fun escribirDato(wb: Workbook, sheet: Sheet, etiqueta: String, valor: String, filaIdx: Int): Int {
+        val row = sheet.createRow(filaIdx)
+        row.createCell(0).setCellValue(etiqueta)
+        row.createCell(1).setCellValue(valor)
+        row.getCell(0).setCellStyle(crearEstiloTitulo(wb))
+        row.getCell(1).setCellStyle(crearEstiloDatos(wb))
+        return filaIdx + 1
     }
 
     // ==========================================================

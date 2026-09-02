@@ -18,9 +18,10 @@ import java.io.File
         VentaItemEntity::class,
         ClienteEntity::class,
         MovimientoInventarioEntity::class,
-        CierreDiarioEntity::class
+        CierreDiarioEntity::class,
+        CierreMensualEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -43,6 +44,7 @@ abstract class StockCubaDatabase : RoomDatabase() {
             // Delete in reverse dependency order to avoid FK violations
             // MovimientoInventario -> CierreDiario -> VentaItem -> Venta -> Producto -> Cliente -> Categoria
             movimientoInventarioDao().deleteAll()
+            cierreDao().deleteAllMensuales()
             cierreDao().deleteAll()
             ventaDao().deleteAllItems()
             ventaDao().deleteAll()

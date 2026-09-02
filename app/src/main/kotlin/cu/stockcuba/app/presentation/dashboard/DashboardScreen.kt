@@ -93,9 +93,15 @@ fun DashboardScreen(
                     },
                     onCierre = {
                         scope.launch {
-                            viewModel.realizarCierreDelDia().fold(
+                            val result = if (state.timeRange == DashboardTimeRange.MES) {
+                                viewModel.realizarCierreMensual()
+                            } else {
+                                viewModel.realizarCierreDelDia()
+                            }
+                            
+                            result.fold(
                                 onSuccess = { uri ->
-                                    launch { snackbarHostState.showSnackbar("Cierre realizado y reporte guardado") }
+                                    launch { snackbarHostState.showSnackbar("Cierre realizado con éxito") }
                                 },
                                 onFailure = { error ->
                                     launch { snackbarHostState.showSnackbar("Error al realizar cierre") }
@@ -171,10 +177,17 @@ fun DashboardContenidoFull(
             )
         }
 
-        // --- 6. CIERRE DEL DÍA ---
+        // --- 6. CIERRE DEL DÍA / MES ---
         item {
-            CierreDelDiaCard(
-                ultimoCierre = state.ultimoCierre,
+            val closureLabel = if (state.timeRange == DashboardTimeRange.MES) "Mes" else "Día"
+            val isClosed = if (state.timeRange == DashboardTimeRange.MES) 
+                state.ultimoCierreMensual != null 
+            else 
+                state.ultimoCierre != null
+
+            CierreGenericoCard(
+                label = closureLabel,
+                isClosed = isClosed,
                 onCierre = onCierre
             )
         }
@@ -615,9 +628,7 @@ fun FacturacionEstimadaCard(monto: Double) {
 }
 
 @Composable
-fun CierreDelDiaCard(ultimoCierre: cu.stockcuba.app.domain.model.CierreDiario?, onCierre: () -> Unit) {
-    val isClosed = ultimoCierre != null
-    
+fun CierreGenericoCard(label: String, isClosed: Boolean, onCierre: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = Shape.Grande,
@@ -640,13 +651,13 @@ fun CierreDelDiaCard(ultimoCierre: cu.stockcuba.app.domain.model.CierreDiario?, 
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    if (isClosed) "Jornada Cerrada" else "Finalizar Jornada",
+                    if (isClosed) "Jornada Cerrada ($label)" else "Finalizar $label",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = if (isClosed) StockCubaColors.VerdeExito else MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     if (isClosed) "Cierre realizado con éxito. El reporte consolidado ya fue generado." 
-                    else "Realiza el cierre formal y genera el reporte consolidado",
+                    else "Realiza el cierre formal de este periodo y genera el reporte consolidado",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -674,7 +685,7 @@ fun CierreDelDiaCard(ultimoCierre: cu.stockcuba.app.domain.model.CierreDiario?, 
                 ) {
                     Icon(Icons.Default.LockClock, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Cerrar Día")
+                    Text("Cerrar $label")
                 }
             }
         }

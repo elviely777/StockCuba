@@ -38,6 +38,7 @@ class DashboardViewModel @Inject constructor(
         ventaRepository.getAll(),
         productoRepository.getAll(),
         cierreRepository.getHistoricoCierres(),
+        cierreRepository.getHistoricoCierresMensuales(),
         businessRepository.getFacturacionEstimada(LocalDate.now().monthValue - 1, LocalDate.now().year)
     ) { array ->
         val range = array[0] as DashboardTimeRange
@@ -45,7 +46,8 @@ class DashboardViewModel @Inject constructor(
         val allVentas = array[2] as List<Venta>
         val allProductos = array[3] as List<Producto>
         val cierres = array[4] as List<CierreDiario>
-        val facturacion = array[5] as Double
+        val cierresMensuales = array[5] as List<cu.stockcuba.app.domain.model.CierreMensual>
+        val facturacion = array[6] as Double
 
         val now = LocalDate.now()
         val startAndEnd = range.getTimestamps(now)
@@ -60,6 +62,9 @@ class DashboardViewModel @Inject constructor(
         // Buscar si hay cierre hoy
         val inicioHoy = now.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         val cierreHoy = cierres.find { it.fecha.toEpochMilli() == inicioHoy }
+
+        // Buscar si hay cierre mensual este mes
+        val cierreMensual = cierresMensuales.find { it.mes == now.monthValue && it.anio == now.year }
 
         val totalVendido = periodVentas.sumOf { it.total }
         val totalPrevio = prevVentas.sumOf { it.total }
@@ -110,6 +115,7 @@ class DashboardViewModel @Inject constructor(
             tendenciaTotal = tendenciaTotal,
             tendenciaVentas = tendenciaVentas,
             ultimoCierre = cierreHoy,
+            ultimoCierreMensual = cierreMensual,
             facturacionEstimada = facturacion,
             isLoading = false
         )
@@ -127,6 +133,11 @@ class DashboardViewModel @Inject constructor(
         return reportRepository.generarReporteDiarioXlsx()
     }
 
+    suspend fun exportarReporteMensual(): Result<Uri> {
+        val now = LocalDate.now()
+        return reportRepository.generarReporteMensualXlsx(now.monthValue, now.year)
+    }
+
     /**
      * Realiza el cierre formal del día actual y genera el reporte Excel.
      */
@@ -138,6 +149,19 @@ class DashboardViewModel @Inject constructor(
 
         // 2. Generar el reporte Excel (que ahora representa el estado final del día)
         return reportRepository.generarReporteDiarioXlsx()
+    }
+
+    /**
+     * Realiza el cierre formal del mes actual y genera el reporte Excel consolidado.
+     */
+    suspend fun realizarCierreMensual(notas: String = ""): Result<Uri> {
+        val now = LocalDate.now()
+        // 1. Registrar cierre mensual
+        val result = cierreRepository.realizarCierreMensual(now.monthValue, now.year, notas)
+        if (result is Result.Failure) return Result.Failure(result.error)
+
+        // 2. Generar reporte mensual
+        return reportRepository.generarReporteMensualXlsx(now.monthValue, now.year)
     }
 
     private fun calcularTendencia(actual: Double, anterior: Double): String {

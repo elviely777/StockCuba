@@ -47,6 +47,7 @@ sealed interface DashboardUiState {
         val tendenciaVentas: String = "—",
         
         val ultimoCierre: CierreDiario? = null,
+        val ultimoCierreMensual: cu.stockcuba.app.domain.model.CierreMensual? = null,
         val facturacionEstimada: Double = 0.0,
         val isLoading: Boolean = false
     ) : DashboardUiState

@@ -20,4 +20,9 @@ interface ReportRepository {
      * (se mantiene para compatibilidad; no toca la UI)
      */
     suspend fun generarReporteInventarioExcel(): Result<Uri>
+
+    /**
+     * Genera un reporte mensual consolidado a .xlsx.
+     */
+    suspend fun generarReporteMensualXlsx(mes: Int, anio: Int): Result<Uri>
 }
