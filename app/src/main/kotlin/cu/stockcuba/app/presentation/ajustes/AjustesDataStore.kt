@@ -38,6 +38,7 @@ class AjustesDataStore @Inject constructor(
         val BUSINESS_ID_KEY = stringPreferencesKey("business_id")
         val POS_ID_KEY = stringPreferencesKey("pos_id")
         val POS_NOMBRE_KEY = stringPreferencesKey("pos_nombre")
+        val ESTADO_NEGOCIO_KEY = stringPreferencesKey("estado_negocio")
     }
 
     val nombreNegocio: Flow<String> = dataStore.data
@@ -89,6 +90,10 @@ class AjustesDataStore @Inject constructor(
         .map { it[POS_NOMBRE_KEY] }
         .distinctUntilChanged()
 
+    val estadoNegocio: Flow<String> = dataStore.data
+        .map { it[ESTADO_NEGOCIO_KEY] ?: "ACTIVO" }
+        .distinctUntilChanged()
+
     val isVinculado: Flow<Boolean> = dataStore.data
         .map { it[BUSINESS_ID_KEY] != null && it[POS_ID_KEY] != null }
         .distinctUntilChanged()
@@ -99,6 +104,8 @@ class AjustesDataStore @Inject constructor(
     suspend fun guardarMoneda(moneda: Moneda): Result<Unit> = guardarDato(MONEDA_KEY, moneda.name)
     suspend fun guardarImpuesto(impuesto: Double): Result<Unit> = guardarDato(IMPUESTO_KEY, impuesto)
     suspend fun guardarTema(tema: String): Result<Unit> = guardarDato(TEMA_KEY, tema)
+
+    suspend fun guardarEstadoNegocio(estado: String): Result<Unit> = guardarDato(ESTADO_NEGOCIO_KEY, estado)
 
     // PIN setters (T33)
     suspend fun guardarPinHash(hash: String): Result<Unit> = guardarDato(PIN_HASH_KEY, hash)

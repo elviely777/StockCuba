@@ -1,32 +1,33 @@
 package cu.stockcuba.app
 
 import android.app.Application
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleObserver
-import androidx.lifecycle.OnLifecycleEvent
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import dagger.hilt.android.HiltAndroidApp
 import cu.stockcuba.app.data.supabase.SupabaseSyncRepository
 import javax.inject.Inject
 
 @HiltAndroidApp
-class StockCubaApplication : Application(), LifecycleObserver {
+class StockCubaApplication : Application() {
 
     @Inject
     lateinit var supabaseSyncRepository: SupabaseSyncRepository
 
     override fun onCreate() {
         super.onCreate()
-        ProcessLifecycleOwner.get().lifecycle.addObserver(this)
-    }
+        android.util.Log.d("StockCubaApp", "Aplicación creada")
+        
+        ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onStart(owner: LifecycleOwner) {
+                android.util.Log.d("StockCubaApp", "Iniciando sincronización en segundo plano")
+                supabaseSyncRepository.startSync()
+            }
 
-    @OnLifecycleEvent(Lifecycle.Event.ON_START)
-    fun onAppStart() {
-        supabaseSyncRepository.startSync()
-    }
-
-    @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
-    fun onAppStop() {
-        supabaseSyncRepository.stopSync()
+            override fun onStop(owner: LifecycleOwner) {
+                android.util.Log.d("StockCubaApp", "Deteniendo sincronización")
+                supabaseSyncRepository.stopSync()
+            }
+        })
     }
 }

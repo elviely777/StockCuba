@@ -8,6 +8,11 @@ import androidx.fragment.app.FragmentActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import cu.stockcuba.app.presentation.main.BloqueoScreen
+import cu.stockcuba.app.presentation.main.MainViewModel
 import cu.stockcuba.app.presentation.navigation.AppNavHost
 import cu.stockcuba.app.presentation.theme.StockCubaTheme
 import cu.stockcuba.app.presentation.theme.TemaProvider
@@ -30,7 +35,18 @@ class MainActivity : FragmentActivity() {
         setContent {
             TemaProvider {
                 StockCubaTheme {
-                    AppNavHost()
+                    val viewModel: MainViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+                    val estadoNegocio by viewModel.estadoNegocio.collectAsState()
+                    val isVinculado by viewModel.isVinculado.collectAsState()
+
+                    if (isVinculado && estadoNegocio != "ACTIVO") {
+                        BloqueoScreen(
+                            mensaje = "Servicio Suspendido",
+                            detalle = "Este negocio se encuentra en estado: $estadoNegocio. El acceso ha sido restringido por falta de pago o incumplimiento de términos."
+                        )
+                    } else {
+                        AppNavHost()
+                    }
                 }
             }
         }

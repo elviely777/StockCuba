@@ -51,6 +51,6 @@ data class VentaEntity(
     @ColumnInfo(name = "fecha_creacion")
     val fechaCreacion: Long = System.currentTimeMillis(),
 
-    @ColumnInfo(name = "sync_status", defaultValue = "'SYNCED'")
-    val syncStatus: String = "SYNCED"
+    @ColumnInfo(name = "sync_status", defaultValue = "'PENDING'")
+    val syncStatus: String = "PENDING"
 )
