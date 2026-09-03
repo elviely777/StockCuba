@@ -266,6 +266,9 @@
 -keep class kotlinx.coroutines.** { *; }
 -keepclassmembers class kotlinx.coroutines.** { *; }
 
+# ===== SLF4J (transitive dependency, usually from libraries like Apache POI) =====
+-dontwarn org.slf4j.impl.StaticLoggerBinder
+
 # ===== OPTIMIZATIONS =====
 # Allow optimization of unused code
 -allowaccessmodification
