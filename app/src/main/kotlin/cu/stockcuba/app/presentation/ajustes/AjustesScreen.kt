@@ -440,6 +440,7 @@ fun AjustesContenidoModerno(
             }
         }
 
+        /* 
         // --- SECCIÓN 6: DESARROLLO (PRUEBAS) ---
         item {
             SeccionAjustesModerna(
@@ -456,6 +457,7 @@ fun AjustesContenidoModerno(
                 )
             }
         }
+        */
         
         item { Spacer(modifier = Modifier.height(40.dp)) }
     }

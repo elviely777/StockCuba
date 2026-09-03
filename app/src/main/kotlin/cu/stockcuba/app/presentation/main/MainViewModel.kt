@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cu.stockcuba.app.domain.repository.BusinessRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -13,6 +14,13 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     private val businessRepository: BusinessRepository
 ) : ViewModel() {
+
+    init {
+        // Verificar el estado del negocio en Supabase al iniciar la app
+        viewModelScope.launch {
+            businessRepository.verificarEstadoRemoto()
+        }
+    }
 
     val isVinculado: StateFlow<Boolean> = businessRepository.isVinculado
         .stateIn(

@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jakewharton.processphoenix.ProcessPhoenix
+import cu.stockcuba.app.BuildConfig
 import cu.stockcuba.app.data.backup.BackupRepository
 import cu.stockcuba.app.data.local.database.StockCubaDatabase
 import cu.stockcuba.app.domain.model.Moneda
@@ -96,7 +97,7 @@ class AjustesViewModel @Inject constructor(
                     tienePin = tienePin,
                     isVinculado = isVinculado,
                     businessId = bId,
-                    appVersion = "1.0.0",
+                    appVersion = BuildConfig.VERSION_NAME,
                     validationErrors = emptyMap()
                 )
             }.collect { state ->

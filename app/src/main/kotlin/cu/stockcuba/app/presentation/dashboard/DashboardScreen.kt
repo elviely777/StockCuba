@@ -161,6 +161,14 @@ fun DashboardContenidoFull(
             )
         }
 
+        // --- 4b. RENTABILIDAD DEL PERIODO ---
+        item {
+            RentabilidadCard(
+                gastos = state.totalGastos,
+                ganancia = state.gananciaReal
+            )
+        }
+
         // --- 5. VALOR DEL INVENTARIO (IPB/IPC) (T66) ---
         item {
             ValorInventarioCard(
@@ -428,6 +436,52 @@ fun BalancePagosCard(efectivo: Double, transferencia: Double) {
                         Box(Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF6366F1)))
                     }
                     Text(transferencia.formatoCUP(), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RentabilidadCard(gastos: Double, ganancia: Double) {
+    val totalVenta = gastos + ganancia
+    val pGanancia = if (totalVenta > 0) (ganancia / totalVenta).toFloat() else 0.5f
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = Shape.Grande,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+    ) {
+        Column(modifier = Modifier.padding(StockCubaSpacing.Lg)) {
+            Text("Rentabilidad (Ventas Netas)", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+            Spacer(Modifier.height(16.dp))
+            
+            Row(modifier = Modifier.fillMaxWidth().height(10.dp).clip(Shape.Full)) {
+                // Gastos (Costo) en un tono más neutro/coral
+                Box(modifier = Modifier.fillMaxHeight().weight((1f - pGanancia).coerceAtLeast(0.01f)).background(Color(0xFF94A3B8)))
+                // Ganancia en verde
+                Box(modifier = Modifier.fillMaxHeight().weight(pGanancia.coerceAtLeast(0.01f)).background(StockCubaColors.VerdeExito))
+            }
+            
+            Spacer(Modifier.height(12.dp))
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF94A3B8)))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Gastos (Costo)", style = MaterialTheme.typography.labelSmall)
+                    }
+                    Text(gastos.formatoCUP(), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Ganancia Real", style = MaterialTheme.typography.labelSmall)
+                        Spacer(Modifier.width(8.dp))
+                        Box(Modifier.size(8.dp).clip(CircleShape).background(StockCubaColors.VerdeExito))
+                    }
+                    Text(ganancia.formatoCUP(), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = StockCubaColors.VerdeExito)
                 }
             }
         }

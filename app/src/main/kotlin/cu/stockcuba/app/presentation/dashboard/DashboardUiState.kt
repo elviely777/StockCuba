@@ -38,6 +38,10 @@ sealed interface DashboardUiState {
         val valorInventarioCosto: Double = 0.0, // IPC
         val gananciaProyectada: Double = 0.0,
         
+        // Rentabilidad Real del periodo
+        val totalGastos: Double = 0.0,
+        val gananciaReal: Double = 0.0,
+        
         // Listas
         val listaProductosBajoStock: List<Producto>,
         val ventasRecientes: List<Venta> = emptyList(),

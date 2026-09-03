@@ -368,10 +368,20 @@ class ReportRepositoryImpl @Inject constructor(
             val totalRecaudado = ventas.sumOf { it.total }
             val totalEfectivo = ventas.sumOf { it.montoEfectivo }
             val totalTransferencia = ventas.sumOf { it.montoTransferencia }
+            
+            val totalCostos = ventas.flatMap { it.items }.sumOf { item ->
+                val p = productosMap[item.productoId]
+                (p?.costoUnitario ?: 0.0) * item.cantidad
+            }
+            val gananciaReal = totalRecaudado - totalCostos
+            
             val diasVenta = ventas.groupBy { it.fecha.atZone(zoneId).toLocalDate() }.size
             val promedioDiario = if (diasVenta > 0) totalRecaudado / diasVenta else 0.0
 
             fila = escribirDato(workbook, sheetResumen, "Total Facturado Mes", totalRecaudado.formatoCUP(), fila)
+            fila = escribirDato(workbook, sheetResumen, "Costo de Mercancía (Gastos)", totalCostos.formatoCUP(), fila)
+            fila = escribirDato(workbook, sheetResumen, "Ganancia Real del Mes", gananciaReal.formatoCUP(), fila)
+            fila++
             fila = escribirDato(workbook, sheetResumen, "Total Efectivo", totalEfectivo.formatoCUP(), fila)
             fila = escribirDato(workbook, sheetResumen, "Total Transferencia", totalTransferencia.formatoCUP(), fila)
             fila = escribirDato(workbook, sheetResumen, "Días con Actividad", diasVenta.toString(), fila)

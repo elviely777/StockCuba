@@ -65,6 +65,12 @@ class DashboardViewModel @Inject constructor(
 
         val totalVendido = periodVentas.sumOf { it.total }
         val totalPrevio = prevVentas.sumOf { it.total }
+
+        val totalGastos = periodVentas.flatMap { it.items }.sumOf { item ->
+            val producto = allProductos.find { it.id == item.productoId }
+            (producto?.costoUnitario ?: 0.0) * item.cantidad
+        }
+        val gananciaReal = totalVendido - totalGastos
         
         val ticketPromedio = if (periodVentas.isNotEmpty()) totalVendido / periodVentas.size else 0.0
         
@@ -107,6 +113,8 @@ class DashboardViewModel @Inject constructor(
             valorInventarioVenta = ipb,
             valorInventarioCosto = ipc,
             gananciaProyectada = gananciaProyectada,
+            totalGastos = totalGastos,
+            gananciaReal = gananciaReal,
             listaProductosBajoStock = productosBajoStock,
             ventasRecientes = allVentas.take(5),
             tendenciaTotal = tendenciaTotal,

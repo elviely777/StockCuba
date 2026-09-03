@@ -15,7 +15,7 @@ sealed interface AjustesUiState {
         val tema: String = "SYSTEM",
         val seguridadBiometrica: Boolean = false,
         val tienePin: Boolean = false,
-        val appVersion: String = "1.0.0",
+        val appVersion: String = "",
         val isVinculado: Boolean = false,
         val businessId: String = "",
         val isLoading: Boolean = false,
