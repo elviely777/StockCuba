@@ -25,7 +25,6 @@ class DashboardViewModel @Inject constructor(
     private val productoRepository: ProductoRepository,
     private val reportRepository: ReportRepository,
     private val cierreRepository: CierreRepository,
-    private val businessRepository: BusinessRepository,
     private val obtenerProductosBajoStockUseCase: ObtenerProductosBajoStockUseCase
 ) : ViewModel() {
 
@@ -38,8 +37,7 @@ class DashboardViewModel @Inject constructor(
         ventaRepository.getAll(),
         productoRepository.getAll(),
         cierreRepository.getHistoricoCierres(),
-        cierreRepository.getHistoricoCierresMensuales(),
-        businessRepository.getFacturacionEstimada(LocalDate.now().monthValue - 1, LocalDate.now().year)
+        cierreRepository.getHistoricoCierresMensuales()
     ) { array ->
         val range = array[0] as DashboardTimeRange
         val productosBajoStock = array[1] as List<Producto>
@@ -47,7 +45,6 @@ class DashboardViewModel @Inject constructor(
         val allProductos = array[3] as List<Producto>
         val cierres = array[4] as List<CierreDiario>
         val cierresMensuales = array[5] as List<cu.stockcuba.app.domain.model.CierreMensual>
-        val facturacion = array[6] as Double
 
         val now = LocalDate.now()
         val startAndEnd = range.getTimestamps(now)
@@ -116,7 +113,6 @@ class DashboardViewModel @Inject constructor(
             tendenciaVentas = tendenciaVentas,
             ultimoCierre = cierreHoy,
             ultimoCierreMensual = cierreMensual,
-            facturacionEstimada = facturacion,
             isLoading = false
         )
     }.stateIn(

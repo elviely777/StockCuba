@@ -55,6 +55,12 @@ defaultConfig {
                 this.storePassword = storePassword
                 this.keyAlias = keyAlias
                 this.keyPassword = keyPassword
+                
+                // Habilitar todos los esquemas de firma para mejorar la integridad y reputación ante Play Protect
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
+                enableV4Signing = true
             } else {
                 // Fallback: debug signing for CI/CD without keystore
                 println("WARNING: keystore.properties not found or incomplete. Using debug signing for release.")
