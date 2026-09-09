@@ -2,6 +2,7 @@ package cu.stockcuba.app.data.local.entity
 
 import androidx.room.TypeConverter
 import cu.stockcuba.app.domain.model.MetodoPago
+import cu.stockcuba.app.domain.model.Moneda
 import cu.stockcuba.app.domain.model.TipoMovimientoInventario
 import cu.stockcuba.app.domain.model.UnidadMedida
 import java.time.Instant
@@ -31,4 +32,10 @@ class Converters {
 
     @TypeConverter
     fun toTipoMovimiento(value: TipoMovimientoInventario?): String? = value?.name
+
+    @TypeConverter
+    fun fromMoneda(value: String?): Moneda? = value?.let { Moneda.valueOf(it) }
+
+    @TypeConverter
+    fun toMoneda(value: Moneda?): String? = value?.name
 }

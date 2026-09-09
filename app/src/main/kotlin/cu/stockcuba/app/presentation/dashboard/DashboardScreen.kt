@@ -31,6 +31,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cu.stockcuba.app.domain.model.Venta
 import cu.stockcuba.app.domain.model.DomainError
+import cu.stockcuba.app.domain.model.RolUsuario
+import cu.stockcuba.app.domain.model.Result
+import cu.stockcuba.app.domain.model.ProductInsight
+import cu.stockcuba.app.domain.model.InsightTipo
+import cu.stockcuba.app.presentation.security.PinEntryScreen
+import cu.stockcuba.app.presentation.security.Mode
 import cu.stockcuba.app.presentation.theme.Shape
 import cu.stockcuba.app.presentation.theme.StockCubaColors
 import cu.stockcuba.app.presentation.theme.StockCubaSpacing
@@ -51,6 +57,8 @@ fun DashboardScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    
+    var showPinDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -110,9 +118,24 @@ fun DashboardScreen(
                         }
                     },
                     onNavigateToHistorial = onNavigateToHistorial,
-                    onNavigateToInventario = onNavigateToInventario
+                    onNavigateToInventario = onNavigateToInventario,
+                    onCambiarRol = { viewModel.cambiarRol(it) },
+                    onShowPinDialog = { showPinDialog = true }
                 )
             }
+        }
+
+        if (showPinDialog) {
+            PinEntryScreen(
+                mode = Mode.Verify,
+                securityRepository = viewModel.securityRepository,
+                onResult = { result ->
+                    if (result is Result.Success && result.value) {
+                        viewModel.cambiarRol(RolUsuario.DUENO)
+                    }
+                    showPinDialog = false
+                }
+            )
         }
     }
 }
@@ -124,8 +147,12 @@ fun DashboardContenidoFull(
     onExportar: () -> Unit,
     onCierre: () -> Unit,
     onNavigateToHistorial: () -> Unit,
-    onNavigateToInventario: () -> Unit
+    onNavigateToInventario: () -> Unit,
+    onCambiarRol: (RolUsuario) -> Unit,
+    onShowPinDialog: () -> Unit
 ) {
+    val isDueno = state.rolActual == RolUsuario.DUENO
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(StockCubaSpacing.Lg),
@@ -134,18 +161,28 @@ fun DashboardContenidoFull(
         item {
             HeaderDashboardModerno(
                 currentRange = state.timeRange,
+                rolActual = state.rolActual,
                 onRangeChange = onRangeChange,
-                onExportar = onExportar
+                onExportar = onExportar,
+                onCambiarRol = { rol ->
+                    if (rol == RolUsuario.DUENO) {
+                        onShowPinDialog()
+                    } else {
+                        onCambiarRol(rol)
+                    }
+                }
             )
         }
 
         // --- 2. META DIARIA (T65) ---
-        item {
-            MetaDelDiaCard(
-                progreso = state.progresoMeta,
-                totalActual = state.totalVendido,
-                meta = state.metaVenta
-            )
+        if (isDueno) {
+            item {
+                MetaDelDiaCard(
+                    progreso = state.progresoMeta,
+                    totalActual = state.totalVendido,
+                    meta = state.metaVenta
+                )
+            }
         }
 
         // --- 3. MÉTRICAS PRINCIPALES ---
@@ -162,20 +199,31 @@ fun DashboardContenidoFull(
         }
 
         // --- 4b. RENTABILIDAD DEL PERIODO ---
-        item {
-            RentabilidadCard(
-                gastos = state.totalGastos,
-                ganancia = state.gananciaReal
-            )
+        if (isDueno) {
+            item {
+                RentabilidadCard(
+                    gastos = state.totalGastos,
+                    ganancia = state.gananciaReal
+                )
+            }
         }
 
         // --- 5. VALOR DEL INVENTARIO (IPB/IPC) (T66) ---
-        item {
-            ValorInventarioCard(
-                ipb = state.valorInventarioVenta,
-                ipc = state.valorInventarioCosto,
-                ganancia = state.gananciaProyectada
-            )
+        if (isDueno) {
+            item {
+                ValorInventarioCard(
+                    ipb = state.valorInventarioVenta,
+                    ipc = state.valorInventarioCosto,
+                    ganancia = state.gananciaProyectada
+                )
+            }
+        }
+
+        // --- 5b. INSIGHTS DE RENTABILIDAD (DUENO ONLY) ---
+        if (isDueno && state.listaInsights.isNotEmpty()) {
+            item {
+                SeccionInsightsRentabilidad(insights = state.listaInsights)
+            }
         }
 
         // --- 6. CIERRE DEL DÍA / MES ---
@@ -218,9 +266,13 @@ fun DashboardContenidoFull(
 @Composable
 fun HeaderDashboardModerno(
     currentRange: DashboardTimeRange,
+    rolActual: RolUsuario,
     onRangeChange: (DashboardTimeRange) -> Unit,
-    onExportar: () -> Unit
+    onExportar: () -> Unit,
+    onCambiarRol: (RolUsuario) -> Unit
 ) {
+    var showProfileMenu by remember { mutableStateOf(false) }
+
     Column(verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -228,15 +280,48 @@ fun HeaderDashboardModerno(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text(
-                    text = "Panel de Control",
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Panel de Control",
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Surface(
+                        color = if (rolActual == RolUsuario.DUENO) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+                        shape = Shape.Pequeno,
+                        modifier = Modifier.clickable { showProfileMenu = true }
+                    ) {
+                        Text(
+                            text = if (rolActual == RolUsuario.DUENO) "Dueño" else "Vendedor",
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+                }
                 Text(
                     text = "Estado actual de tu negocio",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                DropdownMenu(expanded = showProfileMenu, onDismissRequest = { showProfileMenu = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Ver como Dueño") },
+                        leadingIcon = { Icon(Icons.Default.AdminPanelSettings, null) },
+                        onClick = { 
+                            onCambiarRol(RolUsuario.DUENO)
+                            showProfileMenu = false 
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Ver como Vendedor") },
+                        leadingIcon = { Icon(Icons.Default.Sell, null) },
+                        onClick = { 
+                            onCambiarRol(RolUsuario.VENDEDOR)
+                            showProfileMenu = false 
+                        }
+                    )
+                }
             }
             
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -345,13 +430,74 @@ fun MetaDelDiaCard(progreso: Float, totalActual: Double, meta: Double) {
 }
 
 @Composable
+fun SeccionInsightsRentabilidad(insights: List<ProductInsight>) {
+    Column(verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.AutoGraph, null, tint = StockCubaColors.VerdeExito, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Insights y Rentabilidad", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+        }
+        
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
+            items(insights) { insight ->
+                CardInsight(insight)
+            }
+        }
+    }
+}
+
+@Composable
+fun CardInsight(insight: ProductInsight) {
+    val color = when (insight.tipo) {
+        InsightTipo.ESTRELLA -> StockCubaColors.VerdeExito
+        InsightTipo.ALERTA_MARGEN -> StockCubaColors.CoralAlerta
+        InsightTipo.ESTANCADO -> Color(0xFF6366F1)
+        InsightTipo.POTENCIAL -> Color(0xFFF59E0B)
+    }
+    
+    val icono = when (insight.tipo) {
+        InsightTipo.ESTRELLA -> Icons.Default.RocketLaunch
+        InsightTipo.ALERTA_MARGEN -> Icons.Default.WarningAmber
+        InsightTipo.ESTANCADO -> Icons.Default.AcUnit
+        InsightTipo.POTENCIAL -> Icons.Default.TrendingUp
+    }
+
+    Card(
+        modifier = Modifier.width(220.dp).height(120.dp),
+        shape = Shape.Grande,
+        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.05f)),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.2f))
+    ) {
+        Column(modifier = Modifier.padding(StockCubaSpacing.Md), verticalArrangement = Arrangement.SpaceBetween) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Surface(color = color.copy(alpha = 0.1f), shape = CircleShape) {
+                    Icon(icono, null, modifier = Modifier.padding(6.dp).size(14.dp), tint = color)
+                }
+                Text(insight.valorPrimario, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = color)
+            }
+            
+            Column {
+                Text(insight.nombre, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.ExtraBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(insight.mensaje, style = MaterialTheme.typography.labelSmall, maxLines = 2, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
 fun GridMetricas(state: DashboardUiState.Success) {
-    val items = listOf(
+    val isDueno = state.rolActual == RolUsuario.DUENO
+    
+    val items = mutableListOf(
         MetricItem("Total Ventas", state.totalVendido.formatoCUP(), state.tendenciaTotal, Icons.Default.Payments, StockCubaColors.VerdeExito),
         MetricItem("Cant. Ventas", state.cantidadVentas.toString(), state.tendenciaVentas, Icons.Default.ConfirmationNumber, Color(0xFF6366F1)),
-        MetricItem("Ticket Prom.", state.ticketPromedio.formatoCUP(), "", Icons.Default.TrendingUp, Color(0xFF8B5CF6)),
-        MetricItem("Top Producto", state.productoMasVendido?.nombreProducto ?: "—", state.productoMasVendido?.let { "${it.cantidadTotal} vendidos" } ?: "", Icons.Default.Star, Color(0xFFF59E0B))
     )
+    
+    if (isDueno) {
+        items.add(MetricItem("Ticket Prom.", state.ticketPromedio.formatoCUP(), "", Icons.Default.TrendingUp, Color(0xFF8B5CF6)))
+    }
+    
+    items.add(MetricItem("Top Producto", state.productoMasVendido?.nombreProducto ?: "—", state.productoMasVendido?.let { "${it.cantidadTotal} vendidos" } ?: "", Icons.Default.Star, Color(0xFFF59E0B)))
 
     Column(verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
         items.chunked(2).forEach { row ->

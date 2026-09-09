@@ -73,7 +73,10 @@ class AjustesViewModel @Inject constructor(
                     ajustesDataStore.tema,
                     ajustesDataStore.isVinculado,
                     ajustesDataStore.businessId,
-                    hasPinFlow
+                    hasPinFlow,
+                    ajustesDataStore.tasaUSD,
+                    ajustesDataStore.tasaMLC,
+                    ajustesDataStore.tasaEUR
                 )
             ) { array ->
                 val nombre = array[0] as String
@@ -85,6 +88,9 @@ class AjustesViewModel @Inject constructor(
                 val isVinculado = array[6] as Boolean
                 val bId = (array[7] as? String) ?: ""
                 val tienePin = array[8] as Boolean
+                val tUSD = array[9] as Double
+                val tMLC = array[10] as Double
+                val tEUR = array[11] as Double
 
                 AjustesUiState.Success(
                     nombreNegocio = nombre,
@@ -93,6 +99,9 @@ class AjustesViewModel @Inject constructor(
                     moneda = moneda,
                     impuesto = impuesto,
                     tema = tema,
+                    tasaUSD = tUSD,
+                    tasaMLC = tMLC,
+                    tasaEUR = tEUR,
                     seguridadBiometrica = false,
                     tienePin = tienePin,
                     isVinculado = isVinculado,
@@ -167,6 +176,24 @@ class AjustesViewModel @Inject constructor(
 
     fun guardarTema(tema: String) {
         viewModelScope.launch { ajustesDataStore.guardarTema(tema) }
+    }
+
+    fun guardarTasaUSD(tasa: String) {
+        tasa.toDoubleOrNull()?.let {
+            viewModelScope.launch { ajustesDataStore.guardarTasaUSD(it) }
+        }
+    }
+
+    fun guardarTasaMLC(tasa: String) {
+        tasa.toDoubleOrNull()?.let {
+            viewModelScope.launch { ajustesDataStore.guardarTasaMLC(it) }
+        }
+    }
+
+    fun guardarTasaEUR(tasa: String) {
+        tasa.toDoubleOrNull()?.let {
+            viewModelScope.launch { ajustesDataStore.guardarTasaEUR(it) }
+        }
     }
 
     suspend fun exportarBaseDatos(): Result<Uri> {

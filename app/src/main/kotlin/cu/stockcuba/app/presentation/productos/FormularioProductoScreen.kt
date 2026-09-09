@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cu.stockcuba.app.domain.model.Categoria
+import cu.stockcuba.app.domain.model.Moneda
 import cu.stockcuba.app.domain.model.UnidadMedida
 import cu.stockcuba.app.presentation.theme.Shape
 import cu.stockcuba.app.presentation.theme.StockCubaColors
@@ -175,6 +176,17 @@ fun FormularioContenido(
         // --- SECCIÓN 2: ECONOMÍA ---
         item {
             SeccionFormulario(titulo = "Precios y Costos", icono = Icons.Default.Payments) {
+                Text(
+                    "Moneda del Producto",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                )
+                SelectorMonedaModerno(
+                    monedaActual = state.moneda,
+                    onMonedaChange = { viewModel.updateMoneda(it) }
+                )
+                
+                Spacer(Modifier.height(8.dp))
+                
                 Row(horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
                     CampoTextoModerno(
                         value = state.precioVenta,
@@ -414,6 +426,32 @@ fun SelectorUnidadMedidaModerno(unidadActual: UnidadMedida, onChange: (UnidadMed
     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
         UnidadMedida.values().forEach { unidad ->
             DropdownMenuItem(text = { Text(unidad.name) }, onClick = { onChange(unidad); expanded = false })
+        }
+    }
+}
+
+@Composable
+fun SelectorMonedaModerno(monedaActual: Moneda, onMonedaChange: (Moneda) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Moneda.entries.filter { it != Moneda.CLASICA }.forEach { moneda ->
+            val isSelected = moneda == monedaActual
+            FilterChip(
+                selected = isSelected,
+                onClick = { onMonedaChange(moneda) },
+                label = { Text(moneda.name) },
+                leadingIcon = if (isSelected) {
+                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                } else null,
+                shape = Shape.Grande,
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ),
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }

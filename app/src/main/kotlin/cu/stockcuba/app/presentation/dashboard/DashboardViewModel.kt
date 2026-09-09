@@ -7,6 +7,9 @@ import cu.stockcuba.app.domain.model.CierreDiario
 import cu.stockcuba.app.domain.model.Producto
 import cu.stockcuba.app.domain.model.Result
 import cu.stockcuba.app.domain.model.Venta
+import cu.stockcuba.app.domain.model.ProductInsight
+import cu.stockcuba.app.domain.model.InsightTipo
+import cu.stockcuba.app.domain.model.RolUsuario
 import cu.stockcuba.app.domain.repository.*
 import cu.stockcuba.app.domain.usecase.ObtenerProductosBajoStockUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,6 +28,8 @@ class DashboardViewModel @Inject constructor(
     private val productoRepository: ProductoRepository,
     private val reportRepository: ReportRepository,
     private val cierreRepository: CierreRepository,
+    val securityRepository: cu.stockcuba.app.domain.security.SecurityRepository,
+    private val ajustesDataStore: cu.stockcuba.app.presentation.ajustes.AjustesDataStore,
     private val obtenerProductosBajoStockUseCase: ObtenerProductosBajoStockUseCase
 ) : ViewModel() {
 
@@ -37,7 +42,12 @@ class DashboardViewModel @Inject constructor(
         ventaRepository.getAll(),
         productoRepository.getAll(),
         cierreRepository.getHistoricoCierres(),
-        cierreRepository.getHistoricoCierresMensuales()
+        cierreRepository.getHistoricoCierresMensuales(),
+        ajustesDataStore.rolActual,
+        ajustesDataStore.moneda,
+        ajustesDataStore.tasaUSD,
+        ajustesDataStore.tasaMLC,
+        ajustesDataStore.tasaEUR
     ) { array ->
         val range = array[0] as DashboardTimeRange
         val productosBajoStock = array[1] as List<Producto>
@@ -45,6 +55,33 @@ class DashboardViewModel @Inject constructor(
         val allProductos = array[3] as List<Producto>
         val cierres = array[4] as List<CierreDiario>
         val cierresMensuales = array[5] as List<cu.stockcuba.app.domain.model.CierreMensual>
+        val rolActual = array[6] as cu.stockcuba.app.domain.model.RolUsuario
+        val monedaBase = array[7] as cu.stockcuba.app.domain.model.Moneda
+        val tasaUSD = array[8] as Double
+        val tasaMLC = array[9] as Double
+        val tasaEUR = array[10] as Double
+
+        val tasas = mapOf(
+            cu.stockcuba.app.domain.model.Moneda.USD to tasaUSD,
+            cu.stockcuba.app.domain.model.Moneda.MLC to tasaMLC,
+            cu.stockcuba.app.domain.model.Moneda.EUR to tasaEUR,
+            cu.stockcuba.app.domain.model.Moneda.CUP to 1.0,
+            cu.stockcuba.app.domain.model.Moneda.CLASICA to 1.0
+        )
+
+        fun toBase(valor: Double, moneda: cu.stockcuba.app.domain.model.Moneda): Double {
+            if (moneda == monedaBase) return valor
+            val tasaOrigen = tasas[moneda] ?: 1.0
+            val tasaDestino = tasas[monedaBase] ?: 1.0
+            // Convertir a CUP primero si es necesario, luego a monedaBase
+            // Pero aquí asumimos que las tasas son respecto a CUP? 
+            // Si MonedaBase es CUP, simplemente multiplicamos por tasaOrigen.
+            // Si MonedaBase es USD, dividimos por tasaUSD.
+            
+            // Lógica simplificada: tasaOrigen es "CUP por 1 unidad de moneda"
+            val valorEnCUP = valor * tasaOrigen
+            return valorEnCUP / tasaDestino
+        }
 
         val now = LocalDate.now()
         val startAndEnd = range.getTimestamps(now)
@@ -68,7 +105,8 @@ class DashboardViewModel @Inject constructor(
 
         val totalGastos = periodVentas.flatMap { it.items }.sumOf { item ->
             val producto = allProductos.find { it.id == item.productoId }
-            (producto?.costoUnitario ?: 0.0) * item.cantidad
+            val costoBase = toBase(producto?.costoUnitario ?: 0.0, producto?.moneda ?: cu.stockcuba.app.domain.model.Moneda.CUP)
+            costoBase * item.cantidad
         }
         val gananciaReal = totalVendido - totalGastos
         
@@ -79,8 +117,8 @@ class DashboardViewModel @Inject constructor(
 
         // IPB e IPC (T66)
         val activeProductos = allProductos.filter { it.activo }
-        val ipb = activeProductos.sumOf { it.stockActual * it.precioVenta }
-        val ipc = activeProductos.sumOf { it.stockActual * it.costoUnitario }
+        val ipb = activeProductos.sumOf { it.stockActual * toBase(it.precioVenta, it.moneda) }
+        val ipc = activeProductos.sumOf { it.stockActual * toBase(it.costoUnitario, it.moneda) }
         val gananciaProyectada = ipb - ipc
 
         val topProducto = periodVentas.flatMap { it.items }
@@ -100,7 +138,13 @@ class DashboardViewModel @Inject constructor(
         
         val progreso = if (totalPrevio > 0) (totalVendido / totalPrevio).toFloat() else 1.0f
 
+        // --- CÁLCULO DE INSIGHTS (DUENO ONLY) ---
+        val insights = if (rolActual == RolUsuario.DUENO) {
+            calcularInsights(periodVentas, allProductos, tasas, monedaBase)
+        } else emptyList()
+
         DashboardUiState.Success(
+            rolActual = rolActual,
             timeRange = range,
             totalVendido = totalVendido,
             cantidadVentas = periodVentas.size,
@@ -117,6 +161,7 @@ class DashboardViewModel @Inject constructor(
             gananciaReal = gananciaReal,
             listaProductosBajoStock = productosBajoStock,
             ventasRecientes = allVentas.take(5),
+            listaInsights = insights,
             tendenciaTotal = tendenciaTotal,
             tendenciaVentas = tendenciaVentas,
             ultimoCierre = cierreHoy,
@@ -131,6 +176,12 @@ class DashboardViewModel @Inject constructor(
 
     fun setTimeRange(range: DashboardTimeRange) {
         _timeRange.value = range
+    }
+
+    fun cambiarRol(rol: cu.stockcuba.app.domain.model.RolUsuario) {
+        viewModelScope.launch {
+            ajustesDataStore.guardarRolActual(rol)
+        }
     }
 
     suspend fun exportarReporteDiario(): Result<Uri> {
@@ -179,6 +230,86 @@ class DashboardViewModel @Inject constructor(
                 else "0%"
             }
         }
+    }
+
+    private fun calcularInsights(
+        ventasPeriodo: List<Venta>,
+        allProductos: List<Producto>,
+        tasas: Map<cu.stockcuba.app.domain.model.Moneda, Double>,
+        monedaBase: cu.stockcuba.app.domain.model.Moneda
+    ): List<ProductInsight> {
+        val insights = mutableListOf<ProductInsight>()
+        val totalVentasPorProducto = ventasPeriodo.flatMap { it.items }.groupBy { it.productoId }
+
+        fun toBase(valor: Double, moneda: cu.stockcuba.app.domain.model.Moneda): Double {
+            val tasaOrigen = tasas[moneda] ?: 1.0
+            val tasaDestino = tasas[monedaBase] ?: 1.0
+            return (valor * tasaOrigen) / tasaDestino
+        }
+
+        // 1. Identificar Estrellas y Alertas de Margen
+        totalVentasPorProducto.forEach { (id, items) ->
+            val producto = allProductos.find { it.id == id } ?: return@forEach
+            val precioVentaBase = toBase(producto.precioVenta, producto.moneda)
+            val costoUnitarioBase = toBase(producto.costoUnitario, producto.moneda)
+            
+            val gananciaUnitaria = precioVentaBase - costoUnitarioBase
+            val gananciaTotal = gananciaUnitaria * items.sumOf { it.cantidad }
+            val margen = if (costoUnitarioBase > 0) (gananciaUnitaria / costoUnitarioBase) * 100 else 0.0
+
+            if (margen < 15.0 && margen > 0) {
+                insights.add(ProductInsight(
+                    productoId = id,
+                    nombre = producto.nombre,
+                    tipo = InsightTipo.ALERTA_MARGEN,
+                    valorPrimario = "${"%.1f".format(margen)}% margen",
+                    mensaje = "Ganancia muy baja. Considera ajustar el precio."
+                ))
+            } else if (margen <= 0) {
+                insights.add(ProductInsight(
+                    productoId = id,
+                    nombre = producto.nombre,
+                    tipo = InsightTipo.ALERTA_MARGEN,
+                    valorPrimario = "Pérdida",
+                    mensaje = "Estás vendiendo por debajo del costo."
+                ))
+            }
+        }
+
+        // 2. Identificar Top Ganancia (Estrella)
+        totalVentasPorProducto.mapNotNull { (id, items) ->
+            val producto = allProductos.find { it.id == id } ?: return@mapNotNull null
+            val precioVentaBase = toBase(producto.precioVenta, producto.moneda)
+            val costoUnitarioBase = toBase(producto.costoUnitario, producto.moneda)
+            val gananciaTotal = (precioVentaBase - costoUnitarioBase) * items.sumOf { it.cantidad }
+            Triple(id, producto.nombre, gananciaTotal)
+        }.maxByOrNull { it.third }?.let { (id, nombre, ganancia) ->
+            if (ganancia > 0) {
+                insights.add(ProductInsight(
+                    productoId = id,
+                    nombre = nombre,
+                    tipo = InsightTipo.ESTRELLA,
+                    valorPrimario = "${ganancia.toInt().formatoCantidad()} ${monedaBase.name}",
+                    mensaje = "Es el producto que más dinero real te aporta."
+                ))
+            }
+        }
+
+        // 3. Estancados (Stock > 5 pero 0 ventas)
+        allProductos.filter { it.activo && it.stockActual > 5 }
+            .filter { it.id !in totalVentasPorProducto.keys }
+            .take(2)
+            .forEach { producto ->
+                insights.add(ProductInsight(
+                    productoId = producto.id,
+                    nombre = producto.nombre,
+                    tipo = InsightTipo.ESTANCADO,
+                    valorPrimario = "${producto.stockActual} en stock",
+                    mensaje = "Sin ventas en este periodo. ¿Hacemos rebaja?"
+                ))
+            }
+
+        return insights.sortedBy { it.tipo.ordinal }
     }
 }
 

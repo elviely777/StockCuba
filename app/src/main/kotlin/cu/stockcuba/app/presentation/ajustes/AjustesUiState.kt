@@ -13,6 +13,12 @@ sealed interface AjustesUiState {
         val moneda: Moneda = Moneda.CUP,
         val impuesto: Double = 0.0,
         val tema: String = "SYSTEM",
+        
+        // Tasas
+        val tasaUSD: Double = 320.0,
+        val tasaMLC: Double = 300.0,
+        val tasaEUR: Double = 330.0,
+
         val seguridadBiometrica: Boolean = false,
         val tienePin: Boolean = false,
         val appVersion: String = "",

@@ -1,6 +1,7 @@
 package cu.stockcuba.app.data.local.database
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -21,7 +22,10 @@ import java.io.File
         CierreDiarioEntity::class,
         CierreMensualEntity::class
     ],
-    version = 7,
+    version = 8,
+    autoMigrations = [
+        AutoMigration(from = 7, to = 8)
+    ],
     exportSchema = true
 )
 @TypeConverters(Converters::class)

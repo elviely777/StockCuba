@@ -40,6 +40,9 @@ data class ProductoEntity(
     @ColumnInfo(name = "costo_unitario")
     val costoUnitario: Double,
 
+    @ColumnInfo(name = "moneda", defaultValue = "'CUP'")
+    val moneda: String = "CUP",
+
     @ColumnInfo(name = "stock_actual")
     val stockActual: Int,
 

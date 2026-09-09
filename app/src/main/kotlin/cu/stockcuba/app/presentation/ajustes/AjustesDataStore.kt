@@ -28,6 +28,14 @@ class AjustesDataStore @Inject constructor(
         val IMPUESTO_KEY = doublePreferencesKey("impuesto")
         val TEMA_KEY = stringPreferencesKey("tema")
         
+        // Perfiles y Seguridad
+        val ROL_ACTUAL_KEY = stringPreferencesKey("rol_actual")
+        
+        // Tasas de Cambio (Tasa respecto a la moneda principal)
+        val TASA_USD_KEY = doublePreferencesKey("tasa_usd")
+        val TASA_MLC_KEY = doublePreferencesKey("tasa_mlc")
+        val TASA_EUR_KEY = doublePreferencesKey("tasa_eur")
+
         // PIN security keys (T33)
         val PIN_HASH_KEY = stringPreferencesKey("pin_hash")
         val PIN_SALT_KEY = stringPreferencesKey("pin_salt")
@@ -65,6 +73,17 @@ class AjustesDataStore @Inject constructor(
     val tema: Flow<String> = dataStore.data
         .map { it[TEMA_KEY] ?: "SYSTEM" }
         .distinctUntilChanged()
+
+    val rolActual: Flow<cu.stockcuba.app.domain.model.RolUsuario> = dataStore.data
+        .map { 
+            it[ROL_ACTUAL_KEY]?.let { rol -> cu.stockcuba.app.domain.model.RolUsuario.valueOf(rol) } 
+                ?: cu.stockcuba.app.domain.model.RolUsuario.DUENO 
+        }
+        .distinctUntilChanged()
+
+    val tasaUSD: Flow<Double> = dataStore.data.map { it[TASA_USD_KEY] ?: 320.0 }.distinctUntilChanged()
+    val tasaMLC: Flow<Double> = dataStore.data.map { it[TASA_MLC_KEY] ?: 300.0 }.distinctUntilChanged()
+    val tasaEUR: Flow<Double> = dataStore.data.map { it[TASA_EUR_KEY] ?: 330.0 }.distinctUntilChanged()
 
     // PIN flows (T33)
     val pinHash: Flow<String?> = dataStore.data
@@ -105,6 +124,12 @@ class AjustesDataStore @Inject constructor(
     suspend fun guardarMoneda(moneda: Moneda): Result<Unit> = guardarDato(MONEDA_KEY, moneda.name)
     suspend fun guardarImpuesto(impuesto: Double): Result<Unit> = guardarDato(IMPUESTO_KEY, impuesto)
     suspend fun guardarTema(tema: String): Result<Unit> = guardarDato(TEMA_KEY, tema)
+
+    suspend fun guardarRolActual(rol: cu.stockcuba.app.domain.model.RolUsuario): Result<Unit> = guardarDato(ROL_ACTUAL_KEY, rol.name)
+    
+    suspend fun guardarTasaUSD(tasa: Double): Result<Unit> = guardarDato(TASA_USD_KEY, tasa)
+    suspend fun guardarTasaMLC(tasa: Double): Result<Unit> = guardarDato(TASA_MLC_KEY, tasa)
+    suspend fun guardarTasaEUR(tasa: Double): Result<Unit> = guardarDato(TASA_EUR_KEY, tasa)
 
     suspend fun guardarEstadoNegocio(estado: String): Result<Unit> = guardarDato(ESTADO_NEGOCIO_KEY, estado)
 

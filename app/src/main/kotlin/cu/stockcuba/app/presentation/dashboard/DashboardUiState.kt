@@ -4,6 +4,8 @@ import cu.stockcuba.app.domain.model.CierreDiario
 import cu.stockcuba.app.domain.model.Producto
 import cu.stockcuba.app.domain.model.Venta
 import cu.stockcuba.app.domain.model.Moneda
+import cu.stockcuba.app.domain.model.RolUsuario
+import cu.stockcuba.app.domain.model.ProductInsight
 import cu.stockcuba.app.domain.repository.VentaRepository
 
 /**
@@ -19,6 +21,7 @@ enum class DashboardTimeRange {
  */
 sealed interface DashboardUiState {
     data class Success(
+        val rolActual: RolUsuario = RolUsuario.DUENO,
         val timeRange: DashboardTimeRange = DashboardTimeRange.HOY,
         val totalVendido: Double,
         val cantidadVentas: Int,
@@ -45,6 +48,7 @@ sealed interface DashboardUiState {
         // Listas
         val listaProductosBajoStock: List<Producto>,
         val ventasRecientes: List<Venta> = emptyList(),
+        val listaInsights: List<ProductInsight> = emptyList(),
         
         // Tendencias (Strings formateados)
         val tendenciaTotal: String = "—",
@@ -61,6 +65,7 @@ sealed interface DashboardUiState {
 
     companion object {
         val empty = Success(
+            rolActual = RolUsuario.DUENO,
             totalVendido = 0.0,
             cantidadVentas = 0,
             ticketPromedio = 0.0,

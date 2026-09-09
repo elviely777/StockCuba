@@ -8,6 +8,7 @@ data class Producto(
     val descripcion: String?,
     val precioVenta: Double,
     val costoUnitario: Double,
+    val moneda: Moneda = Moneda.CUP,
     val stockActual: Int,
     val stockMinimo: Int,
     val unidadMedida: UnidadMedida,

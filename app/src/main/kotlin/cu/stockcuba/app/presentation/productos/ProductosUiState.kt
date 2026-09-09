@@ -1,6 +1,7 @@
 package cu.stockcuba.app.presentation.productos
 
 import cu.stockcuba.app.domain.model.Categoria
+import cu.stockcuba.app.domain.model.Moneda
 import cu.stockcuba.app.domain.model.Producto
 import cu.stockcuba.app.domain.model.UnidadMedida
 
@@ -34,6 +35,7 @@ sealed interface FormularioProductoUiState {
         val descripcion: String = "",
         val precioVenta: String = "",
         val costoUnitario: String = "",
+        val moneda: Moneda = Moneda.CUP,
         val stockInicial: String = "",
         val stockMinimo: String = "",
         val unidadMedida: UnidadMedida = UnidadMedida.UNIDAD,

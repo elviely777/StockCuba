@@ -366,6 +366,39 @@ fun AjustesContenidoModerno(
             }
         }
 
+        // --- SECCIÓN NUEVA: TASAS DE CAMBIO ---
+        item {
+            SeccionAjustesModerna(titulo = "Tasas de Cambio", icono = Icons.Default.CurrencyExchange, color = Color(0xFF10B981)) {
+                Text("Valor de referencia respecto a moneda base", style = MaterialTheme.typography.labelSmall)
+                Row(horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
+                    CampoAjusteModerno(
+                        value = state.tasaUSD.toString(),
+                        onValueChange = { viewModel.guardarTasaUSD(it) },
+                        label = "USD",
+                        icon = Icons.Default.AttachMoney,
+                        modifier = Modifier.weight(1f),
+                        keyboardType = KeyboardType.Decimal
+                    )
+                    CampoAjusteModerno(
+                        value = state.tasaMLC.toString(),
+                        onValueChange = { viewModel.guardarTasaMLC(it) },
+                        label = "MLC",
+                        icon = Icons.Default.CreditCard,
+                        modifier = Modifier.weight(1f),
+                        keyboardType = KeyboardType.Decimal
+                    )
+                    CampoAjusteModerno(
+                        value = state.tasaEUR.toString(),
+                        onValueChange = { viewModel.guardarTasaEUR(it) },
+                        label = "EUR",
+                        icon = Icons.Default.Euro,
+                        modifier = Modifier.weight(1f),
+                        keyboardType = KeyboardType.Decimal
+                    )
+                }
+            }
+        }
+
         // --- SECCIÓN 3: SEGURIDAD ---
         item {
             SeccionAjustesModerna(titulo = "Seguridad", icono = Icons.Default.Shield, color = StockCubaColors.VerdeExito) {
@@ -499,7 +532,8 @@ fun CampoAjusteModerno(
     label: String,
     icon: ImageVector,
     error: String? = null,
-    keyboardType: KeyboardType = KeyboardType.Text
+    keyboardType: KeyboardType = KeyboardType.Text,
+    modifier: Modifier = Modifier
 ) {
     OutlinedTextField(
         value = value,
@@ -508,7 +542,7 @@ fun CampoAjusteModerno(
         leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp)) },
         isError = error != null,
         supportingText = { error?.let { Text(it) } },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = Shape.Grande,
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Next),

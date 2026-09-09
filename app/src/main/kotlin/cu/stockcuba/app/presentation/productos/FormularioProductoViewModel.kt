@@ -70,6 +70,7 @@ class FormularioProductoViewModel @Inject constructor(
                             descripcion = producto.descripcion ?: "",
                             precioVenta = producto.precioVenta.toString(),
                             costoUnitario = producto.costoUnitario.toString(),
+                            moneda = producto.moneda,
                             stockInicial = producto.stockActual.toString(),
                             stockMinimo = producto.stockMinimo.toString(),
                             unidadMedida = producto.unidadMedida,
@@ -123,6 +124,15 @@ class FormularioProductoViewModel @Inject constructor(
         _uiState.update { state ->
             when (state) {
                 is FormularioProductoUiState.Editing -> state.copy(unidadMedida = unidad)
+                else -> state
+            }
+        }
+    }
+
+    fun updateMoneda(moneda: cu.stockcuba.app.domain.model.Moneda) {
+        _uiState.update { state ->
+            when (state) {
+                is FormularioProductoUiState.Editing -> state.copy(moneda = moneda)
                 else -> state
             }
         }
@@ -250,6 +260,7 @@ class FormularioProductoViewModel @Inject constructor(
                             descripcion = currentState.descripcion.trim().takeIf { it.isNotBlank() },
                             precioVenta = currentState.precioVenta.toDoubleOrNull() ?: 0.0,
                             costoUnitario = currentState.costoUnitario.toDoubleOrNull() ?: 0.0,
+                            moneda = currentState.moneda,
                             stockActual = currentState.stockInicial.toIntOrNull() ?: 0,
                             stockMinimo = currentState.stockMinimo.toIntOrNull() ?: 0,
                             unidadMedida = currentState.unidadMedida,
@@ -285,6 +296,7 @@ class FormularioProductoViewModel @Inject constructor(
                     descripcion = "",
                     precioVenta = "",
                     costoUnitario = "",
+                    moneda = cu.stockcuba.app.domain.model.Moneda.CUP,
                     stockInicial = "",
                     stockMinimo = "",
                     unidadMedida = UnidadMedida.UNIDAD,
