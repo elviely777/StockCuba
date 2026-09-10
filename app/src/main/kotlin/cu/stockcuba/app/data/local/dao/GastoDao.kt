@@ -26,6 +26,12 @@ interface GastoDao {
     @Query("SELECT SUM(monto) FROM gastos WHERE fecha BETWEEN :startDate AND :endDate")
     fun getTotalByDateRange(startDate: Long, endDate: Long): Flow<Double?>
 
+    @Query("SELECT * FROM gastos WHERE sync_status = 'PENDING' ORDER BY fecha ASC")
+    fun getGastosNoSincronizadosFlow(): Flow<List<GastoEntity>>
+
+    @Query("UPDATE gastos SET sync_status = 'SYNCED' WHERE id = :id")
+    suspend fun marcarComoSincronizado(id: String): Int
+
     @Query("DELETE FROM gastos")
     suspend fun deleteAll()
 }

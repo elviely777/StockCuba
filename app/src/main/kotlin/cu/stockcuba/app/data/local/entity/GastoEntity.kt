@@ -32,6 +32,9 @@ data class GastoEntity(
     @ColumnInfo(name = "fecha")
     val fecha: Long, // Epoch millis
 
+    @ColumnInfo(name = "sync_status", defaultValue = "'PENDING'")
+    val syncStatus: String = "PENDING",
+
     @ColumnInfo(name = "fecha_creacion")
     val fechaCreacion: Long = System.currentTimeMillis()
 )
