@@ -30,11 +30,12 @@ import cu.stockcuba.app.presentation.theme.StockCubaSpacing
 @Composable
 fun RoleSelectionDialog(
     onRoleSelected: (RolUsuario, String) -> Unit,
-    onDismiss: (() -> Unit)? = null
+    onDismiss: (() -> Unit)? = null,
+    forcedRole: RolUsuario? = null
 ) {
-    var selectedRol by remember { mutableStateOf<RolUsuario?>(null) }
+    var selectedRol by remember { mutableStateOf<RolUsuario?>(forcedRole) }
     var nombreVendedor by remember { mutableStateOf("") }
-    var step by remember { mutableStateOf(1) } // 1: Select Role, 2: Enter Name (if Vendedor)
+    var step by remember { mutableStateOf(if (forcedRole == RolUsuario.VENDEDOR) 2 else 1) } // 1: Select Role, 2: Enter Name (if Vendedor)
 
     Dialog(
         onDismissRequest = { onDismiss?.invoke() },
@@ -104,11 +105,13 @@ fun RoleSelectionDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)
                     ) {
-                        TextButton(
-                            onClick = { step = 1 },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Atrás")
+                        if (forcedRole == null) {
+                            TextButton(
+                                onClick = { step = 1 },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Atrás")
+                            }
                         }
                         Button(
                             onClick = {
@@ -117,7 +120,7 @@ fun RoleSelectionDialog(
                                 }
                             },
                             enabled = nombreVendedor.isNotBlank(),
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(if (forcedRole == null) 1f else 2f),
                             shape = Shape.Grande
                         ) {
                             Text("Entrar")

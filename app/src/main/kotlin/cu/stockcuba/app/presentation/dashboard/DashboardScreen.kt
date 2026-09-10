@@ -62,6 +62,10 @@ fun DashboardScreen(
     val scope = rememberCoroutineScope()
     
     var showPinDialog by remember { mutableStateOf(false) }
+    var showRoleSwitchDialog by remember { mutableStateOf(false) }
+    var forcedRoleForSwitch by remember { mutableStateOf<RolUsuario?>(null) }
+    var showCierreDialog by remember { mutableStateOf(false) }
+    var pendingCierreRange by remember { mutableStateOf<DashboardTimeRange?>(null) }
 
     // Mostrar selección de rol al inicio si no está definido
     if (uiState is DashboardUiState.Success) {
@@ -73,6 +77,73 @@ fun DashboardScreen(
                 }
             )
         }
+    }
+
+    if (showRoleSwitchDialog) {
+        RoleSelectionDialog(
+            onRoleSelected = { rol, nombre ->
+                viewModel.cambiarRolYVendedor(rol, nombre)
+                showRoleSwitchDialog = false
+                forcedRoleForSwitch = null
+            },
+            onDismiss = { 
+                showRoleSwitchDialog = false
+                forcedRoleForSwitch = null
+            },
+            forcedRole = forcedRoleForSwitch
+        )
+    }
+
+    if (showCierreDialog && pendingCierreRange != null) {
+        AlertDialog(
+            onDismissRequest = { showCierreDialog = false },
+            title = { Text("Confirmar Cierre de ${if (pendingCierreRange == DashboardTimeRange.MES) "Mes" else "Jornada"}", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("¿Has registrado todos los gastos operativos (luz, salarios, etc.) de este periodo?")
+                    Text(
+                        "Al cerrar, se generará el reporte final y el balance quedará guardado oficialmente.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val range = pendingCierreRange
+                        showCierreDialog = false
+                        scope.launch {
+                            val result = if (range == DashboardTimeRange.MES) {
+                                viewModel.realizarCierreMensual()
+                            } else {
+                                viewModel.realizarCierreDelDia()
+                            }
+                            result.fold(
+                                onSuccess = { launch { snackbarHostState.showSnackbar("Cierre realizado con éxito") } },
+                                onFailure = { launch { snackbarHostState.showSnackbar("Error al realizar cierre") } }
+                            )
+                        }
+                    },
+                    shape = Shape.Grande
+                ) {
+                    Text("Realizar Cierre")
+                }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = { 
+                        showCierreDialog = false
+                        onNavigateToGastos()
+                    }) {
+                        Text("Anotar Gastos")
+                    }
+                    TextButton(onClick = { showCierreDialog = false }) {
+                        Text("Cancelar")
+                    }
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -115,22 +186,8 @@ fun DashboardScreen(
                         }
                     },
                     onCierre = {
-                        scope.launch {
-                            val result = if (state.timeRange == DashboardTimeRange.MES) {
-                                viewModel.realizarCierreMensual()
-                            } else {
-                                viewModel.realizarCierreDelDia()
-                            }
-                            
-                            result.fold(
-                                onSuccess = { uri ->
-                                    launch { snackbarHostState.showSnackbar("Cierre realizado con éxito") }
-                                },
-                                onFailure = { error ->
-                                    launch { snackbarHostState.showSnackbar("Error al realizar cierre") }
-                                }
-                            )
-                        }
+                        pendingCierreRange = state.timeRange
+                        showCierreDialog = true
                     },
                     onNavigateToHistorial = onNavigateToHistorial,
                     onNavigateToInventario = onNavigateToInventario,
@@ -146,10 +203,13 @@ fun DashboardScreen(
                                 }
                             }
                         } else {
-                            viewModel.cambiarRol(rol)
+                            // Al cambiar a vendedor desde el menú, pedimos identificación directa
+                            forcedRoleForSwitch = RolUsuario.VENDEDOR
+                            showRoleSwitchDialog = true
                         }
                     },
                     onCerrarTurno = {
+                        forcedRoleForSwitch = null
                         viewModel.cambiarRol(RolUsuario.UNDEFINED)
                     }
                 )
