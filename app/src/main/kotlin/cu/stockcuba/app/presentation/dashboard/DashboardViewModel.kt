@@ -44,6 +44,7 @@ class DashboardViewModel @Inject constructor(
         cierreRepository.getHistoricoCierres(),
         cierreRepository.getHistoricoCierresMensuales(),
         ajustesDataStore.rolActual,
+        ajustesDataStore.nombreVendedor,
         ajustesDataStore.moneda,
         ajustesDataStore.tasaUSD,
         ajustesDataStore.tasaMLC,
@@ -56,10 +57,11 @@ class DashboardViewModel @Inject constructor(
         val cierres = array[4] as List<CierreDiario>
         val cierresMensuales = array[5] as List<cu.stockcuba.app.domain.model.CierreMensual>
         val rolActual = array[6] as cu.stockcuba.app.domain.model.RolUsuario
-        val monedaBase = array[7] as cu.stockcuba.app.domain.model.Moneda
-        val tasaUSD = array[8] as Double
-        val tasaMLC = array[9] as Double
-        val tasaEUR = array[10] as Double
+        val nombreVendedor = array[7] as String
+        val monedaBase = array[8] as cu.stockcuba.app.domain.model.Moneda
+        val tasaUSD = array[9] as Double
+        val tasaMLC = array[10] as Double
+        val tasaEUR = array[11] as Double
 
         val tasas = mapOf(
             cu.stockcuba.app.domain.model.Moneda.USD to tasaUSD,
@@ -143,8 +145,22 @@ class DashboardViewModel @Inject constructor(
             calcularInsights(periodVentas, allProductos, tasas, monedaBase)
         } else emptyList()
 
+        // --- EFICIENCIA DE VENDEDORES (DUENO ONLY) ---
+        val eficiencia = if (rolActual == RolUsuario.DUENO) {
+            periodVentas.groupBy { it.vendedorNombre }
+                .map { (nombre, ventas) ->
+                    VentaRepository.EficienciaVendedor(
+                        nombre = nombre,
+                        cantidadVentas = ventas.size,
+                        totalRecaudado = ventas.sumOf { it.total }
+                    )
+                }
+                .sortedByDescending { it.totalRecaudado }
+        } else emptyList()
+
         DashboardUiState.Success(
             rolActual = rolActual,
+            nombreVendedor = nombreVendedor,
             timeRange = range,
             totalVendido = totalVendido,
             cantidadVentas = periodVentas.size,
@@ -162,6 +178,7 @@ class DashboardViewModel @Inject constructor(
             listaProductosBajoStock = productosBajoStock,
             ventasRecientes = allVentas.take(5),
             listaInsights = insights,
+            eficienciaVendedores = eficiencia,
             tendenciaTotal = tendenciaTotal,
             tendenciaVentas = tendenciaVentas,
             ultimoCierre = cierreHoy,
@@ -181,6 +198,16 @@ class DashboardViewModel @Inject constructor(
     fun cambiarRol(rol: cu.stockcuba.app.domain.model.RolUsuario) {
         viewModelScope.launch {
             ajustesDataStore.guardarRolActual(rol)
+            if (rol == cu.stockcuba.app.domain.model.RolUsuario.DUENO) {
+                ajustesDataStore.guardarNombreVendedor("")
+            }
+        }
+    }
+
+    fun cambiarRolYVendedor(rol: cu.stockcuba.app.domain.model.RolUsuario, nombre: String) {
+        viewModelScope.launch {
+            ajustesDataStore.guardarRolActual(rol)
+            ajustesDataStore.guardarNombreVendedor(nombre)
         }
     }
 

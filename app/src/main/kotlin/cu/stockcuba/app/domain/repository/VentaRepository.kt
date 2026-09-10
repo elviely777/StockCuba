@@ -29,6 +29,8 @@ interface VentaRepository {
 
     suspend fun getResumenAyer(): Result<ResumenDia>
 
+    fun getEficienciaVendedores(desde: Long, hasta: Long): Flow<List<EficienciaVendedor>>
+
     data class ResumenDia(
         val fecha: Long,
         val totalVendido: Double,
@@ -41,5 +43,11 @@ interface VentaRepository {
         val nombreProducto: String,
         val cantidadTotal: Int,
         val totalVendido: Double
+    )
+
+    data class EficienciaVendedor(
+        val nombre: String,
+        val cantidadVentas: Int,
+        val totalRecaudado: Double
     )
 }

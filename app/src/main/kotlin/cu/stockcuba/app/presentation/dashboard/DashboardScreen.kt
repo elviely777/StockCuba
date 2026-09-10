@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -37,6 +38,7 @@ import cu.stockcuba.app.domain.model.ProductInsight
 import cu.stockcuba.app.domain.model.InsightTipo
 import cu.stockcuba.app.presentation.security.PinEntryScreen
 import cu.stockcuba.app.presentation.security.Mode
+import cu.stockcuba.app.presentation.security.RoleSelectionDialog
 import cu.stockcuba.app.presentation.theme.Shape
 import cu.stockcuba.app.presentation.theme.StockCubaColors
 import cu.stockcuba.app.presentation.theme.StockCubaSpacing
@@ -59,6 +61,18 @@ fun DashboardScreen(
     val scope = rememberCoroutineScope()
     
     var showPinDialog by remember { mutableStateOf(false) }
+
+    // Mostrar selección de rol al inicio si no está definido
+    if (uiState is DashboardUiState.Success) {
+        val state = uiState as DashboardUiState.Success
+        if (state.rolActual == RolUsuario.UNDEFINED) {
+            RoleSelectionDialog(
+                onRoleSelected = { rol, nombre ->
+                    viewModel.cambiarRolYVendedor(rol, nombre)
+                }
+            )
+        }
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -119,8 +133,23 @@ fun DashboardScreen(
                     },
                     onNavigateToHistorial = onNavigateToHistorial,
                     onNavigateToInventario = onNavigateToInventario,
-                    onCambiarRol = { viewModel.cambiarRol(it) },
-                    onShowPinDialog = { showPinDialog = true }
+                    onCambiarRol = { rol ->
+                        if (rol == RolUsuario.DUENO) {
+                            scope.launch {
+                                val hasPin = (viewModel.securityRepository.hasPin() as? Result.Success)?.value ?: false
+                                if (hasPin) {
+                                    showPinDialog = true
+                                } else {
+                                    viewModel.cambiarRol(RolUsuario.DUENO)
+                                }
+                            }
+                        } else {
+                            viewModel.cambiarRol(rol)
+                        }
+                    },
+                    onCerrarTurno = {
+                        viewModel.cambiarRol(RolUsuario.UNDEFINED)
+                    }
                 )
             }
         }
@@ -149,7 +178,7 @@ fun DashboardContenidoFull(
     onNavigateToHistorial: () -> Unit,
     onNavigateToInventario: () -> Unit,
     onCambiarRol: (RolUsuario) -> Unit,
-    onShowPinDialog: () -> Unit
+    onCerrarTurno: () -> Unit
 ) {
     val isDueno = state.rolActual == RolUsuario.DUENO
 
@@ -162,15 +191,11 @@ fun DashboardContenidoFull(
             HeaderDashboardModerno(
                 currentRange = state.timeRange,
                 rolActual = state.rolActual,
+                nombreVendedor = state.nombreVendedor,
                 onRangeChange = onRangeChange,
                 onExportar = onExportar,
-                onCambiarRol = { rol ->
-                    if (rol == RolUsuario.DUENO) {
-                        onShowPinDialog()
-                    } else {
-                        onCambiarRol(rol)
-                    }
-                }
+                onCambiarRol = onCambiarRol,
+                onCerrarTurno = onCerrarTurno
             )
         }
 
@@ -226,6 +251,13 @@ fun DashboardContenidoFull(
             }
         }
 
+        // --- 5c. RANKING DE VENDEDORES (DUENO ONLY) ---
+        if (isDueno && state.eficienciaVendedores.isNotEmpty()) {
+            item {
+                RankingVendedoresSection(eficiencia = state.eficienciaVendedores)
+            }
+        }
+
         // --- 6. CIERRE DEL DÍA / MES ---
         item {
             val closureLabel = if (state.timeRange == DashboardTimeRange.MES) "Mes" else "Día"
@@ -267,9 +299,11 @@ fun DashboardContenidoFull(
 fun HeaderDashboardModerno(
     currentRange: DashboardTimeRange,
     rolActual: RolUsuario,
+    nombreVendedor: String,
     onRangeChange: (DashboardTimeRange) -> Unit,
     onExportar: () -> Unit,
-    onCambiarRol: (RolUsuario) -> Unit
+    onCambiarRol: (RolUsuario) -> Unit,
+    onCerrarTurno: () -> Unit
 ) {
     var showProfileMenu by remember { mutableStateOf(false) }
 
@@ -299,26 +333,41 @@ fun HeaderDashboardModerno(
                     }
                 }
                 Text(
-                    text = "Estado actual de tu negocio",
+                    text = if (rolActual == RolUsuario.VENDEDOR && nombreVendedor.isNotBlank()) 
+                        "Turno de: $nombreVendedor" 
+                    else "Estado actual de tu negocio",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 DropdownMenu(expanded = showProfileMenu, onDismissRequest = { showProfileMenu = false }) {
+                    if (rolActual != RolUsuario.DUENO) {
+                        DropdownMenuItem(
+                            text = { Text("Ver como Dueño") },
+                            leadingIcon = { Icon(Icons.Default.AdminPanelSettings, null) },
+                            onClick = { 
+                                onCambiarRol(RolUsuario.DUENO)
+                                showProfileMenu = false 
+                            }
+                        )
+                    }
+                    if (rolActual != RolUsuario.VENDEDOR) {
+                        DropdownMenuItem(
+                            text = { Text("Ver como Vendedor") },
+                            leadingIcon = { Icon(Icons.Default.Sell, null) },
+                            onClick = { 
+                                onCambiarRol(RolUsuario.VENDEDOR)
+                                showProfileMenu = false 
+                            }
+                        )
+                    }
+                    HorizontalDivider()
                     DropdownMenuItem(
-                        text = { Text("Ver como Dueño") },
-                        leadingIcon = { Icon(Icons.Default.AdminPanelSettings, null) },
-                        onClick = { 
-                            onCambiarRol(RolUsuario.DUENO)
-                            showProfileMenu = false 
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Ver como Vendedor") },
-                        leadingIcon = { Icon(Icons.Default.Sell, null) },
-                        onClick = { 
-                            onCambiarRol(RolUsuario.VENDEDOR)
-                            showProfileMenu = false 
+                        text = { Text("Cerrar Turno") },
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.Logout, null) },
+                        onClick = {
+                            onCerrarTurno()
+                            showProfileMenu = false
                         }
                     )
                 }
@@ -763,6 +812,61 @@ fun PantallaErrorDashboard(message: String) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(Icons.Default.ErrorOutline, null, modifier = Modifier.size(48.dp), tint = StockCubaColors.CoralAlerta)
             Text(message, textAlign = TextAlign.Center)
+        }
+    }
+}
+
+@Composable
+fun RankingVendedoresSection(eficiencia: List<cu.stockcuba.app.domain.repository.VentaRepository.EficienciaVendedor>) {
+    Column(verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.Groups, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Eficiencia de Vendedores", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = Shape.Grande,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        ) {
+            Column(modifier = Modifier.padding(StockCubaSpacing.Md)) {
+                // Header
+                Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                    Text("Vendedor", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Ventas", style = MaterialTheme.typography.labelSmall, modifier = Modifier.width(60.dp), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Total", style = MaterialTheme.typography.labelSmall, modifier = Modifier.width(100.dp), textAlign = TextAlign.End, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                
+                eficiencia.forEach { vendedor ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = vendedor.nombre.ifBlank { "Desconocido" },
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = vendedor.cantidadVentas.toString(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.width(60.dp),
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = vendedor.totalRecaudado.formatoCUP(),
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.ExtraBold),
+                            modifier = Modifier.width(100.dp),
+                            textAlign = TextAlign.End,
+                            color = StockCubaColors.VerdeExito
+                        )
+                    }
+                }
+            }
         }
     }
 }

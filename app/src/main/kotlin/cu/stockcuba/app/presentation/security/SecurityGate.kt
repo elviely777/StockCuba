@@ -54,19 +54,22 @@ fun SecurityGate(
     var showPinEntry by remember { mutableStateOf<Boolean>(false) }
     var pinEntryMode by remember { mutableStateOf<Mode>(Mode.Verify) }
 
-    // Check security status on composition
+    // Check security status on composition and whenever a check is triggered
     androidx.compose.runtime.LaunchedEffect(Unit) {
         val hasPinResult = securityRepository.hasPin()
         val hasPin = (hasPinResult as? Result.Success<Boolean>)?.value ?: false
 
         if (!hasPin) {
-            // No PIN set - unlock immediately
+            // No PIN set - unlock immediately and don't show PIN entry
             isUnlocked = true
             onUnlocked(true)
+            showPinEntry = false
         } else {
-            // PIN set - show PIN entry
-            showPinEntry = true
-            pinEntryMode = Mode.Verify
+            // PIN set - show PIN entry if not already unlocked
+            if (!isUnlocked) {
+                showPinEntry = true
+                pinEntryMode = Mode.Verify
+            }
         }
     }
 

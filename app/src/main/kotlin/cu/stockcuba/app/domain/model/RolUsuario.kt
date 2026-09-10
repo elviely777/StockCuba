@@ -5,6 +5,11 @@ package cu.stockcuba.app.domain.model
  */
 enum class RolUsuario {
     /**
+     * Estado inicial antes de la primera selección.
+     */
+    UNDEFINED,
+
+    /**
      * Acceso total a finanzas, costos, ganancias e inventario valorado.
      */
     DUENO,

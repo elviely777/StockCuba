@@ -8,6 +8,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21"
     id("org.jetbrains.kotlin.plugin.compose") version "2.0.21"
     id("com.google.dagger.hilt.android") version "2.52"
+    alias(libs.plugins.androidx.room)
     // alias(libs.plugins.google.services)  // REMOVIDO - migración a Supabase
 }
 
@@ -17,8 +18,8 @@ android {
 
     // Version management
     val versionMajor = 1
-    val versionMinor = 1
-    val versionPatch = 3
+    val versionMinor = 2
+    val versionPatch = 0
     val computedVersionCode = versionMajor * 10000 + versionMinor * 100 + versionPatch
     val computedVersionName = "$versionMajor.$versionMinor.$versionPatch"
 
@@ -136,6 +137,10 @@ defaultConfig {
     }
 
     namespace = "cu.stockcuba.app"
+}
+
+room {
+    schemaDirectory("$projectDir/schemas")
 }
 
 dependencies {

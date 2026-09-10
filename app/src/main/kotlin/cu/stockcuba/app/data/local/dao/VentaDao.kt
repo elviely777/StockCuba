@@ -67,6 +67,9 @@ interface VentaDao {
     @Query("SELECT fecha, SUM(total) as total FROM ventas WHERE fecha BETWEEN :startDate AND :endDate GROUP BY date(fecha/1000, 'unixepoch') ORDER BY fecha DESC")
     fun getDailyTotalsByRange(startDate: Long, endDate: Long): Flow<List<DailyTotal>>
 
+    @Query("SELECT vendedor_nombre as nombre, COUNT(*) as cantidad_ventas, SUM(total) as total_recaudado FROM ventas WHERE fecha BETWEEN :startDate AND :endDate GROUP BY vendedor_nombre ORDER BY total_recaudado DESC")
+    fun getEficienciaVendedores(startDate: Long, endDate: Long): Flow<List<VendedorStats>>
+
     @Query("SELECT * FROM venta_items WHERE venta_id = :ventaId")
     fun getItemsByVentaId(ventaId: String): Flow<List<VentaItemEntity>>
 
@@ -106,6 +109,14 @@ interface VentaDao {
     data class DailyTotal(
         val fecha: Long,
         val total: Double
+    )
+
+    data class VendedorStats(
+        val nombre: String,
+        @ColumnInfo(name = "cantidad_ventas")
+        val cantidadVentas: Int,
+        @ColumnInfo(name = "total_recaudado")
+        val totalRecaudado: Double
     )
 
     data class VentaItemWithProduct(

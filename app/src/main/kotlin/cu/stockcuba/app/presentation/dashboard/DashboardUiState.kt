@@ -22,6 +22,7 @@ enum class DashboardTimeRange {
 sealed interface DashboardUiState {
     data class Success(
         val rolActual: RolUsuario = RolUsuario.DUENO,
+        val nombreVendedor: String = "",
         val timeRange: DashboardTimeRange = DashboardTimeRange.HOY,
         val totalVendido: Double,
         val cantidadVentas: Int,
@@ -49,6 +50,7 @@ sealed interface DashboardUiState {
         val listaProductosBajoStock: List<Producto>,
         val ventasRecientes: List<Venta> = emptyList(),
         val listaInsights: List<ProductInsight> = emptyList(),
+        val eficienciaVendedores: List<VentaRepository.EficienciaVendedor> = emptyList(),
         
         // Tendencias (Strings formateados)
         val tendenciaTotal: String = "—",

@@ -106,6 +106,17 @@ class VentaRepositoryImpl @Inject constructor(
         return getResumenDelDia(ayer)
     }
 
+    override fun getEficienciaVendedores(desde: Long, hasta: Long): Flow<List<VentaRepository.EficienciaVendedor>> =
+        ventaDao.getEficienciaVendedores(desde, hasta).map { list ->
+            list.map { 
+                VentaRepository.EficienciaVendedor(
+                    nombre = it.nombre,
+                    cantidadVentas = it.cantidadVentas,
+                    totalRecaudado = it.totalRecaudado
+                )
+            }
+        }
+
     override suspend fun getResumenDelDia(fecha: Long): Result<VentaRepository.ResumenDia> {
         return try {
             val inicioDia = java.time.Instant.ofEpochMilli(fecha)

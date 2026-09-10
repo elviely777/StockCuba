@@ -9,6 +9,7 @@ data class Venta(
     val metodoPago: MetodoPago,
     val items: List<VentaItem>,
     val clienteId: String?,
+    val vendedorNombre: String = "Desconocido",
     val montoEfectivo: Double = 0.0,
     val montoTransferencia: Double = 0.0,
     val idTransferencia: String? = null

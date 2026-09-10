@@ -30,6 +30,7 @@ class AjustesDataStore @Inject constructor(
         
         // Perfiles y Seguridad
         val ROL_ACTUAL_KEY = stringPreferencesKey("rol_actual")
+        val NOMBRE_VENDEDOR_ACTUAL_KEY = stringPreferencesKey("nombre_vendedor_actual")
         
         // Tasas de Cambio (Tasa respecto a la moneda principal)
         val TASA_USD_KEY = doublePreferencesKey("tasa_usd")
@@ -77,8 +78,12 @@ class AjustesDataStore @Inject constructor(
     val rolActual: Flow<cu.stockcuba.app.domain.model.RolUsuario> = dataStore.data
         .map { 
             it[ROL_ACTUAL_KEY]?.let { rol -> cu.stockcuba.app.domain.model.RolUsuario.valueOf(rol) } 
-                ?: cu.stockcuba.app.domain.model.RolUsuario.DUENO 
+                ?: cu.stockcuba.app.domain.model.RolUsuario.UNDEFINED 
         }
+        .distinctUntilChanged()
+
+    val nombreVendedor: Flow<String> = dataStore.data
+        .map { it[NOMBRE_VENDEDOR_ACTUAL_KEY] ?: "" }
         .distinctUntilChanged()
 
     val tasaUSD: Flow<Double> = dataStore.data.map { it[TASA_USD_KEY] ?: 320.0 }.distinctUntilChanged()
@@ -126,6 +131,7 @@ class AjustesDataStore @Inject constructor(
     suspend fun guardarTema(tema: String): Result<Unit> = guardarDato(TEMA_KEY, tema)
 
     suspend fun guardarRolActual(rol: cu.stockcuba.app.domain.model.RolUsuario): Result<Unit> = guardarDato(ROL_ACTUAL_KEY, rol.name)
+    suspend fun guardarNombreVendedor(nombre: String): Result<Unit> = guardarDato(NOMBRE_VENDEDOR_ACTUAL_KEY, nombre)
     
     suspend fun guardarTasaUSD(tasa: Double): Result<Unit> = guardarDato(TASA_USD_KEY, tasa)
     suspend fun guardarTasaMLC(tasa: Double): Result<Unit> = guardarDato(TASA_MLC_KEY, tasa)

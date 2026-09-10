@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
@@ -26,7 +27,8 @@ import javax.inject.Inject
 class NuevaVentaViewModel @Inject constructor(
     private val productoRepository: ProductoRepository,
     private val clienteRepository: ClienteRepository,
-    private val registrarVentaUseCase: RegistrarVentaUseCase
+    private val registrarVentaUseCase: RegistrarVentaUseCase,
+    private val ajustesDataStore: cu.stockcuba.app.presentation.ajustes.AjustesDataStore
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<NuevaVentaUiState>(NuevaVentaUiState.empty)
@@ -414,7 +416,7 @@ class NuevaVentaViewModel @Inject constructor(
         return errors
     }
 
-    private fun construirVenta(state: NuevaVentaUiState.Editing): Venta {
+    private suspend fun construirVenta(state: NuevaVentaUiState.Editing): Venta {
         val items = state.carrito.map { item ->
             VentaItem(
                 id = UUID.randomUUID().toString(),
@@ -441,6 +443,12 @@ class NuevaVentaViewModel @Inject constructor(
             else -> 0.0
         }
 
+        val nombreVendedor = if (ajustesDataStore.rolActual.first() == cu.stockcuba.app.domain.model.RolUsuario.DUENO) {
+            "Dueño"
+        } else {
+            ajustesDataStore.nombreVendedor.first().takeIf { it.isNotBlank() } ?: "Vendedor"
+        }
+
         return Venta(
             id = UUID.randomUUID().toString(),
             fecha = java.time.Instant.now(),
@@ -448,6 +456,7 @@ class NuevaVentaViewModel @Inject constructor(
             metodoPago = state.metodoPago,
             items = items,
             clienteId = state.clienteId,
+            vendedorNombre = nombreVendedor,
             montoEfectivo = montoEfectivo,
             montoTransferencia = montoTransferencia,
             idTransferencia = state.idTransferencia.takeIf { it.isNotBlank() }

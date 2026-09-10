@@ -164,3 +164,4 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "co
 # kotlin-kapt = { id = "org.jetbrains.kotlin.plugin.kapt", version.ref = "kotlin" }  // Built into Kotlin plugin
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+androidx-room = { id = "androidx.room", version.ref = "room" }

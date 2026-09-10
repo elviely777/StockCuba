@@ -22,9 +22,10 @@ import java.io.File
         CierreDiarioEntity::class,
         CierreMensualEntity::class
     ],
-    version = 8,
+    version = 9,
     autoMigrations = [
-        AutoMigration(from = 7, to = 8)
+        AutoMigration(from = 7, to = 8),
+        AutoMigration(from = 8, to = 9)
     ],
     exportSchema = true
 )
