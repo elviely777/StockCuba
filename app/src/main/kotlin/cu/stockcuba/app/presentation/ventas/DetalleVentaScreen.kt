@@ -159,6 +159,7 @@ fun DetalleVentaContenido(venta: Venta, cliente: cu.stockcuba.app.domain.model.C
                                     MetodoPago.EFECTIVO -> Color(0xFF2DD4BF)
                                     MetodoPago.TRANSFERENCIA -> Color(0xFF6366F1)
                                     MetodoPago.MIXTO -> Color(0xFFF59E0B)
+                                    MetodoPago.CREDITO -> Color(0xFF94A3B8)
                                 }
                             )
                         )
@@ -168,6 +169,7 @@ fun DetalleVentaContenido(venta: Venta, cliente: cu.stockcuba.app.domain.model.C
                                 MetodoPago.EFECTIVO -> "Efectivo"
                                 MetodoPago.TRANSFERENCIA -> "Transferencia"
                                 MetodoPago.MIXTO -> "Pago Mixto"
+                                MetodoPago.CREDITO -> "A Crédito (Fiado)"
                             },
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
                         )

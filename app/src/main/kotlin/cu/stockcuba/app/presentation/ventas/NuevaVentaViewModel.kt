@@ -426,11 +426,15 @@ class NuevaVentaViewModel @Inject constructor(
         if (state.metodoPago == MetodoPago.EFECTIVO || state.metodoPago == MetodoPago.MIXTO) {
             val efectivo = state.efectivoRecibido.toDoubleOrNull() ?: 0.0
             val total = CarritoTotales.calcular(state.carrito).total
-            val montoEsperado = if (state.metodoPago == MetodoPago.EFECTIVO) total else (state.efectivoRecibido.toDoubleOrNull() ?: 0.0)
 
             if (state.metodoPago == MetodoPago.EFECTIVO && efectivo < total) {
                 errors["efectivo"] = "Monto insuficiente (Faltan ${(total - efectivo).formatoCUP()})"
             }
+        }
+
+        // Validar crédito (debe haber un cliente seleccionado)
+        if (state.metodoPago == MetodoPago.CREDITO && state.clienteId == null) {
+            errors["metodoPago"] = "Debe seleccionar un cliente para ventas a crédito"
         }
 
         return errors

@@ -159,6 +159,7 @@ fun VentaRowModerno(ventaUi: VentaUi, onClick: () -> Unit) {
                             MetodoPago.EFECTIVO -> Color(0xFF2DD4BF).copy(alpha = 0.1f)
                             MetodoPago.TRANSFERENCIA -> Color(0xFF6366F1).copy(alpha = 0.1f)
                             MetodoPago.MIXTO -> Color(0xFFF59E0B).copy(alpha = 0.1f)
+                            MetodoPago.CREDITO -> Color(0xFF94A3B8).copy(alpha = 0.1f)
                         }
                     ),
                 contentAlignment = Alignment.Center
@@ -168,12 +169,14 @@ fun VentaRowModerno(ventaUi: VentaUi, onClick: () -> Unit) {
                         MetodoPago.EFECTIVO -> Icons.Default.Payments
                         MetodoPago.TRANSFERENCIA -> Icons.Default.AccountBalance
                         MetodoPago.MIXTO -> Icons.Default.SwapHoriz
+                        MetodoPago.CREDITO -> Icons.Default.CreditCard
                     },
                     contentDescription = null,
                     tint = when(venta.metodoPago) {
                         MetodoPago.EFECTIVO -> Color(0xFF2DD4BF)
                         MetodoPago.TRANSFERENCIA -> Color(0xFF6366F1)
                         MetodoPago.MIXTO -> Color(0xFFF59E0B)
+                        MetodoPago.CREDITO -> Color(0xFF94A3B8)
                     },
                     modifier = Modifier.size(20.dp)
                 )

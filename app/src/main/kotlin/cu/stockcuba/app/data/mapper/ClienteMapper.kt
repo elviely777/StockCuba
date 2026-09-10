@@ -9,7 +9,8 @@ fun ClienteEntity.toDomain(): Cliente = Cliente(
     nombre = nombre,
     ci = ci,
     telefono = telefono,
-    notas = notas
+    notas = notas,
+    saldoDeuda = saldoDeuda
 )
 
 fun Cliente.toEntity(): ClienteEntity = ClienteEntity(
@@ -18,6 +19,7 @@ fun Cliente.toEntity(): ClienteEntity = ClienteEntity(
     ci = ci,
     telefono = telefono,
     notas = notas,
+    saldoDeuda = saldoDeuda,
     fechaCreacion = Instant.now().toEpochMilli(),
     activo = true
 )

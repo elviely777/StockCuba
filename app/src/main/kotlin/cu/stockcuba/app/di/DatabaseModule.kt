@@ -8,6 +8,7 @@ import cu.stockcuba.app.data.local.dao.CategoriaDao
 import cu.stockcuba.app.data.local.dao.CierreDao
 import cu.stockcuba.app.data.local.dao.ClienteDao
 import cu.stockcuba.app.data.local.dao.GastoDao
+import cu.stockcuba.app.data.local.dao.AbonoDao
 import cu.stockcuba.app.data.local.dao.MovimientoInventarioDao
 import cu.stockcuba.app.data.local.dao.ProductoDao
 import cu.stockcuba.app.data.local.dao.VentaDao
@@ -60,4 +61,8 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideGastoDao(database: StockCubaDatabase): GastoDao = database.gastoDao()
+
+    @Provides
+    @Singleton
+    fun provideAbonoDao(database: StockCubaDatabase): AbonoDao = database.abonoDao()
 }

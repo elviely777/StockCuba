@@ -28,6 +28,7 @@ class DashboardViewModel @Inject constructor(
     private val productoRepository: ProductoRepository,
     private val reportRepository: ReportRepository,
     private val cierreRepository: CierreRepository,
+    private val clienteRepository: cu.stockcuba.app.domain.repository.ClienteRepository,
     private val gastoRepository: cu.stockcuba.app.domain.repository.GastoRepository,
     val securityRepository: cu.stockcuba.app.domain.security.SecurityRepository,
     private val ajustesDataStore: cu.stockcuba.app.presentation.ajustes.AjustesDataStore,
@@ -50,7 +51,8 @@ class DashboardViewModel @Inject constructor(
         ajustesDataStore.tasaUSD,
         ajustesDataStore.tasaMLC,
         ajustesDataStore.tasaEUR,
-        gastoRepository.getAll()
+        gastoRepository.getAll(),
+        clienteRepository.getActivos()
     ) { array ->
         val range = array[0] as DashboardTimeRange
         val productosBajoStock = array[1] as List<Producto>
@@ -65,6 +67,7 @@ class DashboardViewModel @Inject constructor(
         val tasaMLC = array[10] as Double
         val tasaEUR = array[11] as Double
         val allGastos = array[12] as List<cu.stockcuba.app.domain.model.Gasto>
+        val activeClientes = array[13] as List<cu.stockcuba.app.domain.model.Cliente>
 
         val tasas = mapOf(
             cu.stockcuba.app.domain.model.Moneda.USD to tasaUSD,
@@ -122,6 +125,8 @@ class DashboardViewModel @Inject constructor(
         // Gastos Operativos (T71)
         val periodGastos = allGastos.filter { it.fecha.toEpochMilli() in periodStart..periodEnd }
         val totalGastosOperativos = periodGastos.sumOf { toBase(it.monto, it.moneda) }
+
+        val totalPorCobrar = activeClientes.sumOf { it.saldoDeuda }
 
         val gananciaReal = totalVendido - totalGastos - totalGastosOperativos
 
@@ -183,6 +188,7 @@ class DashboardViewModel @Inject constructor(
             gananciaProyectada = gananciaProyectada,
             totalGastos = totalGastos,
             totalGastosOperativos = totalGastosOperativos,
+            totalPorCobrar = totalPorCobrar,
             gananciaReal = gananciaReal,
             listaProductosBajoStock = productosBajoStock,
             ventasRecientes = allVentas.take(5),

@@ -4,6 +4,7 @@ import cu.stockcuba.app.data.repository.CategoriaRepositoryImpl
 import cu.stockcuba.app.data.repository.CierreRepositoryImpl
 import cu.stockcuba.app.data.repository.ClienteRepositoryImpl
 import cu.stockcuba.app.data.repository.GastoRepositoryImpl
+import cu.stockcuba.app.data.repository.AbonoRepositoryImpl
 import cu.stockcuba.app.data.repository.InventarioRepositoryImpl
 import cu.stockcuba.app.data.repository.ProductoRepositoryImpl
 import cu.stockcuba.app.data.repository.ReportRepositoryImpl
@@ -13,6 +14,7 @@ import cu.stockcuba.app.domain.repository.CategoriaRepository
 import cu.stockcuba.app.domain.repository.CierreRepository
 import cu.stockcuba.app.domain.repository.ClienteRepository
 import cu.stockcuba.app.domain.repository.GastoRepository
+import cu.stockcuba.app.domain.repository.AbonoRepository
 import cu.stockcuba.app.domain.repository.InventarioRepository
 import cu.stockcuba.app.domain.repository.ProductoRepository
 import cu.stockcuba.app.domain.repository.ReportRepository
@@ -58,6 +60,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindGastoRepository(impl: GastoRepositoryImpl): GastoRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAbonoRepository(impl: AbonoRepositoryImpl): AbonoRepository
 
     // BusinessRepository binding moved to SupabaseModule.kt (SupabaseBusinessRepository)
 }

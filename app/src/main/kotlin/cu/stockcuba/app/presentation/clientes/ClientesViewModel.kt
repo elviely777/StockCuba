@@ -3,8 +3,11 @@ package cu.stockcuba.app.presentation.clientes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cu.stockcuba.app.domain.model.Cliente
+import cu.stockcuba.app.domain.model.Abono
+import cu.stockcuba.app.domain.model.MetodoPago
 import cu.stockcuba.app.domain.model.Result
 import cu.stockcuba.app.domain.repository.ClienteRepository
+import cu.stockcuba.app.domain.repository.AbonoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -17,7 +20,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ClientesViewModel @Inject constructor(
-    private val clienteRepository: ClienteRepository
+    private val clienteRepository: ClienteRepository,
+    private val abonoRepository: AbonoRepository
 ) : ViewModel() {
 
     private val _query = MutableStateFlow("")
@@ -67,5 +71,17 @@ class ClientesViewModel @Inject constructor(
 
     suspend fun eliminarCliente(clienteId: String): Result<Unit> {
         return clienteRepository.deleteById(clienteId)
+    }
+
+    suspend fun registrarAbono(clienteId: String, monto: Double, metodoPago: MetodoPago, notas: String): Result<Unit> {
+        val abono = Abono(
+            id = UUID.randomUUID().toString(),
+            clienteId = clienteId,
+            monto = monto,
+            fecha = java.time.Instant.now(),
+            metodoPago = metodoPago,
+            notas = notas
+        )
+        return abonoRepository.registrarAbono(abono)
     }
 }

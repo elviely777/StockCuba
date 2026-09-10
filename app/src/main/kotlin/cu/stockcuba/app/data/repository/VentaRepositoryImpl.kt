@@ -64,6 +64,11 @@ class VentaRepositoryImpl @Inject constructor(
                 ventaDao.insert(ventaEntity)
                 ventaDao.insertItems(itemsEntities)
 
+                // Si es crédito, sumar al saldo del cliente
+                if (venta.metodoPago == MetodoPago.CREDITO && venta.clienteId != null) {
+                    database.clienteDao().updateDeuda(venta.clienteId, venta.total)
+                }
+
                 // Registrar movimientos de inventario tipo VENTA (T58)
                 val movimientoDao = database.movimientoInventarioDao()
                 val productoDao = database.productoDao()

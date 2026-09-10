@@ -7,5 +7,6 @@ data class Cliente(
     val nombre: String,
     val ci: String,
     val telefono: String?,
-    val notas: String?
+    val notas: String?,
+    val saldoDeuda: Double = 0.0
 )

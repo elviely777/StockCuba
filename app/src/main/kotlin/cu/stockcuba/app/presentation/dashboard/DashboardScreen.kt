@@ -621,6 +621,7 @@ fun GridMetricas(state: DashboardUiState.Success) {
     
     if (isDueno) {
         items.add(MetricItem("Ticket Prom.", state.ticketPromedio.formatoCUP(), "", Icons.Default.TrendingUp, Color(0xFF8B5CF6)))
+        items.add(MetricItem("Por Cobrar", state.totalPorCobrar.formatoCUP(), "", Icons.Default.VolunteerActivism, StockCubaColors.CoralAlerta))
     }
     
     items.add(MetricItem("Top Producto", state.productoMasVendido?.nombreProducto ?: "—", state.productoMasVendido?.let { "${it.cantidadTotal} vendidos" } ?: "", Icons.Default.Star, Color(0xFFF59E0B)))

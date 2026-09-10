@@ -22,6 +22,9 @@ data class ClienteEntity(
     @ColumnInfo(name = "notas")
     val notas: String?,
 
+    @ColumnInfo(name = "saldo_deuda", defaultValue = "0.0")
+    val saldoDeuda: Double = 0.0,
+
     @ColumnInfo(name = "fecha_creacion")
     val fechaCreacion: Long = System.currentTimeMillis(),
 

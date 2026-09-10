@@ -313,6 +313,13 @@ fun NuevaVentaContenidoModerno(
                         onClick = { viewModel.setMetodoPago(MetodoPago.MIXTO) },
                         modifier = Modifier.weight(1f)
                     )
+                    MetodoPagoChip(
+                        label = "Crédito",
+                        icon = Icons.Default.CreditCard,
+                        isSelected = state.metodoPago == MetodoPago.CREDITO,
+                        onClick = { viewModel.setMetodoPago(MetodoPago.CREDITO) },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
 
@@ -419,6 +426,22 @@ fun NuevaVentaContenidoModerno(
                             
                             if (state.errors["pagoMixto"] != null) {
                                 Text(state.errors["pagoMixto"]!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+
+                        if (state.metodoPago == MetodoPago.CREDITO) {
+                            val cliente = state.clientes.find { it.id == state.clienteId }
+                            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(Icons.Default.VolunteerActivism, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    text = if (cliente != null) "Venta a cuenta de: ${cliente.nombre}" else "Debe seleccionar un cliente",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    textAlign = TextAlign.Center
+                                )
+                                if (state.errors["metodoPago"] != null) {
+                                    Text(state.errors["metodoPago"]!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
+                                }
                             }
                         }
                     }

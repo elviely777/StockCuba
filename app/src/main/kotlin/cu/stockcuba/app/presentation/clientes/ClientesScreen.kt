@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
 import cu.stockcuba.app.domain.model.Cliente
+import cu.stockcuba.app.presentation.dashboard.formatoCUP
 import cu.stockcuba.app.presentation.theme.Shape
 import cu.stockcuba.app.presentation.theme.StockCubaColors
 import cu.stockcuba.app.presentation.theme.StockCubaSpacing
@@ -41,7 +43,9 @@ fun ClientesScreen(
     val scope = rememberCoroutineScope()
     val queryText = remember { mutableStateOf("") }
     val showDialog = remember { mutableStateOf(false) }
+    val showAbonoDialog = remember { mutableStateOf(false) }
     val editingCliente = remember { mutableStateOf<Cliente?>(null) }
+    val targetAbonoCliente = remember { mutableStateOf<Cliente?>(null) }
 
     Scaffold(
         topBar = {
@@ -75,6 +79,7 @@ fun ClientesScreen(
                 queryText = queryText.value,
                 onQueryChange = { text -> queryText.value = text; viewModel.setQuery(text) },
                 onEditar = { cliente -> editingCliente.value = cliente; showDialog.value = true },
+                onAbono = { cliente -> targetAbonoCliente.value = cliente; showAbonoDialog.value = true },
                 onEliminar = { clienteId ->
                     scope.launch {
                         viewModel.eliminarCliente(clienteId).onSuccess {
@@ -109,6 +114,25 @@ fun ClientesScreen(
             }
         )
     }
+
+    if (showAbonoDialog.value && targetAbonoCliente.value != null) {
+        val cliente = targetAbonoCliente.value!!
+        AbonoDeudaDialog(
+            clienteNombre = cliente.nombre,
+            deudaActual = cliente.saldoDeuda,
+            onDismiss = { showAbonoDialog.value = false; targetAbonoCliente.value = null },
+            onConfirm = { monto, metodo, notas ->
+                scope.launch {
+                    viewModel.registrarAbono(cliente.id, monto, metodo, notas).onSuccess {
+                        showAbonoDialog.value = false
+                        launch { snackbarHostState.showSnackbar("Abono registrado con éxito") }
+                    }.onFailure {
+                        launch { snackbarHostState.showSnackbar("Error al registrar abono") }
+                    }
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -117,6 +141,7 @@ fun ClientesContenido(
     queryText: String, 
     onQueryChange: (String) -> Unit, 
     onEditar: (Cliente) -> Unit, 
+    onAbono: (Cliente) -> Unit,
     onEliminar: (String) -> Unit, 
     padding: PaddingValues
 ) {
@@ -144,7 +169,12 @@ fun ClientesContenido(
                 verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Sm)
             ) {
                 items(state.clientes) { cliente ->
-                    ClienteCard(cliente, onEditar, { onEliminar(cliente.id) })
+                    ClienteCard(
+                        cliente = cliente, 
+                        onEditar = onEditar, 
+                        onAbono = onAbono,
+                        onEliminar = { onEliminar(cliente.id) }
+                    )
                 }
             }
         }
@@ -152,35 +182,162 @@ fun ClientesContenido(
 }
 
 @Composable
-fun ClienteCard(cliente: Cliente, onEditar: (Cliente) -> Unit, onEliminar: () -> Unit) {
+fun ClienteCard(
+    cliente: Cliente, 
+    onEditar: (Cliente) -> Unit, 
+    onAbono: (Cliente) -> Unit,
+    onEliminar: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = Shape.Grande,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
     ) {
-        Row(
-            modifier = Modifier.padding(StockCubaSpacing.Md), 
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(cliente.nombre, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                Text("CI: ${cliente.ci}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (!cliente.telefono.isNullOrBlank()) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
-                        Icon(Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+        Column(modifier = Modifier.padding(StockCubaSpacing.Md)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(), 
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(cliente.nombre, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                    Text("CI: ${cliente.ci}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                
+                if (cliente.saldoDeuda > 0) {
+                    Surface(
+                        color = StockCubaColors.CoralAlerta.copy(alpha = 0.1f),
+                        shape = Shape.Pequeno,
+                        border = BorderStroke(1.dp, StockCubaColors.CoralAlerta.copy(alpha = 0.5f))
+                    ) {
+                        Text(
+                            text = "Debe: ${cliente.saldoDeuda.formatoCUP()}",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            color = StockCubaColors.CoralAlerta
+                        )
+                    }
+                }
+            }
+            
+            Spacer(Modifier.height(12.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (!cliente.telefono.isNullOrBlank()) {
+                        Icon(Icons.Default.Phone, null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(4.dp))
                         Text(cliente.telefono, style = MaterialTheme.typography.bodySmall)
                     }
                 }
-            }
-            Row {
-                IconButton(onClick = { onEditar(cliente) }) { Icon(imageVector = Icons.Default.Edit, contentDescription = "Editar", tint = MaterialTheme.colorScheme.primary) }
-                IconButton(onClick = onEliminar) { Icon(imageVector = Icons.Default.DeleteOutline, contentDescription = "Borrar", tint = StockCubaColors.CoralAlerta) }
+                
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (cliente.saldoDeuda > 0) {
+                        FilledTonalButton(
+                            onClick = { onAbono(cliente) },
+                            modifier = Modifier.height(36.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp),
+                            shape = Shape.Mediano,
+                            colors = ButtonDefaults.filledTonalButtonColors(containerColor = StockCubaColors.VerdeExito.copy(alpha = 0.1f), contentColor = StockCubaColors.VerdeExito)
+                        ) {
+                            Icon(Icons.Default.Payments, null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Cobrar", style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                    
+                    IconButton(onClick = { onEditar(cliente) }, modifier = Modifier.size(36.dp)) { 
+                        Icon(imageVector = Icons.Default.Edit, contentDescription = "Editar", tint = MaterialTheme.colorScheme.primary) 
+                    }
+                    IconButton(onClick = onEliminar, modifier = Modifier.size(36.dp)) { 
+                        Icon(imageVector = Icons.Default.DeleteOutline, contentDescription = "Borrar", tint = StockCubaColors.CoralAlerta) 
+                    }
+                }
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AbonoDeudaDialog(
+    clienteNombre: String,
+    deudaActual: Double,
+    onDismiss: () -> Unit,
+    onConfirm: (Double, cu.stockcuba.app.domain.model.MetodoPago, String) -> Unit
+) {
+    var monto by remember { mutableStateOf(deudaActual.toString()) }
+    var metodo by remember { mutableStateOf(cu.stockcuba.app.domain.model.MetodoPago.EFECTIVO) }
+    var notas by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Registrar Pago de $clienteNombre", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
+                Text("Deuda pendiente: ${deudaActual.formatoCUP()}", style = MaterialTheme.typography.bodyMedium)
+                
+                OutlinedTextField(
+                    value = monto,
+                    onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) monto = it },
+                    label = { Text("Monto del Pago") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = Shape.Grande,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    suffix = { Text("CUP") }
+                )
+
+                Text("Método de Pago", style = MaterialTheme.typography.labelMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MetodoItemChip("Efectivo", metodo == cu.stockcuba.app.domain.model.MetodoPago.EFECTIVO) { 
+                        metodo = cu.stockcuba.app.domain.model.MetodoPago.EFECTIVO 
+                    }
+                    MetodoItemChip("Transf.", metodo == cu.stockcuba.app.domain.model.MetodoPago.TRANSFERENCIA) { 
+                        metodo = cu.stockcuba.app.domain.model.MetodoPago.TRANSFERENCIA 
+                    }
+                }
+                
+                OutlinedTextField(
+                    value = notas,
+                    onValueChange = { notas = it },
+                    label = { Text("Notas (Opcional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = Shape.Grande
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { 
+                    val m = monto.toDoubleOrNull() ?: 0.0
+                    if (m > 0) onConfirm(m, metodo, notas) 
+                },
+                enabled = monto.toDoubleOrNull() != null && (monto.toDoubleOrNull() ?: 0.0) > 0,
+                shape = Shape.Grande
+            ) {
+                Text("Registrar Cobro")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+        }
+    )
+}
+
+@Composable
+private fun RowScope.MetodoItemChip(label: String, isSelected: Boolean, onClick: () -> Unit) {
+    FilterChip(
+        selected = isSelected,
+        onClick = onClick,
+        label = { Text(label) },
+        modifier = Modifier.weight(1f),
+        shape = Shape.Grande
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

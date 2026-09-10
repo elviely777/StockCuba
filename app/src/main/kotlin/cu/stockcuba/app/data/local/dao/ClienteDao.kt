@@ -20,6 +20,9 @@ interface ClienteDao {
     @Update
     suspend fun update(cliente: ClienteEntity)
 
+    @Query("UPDATE clientes SET saldo_deuda = saldo_deuda + :monto WHERE id = :clienteId")
+    suspend fun updateDeuda(clienteId: String, monto: Double): Int
+
     @Query("DELETE FROM clientes WHERE id = :id")
     suspend fun deleteById(id: String): Int
 
