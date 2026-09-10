@@ -139,6 +139,15 @@ fun NuevaVentaScreen(
                                 context.startActivity(android.content.Intent.createChooser(intent, "Compartir Recibo"))
                             }
                         }
+                    },
+                    onPrintTicket = { id ->
+                        scope.launch {
+                            viewModel.imprimirTicket(id).onFailure { error ->
+                                scope.launch { snackbarHostState.showSnackbar("Error de impresión: $error") }
+                            }.onSuccess {
+                                scope.launch { snackbarHostState.showSnackbar("Enviado a impresora") }
+                            }
+                        }
                     }
                 )
                 is NuevaVentaUiState.Editing -> {
@@ -989,7 +998,12 @@ fun PantallaCargandoVenta(mensaje: String) {
 }
 
 @Composable
-fun PantallaExitoVenta(ventaId: String, onContinue: () -> Unit, onShareTicket: (String) -> Unit) {
+fun PantallaExitoVenta(
+    ventaId: String, 
+    onContinue: () -> Unit, 
+    onShareTicket: (String) -> Unit,
+    onPrintTicket: (String) -> Unit
+) {
     Column(
         modifier = Modifier.fillMaxSize().padding(StockCubaSpacing.Xl),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1003,14 +1017,26 @@ fun PantallaExitoVenta(ventaId: String, onContinue: () -> Unit, onShareTicket: (
         Spacer(Modifier.height(32.dp))
         
         Button(
+            onClick = { onPrintTicket(ventaId) },
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = Shape.Grande,
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+        ) {
+            Icon(Icons.Default.Print, null)
+            Spacer(Modifier.width(8.dp))
+            Text("Imprimir Ticket (Bluetooth)")
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        OutlinedButton(
             onClick = { onShareTicket(ventaId) }, 
             modifier = Modifier.fillMaxWidth().height(56.dp), 
-            shape = Shape.Grande,
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
+            shape = Shape.Grande
         ) {
             Icon(Icons.Default.Share, null)
             Spacer(Modifier.width(8.dp))
-            Text("Compartir Recibo (PDF)")
+            Text("Compartir PDF")
         }
 
         Spacer(Modifier.height(12.dp))

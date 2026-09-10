@@ -24,6 +24,7 @@ sealed interface NuevaVentaUiState {
         val clientes: List<ClienteSimple> = emptyList(),
         val categorias: List<cu.stockcuba.app.domain.model.Categoria> = emptyList(),
         val selectedCategoryId: String? = null,
+        val tasas: Map<cu.stockcuba.app.domain.model.Moneda, Double> = emptyMap(),
         val isLoading: Boolean = false,
         val errors: Map<String, String> = emptyMap(),
         val showSuccess: Boolean = false,
@@ -50,13 +51,14 @@ sealed interface NuevaVentaUiState {
  */
 data class CarritoItem(
     val producto: Producto,
-    var cantidad: Int = 1
+    var cantidad: Int = 1,
+    val precioCalculado: Double? = null
 ) {
     val subtotal: Double
         get() = precioUnitario * cantidad
 
     val precioUnitario: Double
-        get() = producto.precioVenta
+        get() = precioCalculado ?: producto.precioVenta
 
     val stockDisponible: Int
         get() = producto.stockActual

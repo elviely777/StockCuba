@@ -17,7 +17,8 @@ fun ProductoEntity.toDomain(): Producto = Producto(
     codigoBarras = codigoBarras,
     categoriaId = categoriaId,
     fechaCreacion = Instant.ofEpochMilli(fechaCreacion),
-    activo = activo
+    activo = activo,
+    vincularTasa = vincularTasa
 )
 
 fun Producto.toEntity(): ProductoEntity = ProductoEntity(
@@ -33,6 +34,7 @@ fun Producto.toEntity(): ProductoEntity = ProductoEntity(
     categoriaId = categoriaId,
     fechaCreacion = fechaCreacion.toEpochMilli(),
     activo = activo,
+    vincularTasa = vincularTasa,
     fechaActualizacion = Instant.now().toEpochMilli(),
     syncStatus = "SYNCED"
 )
@@ -50,6 +52,7 @@ fun Producto.toEntityForUpdate(): ProductoEntity = ProductoEntity(
     categoriaId = categoriaId,
     fechaCreacion = fechaCreacion.toEpochMilli(),
     activo = activo,
+    vincularTasa = vincularTasa,
     fechaActualizacion = Instant.now().toEpochMilli(),
     syncStatus = "PENDING"
 )

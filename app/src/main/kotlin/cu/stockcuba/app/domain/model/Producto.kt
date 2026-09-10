@@ -15,7 +15,8 @@ data class Producto(
     val codigoBarras: String? = null,
     val categoriaId: String,
     val fechaCreacion: Instant,
-    val activo: Boolean = true
+    val activo: Boolean = true,
+    val vincularTasa: Boolean = false
 ) {
     val margenGanancia: Double
         get() = if (costoUnitario > 0) ((precioVenta - costoUnitario) / costoUnitario) * 100 else 0.0

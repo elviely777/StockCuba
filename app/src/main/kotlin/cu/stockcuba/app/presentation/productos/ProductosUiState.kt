@@ -40,6 +40,7 @@ sealed interface FormularioProductoUiState {
         val stockMinimo: String = "",
         val unidadMedida: UnidadMedida = UnidadMedida.UNIDAD,
         val codigoBarras: String = "",
+        val vincularTasa: Boolean = false,
         val categoriaId: String? = null,
         val categorias: List<Categoria> = emptyList(),
         val isLoading: Boolean = false,

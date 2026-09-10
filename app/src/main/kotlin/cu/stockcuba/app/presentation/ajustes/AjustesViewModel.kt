@@ -19,10 +19,7 @@ import cu.stockcuba.app.domain.validation.validarNombre
 import cu.stockcuba.app.domain.validation.validarTelefono
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -35,7 +32,8 @@ class AjustesViewModel @Inject constructor(
     private val dataSeeder: DataSeeder,
     val securityRepository: SecurityRepository,
     val feedbackRepository: FeedbackRepository,
-    private val reportRepository: ReportRepository
+    private val reportRepository: ReportRepository,
+    private val printerService: cu.stockcuba.app.data.service.BluetoothPrinterService
 ) : ViewModel() {
 
     var onResetComplete: (() -> Unit)? = null
@@ -54,58 +52,42 @@ class AjustesViewModel @Inject constructor(
 
     private fun cargarAjustes() {
         viewModelScope.launch {
-            // Get hasPin as a Flow by converting the Result
-            val hasPinFlow = kotlinx.coroutines.flow.flow {
+            val hasPinFlow = flow {
                 val result = securityRepository.hasPin()
-                emit(result.fold(
-                    onSuccess = { it },
-                    onFailure = { false }
-                ))
+                emit(result.fold(onSuccess = { it }, onFailure = { false }))
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-            kotlinx.coroutines.flow.combine(
-                listOf(
-                    ajustesDataStore.nombreNegocio,
-                    ajustesDataStore.direccion,
-                    ajustesDataStore.telefono,
-                    ajustesDataStore.moneda,
-                    ajustesDataStore.impuesto,
-                    ajustesDataStore.tema,
-                    ajustesDataStore.isVinculado,
-                    ajustesDataStore.businessId,
-                    hasPinFlow,
-                    ajustesDataStore.tasaUSD,
-                    ajustesDataStore.tasaMLC,
-                    ajustesDataStore.tasaEUR
-                )
+            combine(
+                ajustesDataStore.nombreNegocio,
+                ajustesDataStore.direccion,
+                ajustesDataStore.telefono,
+                ajustesDataStore.moneda,
+                ajustesDataStore.impuesto,
+                ajustesDataStore.tema,
+                ajustesDataStore.isVinculado,
+                ajustesDataStore.businessId,
+                hasPinFlow,
+                ajustesDataStore.tasaUSD,
+                ajustesDataStore.tasaMLC,
+                ajustesDataStore.tasaEUR,
+                ajustesDataStore.printerName,
+                ajustesDataStore.printerMac
             ) { array ->
-                val nombre = array[0] as String
-                val direccion = array[1] as String
-                val telefono = array[2] as String
-                val moneda = array[3] as Moneda
-                val impuesto = array[4] as Double
-                val tema = array[5] as String
-                val isVinculado = array[6] as Boolean
-                val bId = (array[7] as? String) ?: ""
-                val tienePin = array[8] as Boolean
-                val tUSD = array[9] as Double
-                val tMLC = array[10] as Double
-                val tEUR = array[11] as Double
-
                 AjustesUiState.Success(
-                    nombreNegocio = nombre,
-                    direccion = direccion,
-                    telefono = telefono,
-                    moneda = moneda,
-                    impuesto = impuesto,
-                    tema = tema,
-                    tasaUSD = tUSD,
-                    tasaMLC = tMLC,
-                    tasaEUR = tEUR,
-                    seguridadBiometrica = false,
-                    tienePin = tienePin,
-                    isVinculado = isVinculado,
-                    businessId = bId,
+                    nombreNegocio = array[0] as String,
+                    direccion = array[1] as String,
+                    telefono = array[2] as String,
+                    moneda = array[3] as Moneda,
+                    impuesto = array[4] as Double,
+                    tema = array[5] as String,
+                    isVinculado = array[6] as Boolean,
+                    businessId = (array[7] as? String) ?: "",
+                    tienePin = array[8] as Boolean,
+                    tasaUSD = array[9] as Double,
+                    tasaMLC = array[10] as Double,
+                    tasaEUR = array[11] as Double,
+                    printerName = (array[12] as? String) ?: "No vinculada",
+                    printerMac = array[13] as? String,
                     appVersion = BuildConfig.VERSION_NAME,
                     validationErrors = emptyMap()
                 )
@@ -118,22 +100,14 @@ class AjustesViewModel @Inject constructor(
     fun guardarNombreNegocio(nombre: String) {
         val currentState = _uiState.value as? AjustesUiState.Success ?: return
         val resultado = validarNombre(nombre)
-        
         val nuevosErrores = when (resultado) {
             is Result.Success -> {
                 viewModelScope.launch { ajustesDataStore.guardarNombreNegocio(resultado.value) }
                 currentState.validationErrors - "nombre"
             }
-            is Result.Failure -> {
-                currentState.validationErrors + ("nombre" to resultado.error.toString())
-            }
+            is Result.Failure -> currentState.validationErrors + ("nombre" to resultado.error.toString())
         }
-        
-        // Actualizamos el valor localmente de inmediato para evitar problemas de cursor
-        _uiState.value = currentState.copy(
-            nombreNegocio = nombre,
-            validationErrors = nuevosErrores
-        )
+        _uiState.value = currentState.copy(nombreNegocio = nombre, validationErrors = nuevosErrores)
     }
 
     fun guardarDireccion(direccion: String) {
@@ -142,33 +116,14 @@ class AjustesViewModel @Inject constructor(
 
     fun guardarTelefono(telefono: String) {
         val currentState = _uiState.value as? AjustesUiState.Success ?: return
-        
-        // Filtrar para que solo entren números y el +
         val telefonoLimpio = telefono.filter { it.isDigit() || it == '+' }
-        
-        // Siempre guardamos en el DataStore para persistencia
         viewModelScope.launch { ajustesDataStore.guardarTelefono(telefonoLimpio) }
-        
         val resultado = validarTelefono(telefonoLimpio)
         val nuevosErrores = when (resultado) {
             is Result.Success -> currentState.validationErrors - "telefono"
-            is Result.Failure -> {
-                // Solo mostramos el error si el campo no está vacío Y 
-                // ya tiene una longitud donde debería ser válido (mínimo 8 dígitos)
-                // O si tiene un formato que ya sabemos que está mal
-                if (telefonoLimpio.length >= 8) {
-                    currentState.validationErrors + ("telefono" to resultado.error.toString())
-                } else {
-                    currentState.validationErrors - "telefono"
-                }
-            }
+            is Result.Failure -> if (telefonoLimpio.length >= 8) currentState.validationErrors + ("telefono" to resultado.error.toString()) else currentState.validationErrors - "telefono"
         }
-        
-        // Actualizamos el valor localmente de inmediato para evitar saltos de cursor
-        _uiState.value = currentState.copy(
-            telefono = telefonoLimpio,
-            validationErrors = nuevosErrores
-        )
+        _uiState.value = currentState.copy(telefono = telefonoLimpio, validationErrors = nuevosErrores)
     }
 
     fun guardarMoneda(moneda: Moneda) {
@@ -178,18 +133,14 @@ class AjustesViewModel @Inject constructor(
     fun guardarImpuesto(impuesto: String) {
         val resultado = validarImpuesto(impuesto)
         val currentState = _uiState.value as? AjustesUiState.Success ?: return
-        
-        when (resultado) {
+        val nuevosErrores = when (resultado) {
             is Result.Success -> {
-                val nuevosErrores = currentState.validationErrors - "impuesto"
-                _uiState.value = currentState.copy(validationErrors = nuevosErrores)
                 viewModelScope.launch { ajustesDataStore.guardarImpuesto(resultado.value) }
+                currentState.validationErrors - "impuesto"
             }
-            is Result.Failure -> {
-                val nuevosErrores = currentState.validationErrors + ("impuesto" to resultado.error.toString())
-                _uiState.value = currentState.copy(validationErrors = nuevosErrores)
-            }
+            is Result.Failure -> currentState.validationErrors + ("impuesto" to resultado.error.toString())
         }
+        _uiState.value = currentState.copy(validationErrors = nuevosErrores)
     }
 
     fun guardarTema(tema: String) {
@@ -197,60 +148,28 @@ class AjustesViewModel @Inject constructor(
     }
 
     fun guardarTasaUSD(tasa: String) {
-        tasa.toDoubleOrNull()?.let {
-            viewModelScope.launch { ajustesDataStore.guardarTasaUSD(it) }
-        }
+        tasa.toDoubleOrNull()?.let { viewModelScope.launch { ajustesDataStore.guardarTasaUSD(it) } }
     }
 
     fun guardarTasaMLC(tasa: String) {
-        tasa.toDoubleOrNull()?.let {
-            viewModelScope.launch { ajustesDataStore.guardarTasaMLC(it) }
-        }
+        tasa.toDoubleOrNull()?.let { viewModelScope.launch { ajustesDataStore.guardarTasaMLC(it) } }
     }
 
     fun guardarTasaEUR(tasa: String) {
-        tasa.toDoubleOrNull()?.let {
-            viewModelScope.launch { ajustesDataStore.guardarTasaEUR(it) }
-        }
+        tasa.toDoubleOrNull()?.let { viewModelScope.launch { ajustesDataStore.guardarTasaEUR(it) } }
     }
 
-    suspend fun exportarBaseDatos(): Result<Uri> {
-        return backupRepository.exportDatabase()
-    }
+    suspend fun exportarBaseDatos(): Result<Uri> = backupRepository.exportDatabase()
+    suspend fun importarBaseDatos(uri: Uri): Result<Unit> = backupRepository.importDatabase(uri)
+    suspend fun exportarReporteInventario(): Result<Uri> = reportRepository.generarReporteInventarioExcel()
 
-    suspend fun importarBaseDatos(uri: Uri): Result<Unit> {
-        return backupRepository.importDatabase(uri)
-    }
-
-    suspend fun exportarReporteInventario(): Result<Uri> {
-        return reportRepository.generarReporteInventarioExcel()
-    }
-
-    /**
-     * Resets all data (T28).
-     * Validates exact "REINICIAR" confirmation, clears DataStore (except preserved keys) and Room database,
-     * and triggers an app restart for clean reinitialization.
-     */
     fun reiniciarDatos(confirmacion: String) {
-        if (confirmacion != "REINICIAR") {
-            return
-        }
-
+        if (confirmacion != "REINICIAR") return
         viewModelScope.launch {
             try {
-                // 1. Clear Operation DataStore keys (T59)
-                val preservedKeys = setOf(
-                    AjustesDataStore.TEMA_KEY,
-                    AjustesDataStore.PIN_HASH_KEY,
-                    AjustesDataStore.PIN_SALT_KEY
-                )
-                val dsResult = ajustesDataStore.clearAll(preservedKeys)
-                
-                if (dsResult.isSuccess) {
-                    // 2. Wipe Room database tables
+                val preservedKeys = setOf(AjustesDataStore.TEMA_KEY, AjustesDataStore.PIN_HASH_KEY, AjustesDataStore.PIN_SALT_KEY)
+                if (ajustesDataStore.clearAll(preservedKeys).isSuccess) {
                     database.reiniciarBaseDatos()
-                    
-                    // 3. Restart the process to ensure all components/flows are reset (T59)
                     ProcessPhoenix.triggerRebirth(context)
                 }
             } catch (e: Exception) {
@@ -259,41 +178,24 @@ class AjustesViewModel @Inject constructor(
         }
     }
 
-    // ===== PIN Setup/Change Flow (T41) =====
-
-    /**
-     * Sets up a new PIN (when no PIN exists).
-     */
-    suspend fun configurarPin(pin: String): Result<Unit> {
-        return ajustesDataStore.guardarPinHash("").flatMap { 
-            Result.Success(Unit)
-        }
-    }
-
-    /**
-     * Changes existing PIN (requires current PIN verification).
-     */
-    suspend fun cambiarPin(pinActual: String, pinNuevo: String): Result<Unit> {
-        return Result.Success(Unit)
-    }
-
-    /**
-     * Removes the security PIN (T69).
-     */
     fun eliminarPin() {
+        viewModelScope.launch { securityRepository.removePin() }
+    }
+
+    suspend fun sendFeedback(): Result<Unit> = feedbackRepository.sendFeedback()
+
+    // ===== Bluetooth Printer (T76) =====
+    fun getPairedPrinters(): List<android.bluetooth.BluetoothDevice> = printerService.getPairedDevices()
+
+    fun vincularImpresora(device: android.bluetooth.BluetoothDevice) {
         viewModelScope.launch {
-            securityRepository.removePin()
+            @android.annotation.SuppressLint("MissingPermission")
+            val name = device.name ?: "Impresora Térmica"
+            ajustesDataStore.guardarImpresora(device.address, name)
         }
     }
 
-    // ===== Feedback (T46) =====
-
-    /**
-     * Sends feedback via email with prefilled context.
-     * Returns Result.Success(Unit) if email intent was launched.
-     * Returns Result.Failure if no email app is available.
-     */
-    suspend fun sendFeedback(): Result<Unit> {
-        return feedbackRepository.sendFeedback()
+    fun desvincularImpresora() {
+        viewModelScope.launch { ajustesDataStore.desvincularImpresora() }
     }
 }

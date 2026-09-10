@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import android.net.Uri
 import cu.stockcuba.app.domain.model.Cliente
+import cu.stockcuba.app.domain.model.DomainError
 import cu.stockcuba.app.domain.model.MetodoPago
 import cu.stockcuba.app.domain.model.Producto
 import cu.stockcuba.app.domain.model.Result
@@ -32,6 +33,7 @@ class NuevaVentaViewModel @Inject constructor(
     private val registrarVentaUseCase: RegistrarVentaUseCase,
     private val ajustesDataStore: cu.stockcuba.app.presentation.ajustes.AjustesDataStore,
     private val pdfTicketService: cu.stockcuba.app.data.service.PdfTicketService,
+    private val printerService: cu.stockcuba.app.data.service.BluetoothPrinterService,
     private val ventaRepository: cu.stockcuba.app.domain.repository.VentaRepository
 ) : ViewModel() {
 
@@ -44,6 +46,29 @@ class NuevaVentaViewModel @Inject constructor(
     }
 
     fun cargarDatosIniciales() {
+        viewModelScope.launch {
+            // Cargar tasas de cambio
+            kotlinx.coroutines.flow.combine(
+                ajustesDataStore.tasaUSD,
+                ajustesDataStore.tasaMLC,
+                ajustesDataStore.tasaEUR
+            ) { usd, mlc, eur ->
+                mapOf(
+                    cu.stockcuba.app.domain.model.Moneda.USD to usd,
+                    cu.stockcuba.app.domain.model.Moneda.MLC to mlc,
+                    cu.stockcuba.app.domain.model.Moneda.EUR to eur,
+                    cu.stockcuba.app.domain.model.Moneda.CUP to 1.0
+                )
+            }.collect { tasas ->
+                _uiState.update { state ->
+                    when (state) {
+                        is NuevaVentaUiState.Editing -> state.copy(tasas = tasas)
+                        else -> state
+                    }
+                }
+            }
+        }
+
         viewModelScope.launch {
             // Cargar categorías
             categoriaRepository.getAll().firstOrNull()?.let { categorias ->
@@ -298,14 +323,21 @@ class NuevaVentaViewModel @Inject constructor(
                     val existingIndex = state.carrito.indexOfFirst { it.producto.id == producto.id }
                     val newCarrito = state.carrito.toMutableList()
 
+                    val precioCalculado = if (producto.vincularTasa) {
+                        val tasa = state.tasas[producto.moneda] ?: 1.0
+                        producto.precioVenta * tasa
+                    } else {
+                        null
+                    }
+
                     if (existingIndex >= 0) {
                         val item = newCarrito[existingIndex]
                         if (item.cantidad < item.stockDisponible) {
-                            newCarrito[existingIndex] = item.copy(cantidad = item.cantidad + 1)
+                            newCarrito[existingIndex] = item.copy(cantidad = item.cantidad + 1, precioCalculado = precioCalculado)
                         }
                     } else {
                         if (producto.stockActual > 0) {
-                            newCarrito.add(CarritoItem(producto = producto, cantidad = 1))
+                            newCarrito.add(CarritoItem(producto = producto, cantidad = 1, precioCalculado = precioCalculado))
                         }
                     }
                     state.copy(carrito = newCarrito)
@@ -565,5 +597,20 @@ class NuevaVentaViewModel @Inject constructor(
             return pdfTicketService.generarTicketPDF(fullVenta, nombreNegocio)
         }
         return null
+    }
+
+    suspend fun imprimirTicket(ventaId: String): Result<Unit> {
+        val printerMac = ajustesDataStore.printerMac.first() ?: return Result.Failure(DomainError.Unknown("No hay impresora configurada", null))
+        val ventaResult = ventaRepository.getByIdSync(ventaId)
+        if (ventaResult is Result.Success) {
+            val itemsResult = ventaRepository.getItemsByVentaId(ventaId)
+            val fullVenta = if (itemsResult is Result.Success) {
+                ventaResult.value.copy(items = itemsResult.value)
+            } else ventaResult.value
+            
+            val nombreNegocio = ajustesDataStore.nombreNegocio.first()
+            return printerService.printTicket(printerMac, fullVenta, nombreNegocio)
+        }
+        return Result.Failure(DomainError.NotFound("Venta", ventaId))
     }
 }

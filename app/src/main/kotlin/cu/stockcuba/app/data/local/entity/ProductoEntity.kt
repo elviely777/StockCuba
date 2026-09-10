@@ -64,6 +64,9 @@ data class ProductoEntity(
     @ColumnInfo(name = "activo", defaultValue = "1")
     val activo: Boolean = true,
 
+    @ColumnInfo(name = "vincular_tasa", defaultValue = "0")
+    val vincularTasa: Boolean = false,
+
     @ColumnInfo(name = "fecha_actualizacion")
     val fechaActualizacion: Long = System.currentTimeMillis(),
 

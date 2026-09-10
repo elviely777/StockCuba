@@ -61,6 +61,17 @@ fun AjustesScreen(
     var pinSetupMode by remember { mutableStateOf<Mode>(Mode.Setup) }
     var showPinRemoveDialog by remember { mutableStateOf(false) }
     var showMonedaDialog by remember { mutableStateOf(false) }
+    var showPrinterDialog by remember { mutableStateOf(false) }
+
+    // Bluetooth Permissions Launcher
+    val bluetoothLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions.entries.all { it.value }
+        if (granted) {
+            showPrinterDialog = true
+        }
+    }
 
     // SAF launcher for importing database file
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
@@ -142,7 +153,20 @@ fun AjustesScreen(
                         onNavigateToVinculacion = {
                             navController.navigate(Screen.VinculacionNegocio.route)
                         },
-                        onMonedaClick = { showMonedaDialog = true }
+                        onMonedaClick = { showMonedaDialog = true },
+                        onPrinterClick = {
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                                bluetoothLauncher.launch(arrayOf(
+                                    android.Manifest.permission.BLUETOOTH_SCAN,
+                                    android.Manifest.permission.BLUETOOTH_CONNECT
+                                ))
+                            } else {
+                                bluetoothLauncher.launch(arrayOf(
+                                    android.Manifest.permission.BLUETOOTH,
+                                    android.Manifest.permission.ACCESS_FINE_LOCATION
+                                ))
+                            }
+                        }
                     )
                 }
                 else -> {}
@@ -211,6 +235,21 @@ fun AjustesScreen(
                 }
             )
         }
+
+        if (showPrinterDialog) {
+            PrinterSelectionDialog(
+                devices = viewModel.getPairedPrinters(),
+                onDismiss = { showPrinterDialog = false },
+                onSelect = { 
+                    viewModel.vincularImpresora(it)
+                    showPrinterDialog = false
+                },
+                onDesvincular = {
+                    viewModel.desvincularImpresora()
+                    showPrinterDialog = false
+                }
+            )
+        }
     }
 }
 
@@ -254,7 +293,8 @@ fun AjustesContenidoModerno(
     onFeedback: () -> Unit,
     onSembrar: () -> Unit,
     onNavigateToVinculacion: () -> Unit,
-    onMonedaClick: () -> Unit
+    onMonedaClick: () -> Unit,
+    onPrinterClick: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -396,6 +436,19 @@ fun AjustesContenidoModerno(
                         keyboardType = KeyboardType.Decimal
                     )
                 }
+            }
+        }
+
+        // --- SECCIÓN NUEVA: IMPRESORA ---
+        item {
+            SeccionAjustesModerna(titulo = "Hardware", icono = Icons.Default.Print, color = Color(0xFF3B82F6)) {
+                FilaAccionAjuste(
+                    titulo = "Impresora Térmica",
+                    subtitulo = state.printerName,
+                    icon = Icons.Default.Bluetooth,
+                    color = if (state.printerMac != null) StockCubaColors.VerdeExito else MaterialTheme.colorScheme.primary,
+                    onClick = onPrinterClick
+                )
             }
         }
 
@@ -647,6 +700,60 @@ fun ResetConfirmationDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancelar") }
+        }
+    )
+}
+
+@Composable
+fun PrinterSelectionDialog(
+    devices: List<android.bluetooth.BluetoothDevice>,
+    onDismiss: () -> Unit,
+    onSelect: (android.bluetooth.BluetoothDevice) -> Unit,
+    onDesvincular: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Impresoras Vinculadas", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (devices.isEmpty()) {
+                    Text("No se encontraron dispositivos vinculados. Vincula tu impresora en los Ajustes de Bluetooth del sistema.", style = MaterialTheme.typography.bodySmall)
+                }
+                devices.forEach { device ->
+                    @android.annotation.SuppressLint("MissingPermission")
+                    val name = device.name ?: "Dispositivo desconocido"
+                    Surface(
+                        onClick = { onSelect(device) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = Shape.Grande,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Print, null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text(name, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
+                                Text(device.address, style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
+                }
+                
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                
+                TextButton(
+                    onClick = onDesvincular,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.textButtonColors(contentColor = StockCubaColors.CoralAlerta)
+                ) {
+                    Icon(Icons.Default.BluetoothDisabled, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Desvincular Impresora Actual")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Cerrar") }
         }
     )
 }

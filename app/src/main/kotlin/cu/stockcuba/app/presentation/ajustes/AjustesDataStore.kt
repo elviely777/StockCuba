@@ -49,6 +49,10 @@ class AjustesDataStore @Inject constructor(
         val POS_ID_KEY = stringPreferencesKey("pos_id")
         val POS_NOMBRE_KEY = stringPreferencesKey("pos_nombre")
         val ESTADO_NEGOCIO_KEY = stringPreferencesKey("estado_negocio")
+
+        // Bluetooth Printer (T76)
+        val PRINTER_MAC_KEY = stringPreferencesKey("printer_mac")
+        val PRINTER_NAME_KEY = stringPreferencesKey("printer_name")
     }
 
     val nombreNegocio: Flow<String> = dataStore.data
@@ -107,6 +111,14 @@ class AjustesDataStore @Inject constructor(
         .map { it[BUSINESS_ID_KEY] }
         .distinctUntilChanged()
 
+    val printerMac: Flow<String?> = dataStore.data
+        .map { it[PRINTER_MAC_KEY] }
+        .distinctUntilChanged()
+
+    val printerName: Flow<String?> = dataStore.data
+        .map { it[PRINTER_NAME_KEY] }
+        .distinctUntilChanged()
+
     val posId: Flow<String?> = dataStore.data
         .map { it[POS_ID_KEY] }
         .distinctUntilChanged()
@@ -138,6 +150,30 @@ class AjustesDataStore @Inject constructor(
     suspend fun guardarTasaEUR(tasa: Double): Result<Unit> = guardarDato(TASA_EUR_KEY, tasa)
 
     suspend fun guardarEstadoNegocio(estado: String): Result<Unit> = guardarDato(ESTADO_NEGOCIO_KEY, estado)
+
+    suspend fun guardarImpresora(mac: String, nombre: String): Result<Unit> {
+        return try {
+            dataStore.edit { preferences ->
+                preferences[PRINTER_MAC_KEY] = mac
+                preferences[PRINTER_NAME_KEY] = nombre
+            }
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Failure(DomainError.DatabaseError(e))
+        }
+    }
+
+    suspend fun desvincularImpresora(): Result<Unit> {
+        return try {
+            dataStore.edit { preferences ->
+                preferences.remove(PRINTER_MAC_KEY)
+                preferences.remove(PRINTER_NAME_KEY)
+            }
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Failure(DomainError.DatabaseError(e))
+        }
+    }
 
     // PIN setters (T33)
     suspend fun guardarPinHash(hash: String): Result<Unit> = guardarDato(PIN_HASH_KEY, hash)

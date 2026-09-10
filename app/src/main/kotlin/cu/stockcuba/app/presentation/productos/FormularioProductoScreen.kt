@@ -216,6 +216,32 @@ fun FormularioContenido(
                     onMonedaChange = { viewModel.updateMoneda(it) }
                 )
                 
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Vincular a Tasa de Cambio",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Text(
+                            "El precio en CUP se calculará según la tasa del día.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = state.vincularTasa,
+                        onCheckedChange = { viewModel.updateVincularTasa(it) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = StockCubaColors.VerdeExito,
+                            checkedTrackColor = StockCubaColors.VerdeExito.copy(alpha = 0.5f)
+                        )
+                    )
+                }
+
                 Spacer(Modifier.height(8.dp))
                 
                 Row(horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {

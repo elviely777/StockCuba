@@ -75,6 +75,7 @@ class FormularioProductoViewModel @Inject constructor(
                             stockMinimo = producto.stockMinimo.toString(),
                             unidadMedida = producto.unidadMedida,
                             codigoBarras = producto.codigoBarras ?: "",
+                            vincularTasa = producto.vincularTasa,
                             categoriaId = producto.categoriaId,
                             isEditing = true,
                             productoId = producto.id,
@@ -135,6 +136,15 @@ class FormularioProductoViewModel @Inject constructor(
         _uiState.update { state ->
             when (state) {
                 is FormularioProductoUiState.Editing -> state.copy(moneda = moneda)
+                else -> state
+            }
+        }
+    }
+
+    fun updateVincularTasa(vincular: Boolean) {
+        _uiState.update { state ->
+            when (state) {
+                is FormularioProductoUiState.Editing -> state.copy(vincularTasa = vincular)
                 else -> state
             }
         }
@@ -269,7 +279,8 @@ class FormularioProductoViewModel @Inject constructor(
                             codigoBarras = currentState.codigoBarras.trim().takeIf { it.isNotBlank() },
                             categoriaId = finalCategoriaId,
                             fechaCreacion = java.time.Instant.now(),
-                            activo = true
+                            activo = true,
+                            vincularTasa = currentState.vincularTasa
                         )
 
                         val result = if (currentState.isEditing) {
@@ -304,6 +315,7 @@ class FormularioProductoViewModel @Inject constructor(
                     stockMinimo = "",
                     unidadMedida = UnidadMedida.UNIDAD,
                     codigoBarras = "",
+                    vincularTasa = false,
                     categoriaId = state.categorias.firstOrNull()?.id,
                     isEditing = false,
                     productoId = null,

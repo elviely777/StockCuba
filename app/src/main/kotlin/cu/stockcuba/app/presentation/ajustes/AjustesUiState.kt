@@ -24,6 +24,8 @@ sealed interface AjustesUiState {
         val appVersion: String = "",
         val isVinculado: Boolean = false,
         val businessId: String = "",
+        val printerName: String = "No vinculada",
+        val printerMac: String? = null,
         val isLoading: Boolean = false,
         val validationErrors: Map<String, String> = emptyMap()
     ) : AjustesUiState {
