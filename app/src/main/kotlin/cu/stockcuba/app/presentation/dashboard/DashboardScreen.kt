@@ -54,6 +54,7 @@ fun DashboardScreen(
     onNavigateToNuevaVenta: () -> Unit,
     onNavigateToHistorial: () -> Unit,
     onNavigateToInventario: () -> Unit,
+    onNavigateToGastos: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -133,6 +134,7 @@ fun DashboardScreen(
                     },
                     onNavigateToHistorial = onNavigateToHistorial,
                     onNavigateToInventario = onNavigateToInventario,
+                    onNavigateToGastos = onNavigateToGastos,
                     onCambiarRol = { rol ->
                         if (rol == RolUsuario.DUENO) {
                             scope.launch {
@@ -177,6 +179,7 @@ fun DashboardContenidoFull(
     onCierre: () -> Unit,
     onNavigateToHistorial: () -> Unit,
     onNavigateToInventario: () -> Unit,
+    onNavigateToGastos: () -> Unit,
     onCambiarRol: (RolUsuario) -> Unit,
     onCerrarTurno: () -> Unit
 ) {
@@ -228,7 +231,9 @@ fun DashboardContenidoFull(
             item {
                 RentabilidadCard(
                     gastos = state.totalGastos,
-                    ganancia = state.gananciaReal
+                    gastosOperativos = state.totalGastosOperativos,
+                    ganancia = state.gananciaReal,
+                    onNavigateToGastos = onNavigateToGastos
                 )
             }
         }
@@ -638,8 +643,14 @@ fun BalancePagosCard(efectivo: Double, transferencia: Double) {
 }
 
 @Composable
-fun RentabilidadCard(gastos: Double, ganancia: Double) {
-    val totalVenta = gastos + ganancia
+fun RentabilidadCard(
+    gastos: Double, 
+    gastosOperativos: Double,
+    ganancia: Double,
+    onNavigateToGastos: () -> Unit
+) {
+    val totalEgresos = gastos + gastosOperativos
+    val totalVenta = totalEgresos + ganancia
     val pGanancia = if (totalVenta > 0) (ganancia / totalVenta).toFloat() else 0.5f
 
     Card(
@@ -649,12 +660,23 @@ fun RentabilidadCard(gastos: Double, ganancia: Double) {
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
     ) {
         Column(modifier = Modifier.padding(StockCubaSpacing.Lg)) {
-            Text("Rentabilidad (Ventas Netas)", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Rentabilidad (Ventas Netas)", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                IconButton(onClick = onNavigateToGastos, modifier = Modifier.size(24.dp)) {
+                    Icon(Icons.Default.AddCircle, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                }
+            }
             Spacer(Modifier.height(16.dp))
             
             Row(modifier = Modifier.fillMaxWidth().height(10.dp).clip(Shape.Full)) {
-                // Gastos (Costo) en un tono más neutro/coral
-                Box(modifier = Modifier.fillMaxHeight().weight((1f - pGanancia).coerceAtLeast(0.01f)).background(Color(0xFF94A3B8)))
+                // Gastos (Costo Productos)
+                Box(modifier = Modifier.fillMaxHeight().weight((gastos / totalVenta.coerceAtLeast(1.0)).toFloat().coerceAtLeast(0.01f)).background(Color(0xFF94A3B8)))
+                // Gastos Operativos
+                Box(modifier = Modifier.fillMaxHeight().weight((gastosOperativos / totalVenta.coerceAtLeast(1.0)).toFloat().coerceAtLeast(0.01f)).background(StockCubaColors.CoralAlerta))
                 // Ganancia en verde
                 Box(modifier = Modifier.fillMaxHeight().weight(pGanancia.coerceAtLeast(0.01f)).background(StockCubaColors.VerdeExito))
             }
@@ -666,9 +688,18 @@ fun RentabilidadCard(gastos: Double, ganancia: Double) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF94A3B8)))
                         Spacer(Modifier.width(8.dp))
-                        Text("Gastos (Costo)", style = MaterialTheme.typography.labelSmall)
+                        Text("Costo Productos", style = MaterialTheme.typography.labelSmall)
                     }
                     Text(gastos.formatoCUP(), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+                    
+                    Spacer(Modifier.height(8.dp))
+                    
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(8.dp).clip(CircleShape).background(StockCubaColors.CoralAlerta))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Gastos Operativos", style = MaterialTheme.typography.labelSmall)
+                    }
+                    Text(gastosOperativos.formatoCUP(), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = StockCubaColors.CoralAlerta)
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -676,7 +707,7 @@ fun RentabilidadCard(gastos: Double, ganancia: Double) {
                         Spacer(Modifier.width(8.dp))
                         Box(Modifier.size(8.dp).clip(CircleShape).background(StockCubaColors.VerdeExito))
                     }
-                    Text(ganancia.formatoCUP(), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = StockCubaColors.VerdeExito)
+                    Text(ganancia.formatoCUP(), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.ExtraBold), color = StockCubaColors.VerdeExito)
                 }
             }
         }

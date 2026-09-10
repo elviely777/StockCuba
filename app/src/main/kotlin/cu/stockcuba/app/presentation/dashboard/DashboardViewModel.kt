@@ -28,6 +28,7 @@ class DashboardViewModel @Inject constructor(
     private val productoRepository: ProductoRepository,
     private val reportRepository: ReportRepository,
     private val cierreRepository: CierreRepository,
+    private val gastoRepository: cu.stockcuba.app.domain.repository.GastoRepository,
     val securityRepository: cu.stockcuba.app.domain.security.SecurityRepository,
     private val ajustesDataStore: cu.stockcuba.app.presentation.ajustes.AjustesDataStore,
     private val obtenerProductosBajoStockUseCase: ObtenerProductosBajoStockUseCase
@@ -48,7 +49,8 @@ class DashboardViewModel @Inject constructor(
         ajustesDataStore.moneda,
         ajustesDataStore.tasaUSD,
         ajustesDataStore.tasaMLC,
-        ajustesDataStore.tasaEUR
+        ajustesDataStore.tasaEUR,
+        gastoRepository.getAll()
     ) { array ->
         val range = array[0] as DashboardTimeRange
         val productosBajoStock = array[1] as List<Producto>
@@ -62,6 +64,7 @@ class DashboardViewModel @Inject constructor(
         val tasaUSD = array[9] as Double
         val tasaMLC = array[10] as Double
         val tasaEUR = array[11] as Double
+        val allGastos = array[12] as List<cu.stockcuba.app.domain.model.Gasto>
 
         val tasas = mapOf(
             cu.stockcuba.app.domain.model.Moneda.USD to tasaUSD,
@@ -110,12 +113,17 @@ class DashboardViewModel @Inject constructor(
             val costoBase = toBase(producto?.costoUnitario ?: 0.0, producto?.moneda ?: cu.stockcuba.app.domain.model.Moneda.CUP)
             costoBase * item.cantidad
         }
-        val gananciaReal = totalVendido - totalGastos
         
         val ticketPromedio = if (periodVentas.isNotEmpty()) totalVendido / periodVentas.size else 0.0
         
         val efectivo = periodVentas.sumOf { it.montoEfectivo }
         val transferencia = periodVentas.sumOf { it.montoTransferencia }
+
+        // Gastos Operativos (T71)
+        val periodGastos = allGastos.filter { it.fecha.toEpochMilli() in periodStart..periodEnd }
+        val totalGastosOperativos = periodGastos.sumOf { toBase(it.monto, it.moneda) }
+
+        val gananciaReal = totalVendido - totalGastos - totalGastosOperativos
 
         // IPB e IPC (T66)
         val activeProductos = allProductos.filter { it.activo }
@@ -174,6 +182,7 @@ class DashboardViewModel @Inject constructor(
             valorInventarioCosto = ipc,
             gananciaProyectada = gananciaProyectada,
             totalGastos = totalGastos,
+            totalGastosOperativos = totalGastosOperativos,
             gananciaReal = gananciaReal,
             listaProductosBajoStock = productosBajoStock,
             ventasRecientes = allVentas.take(5),

@@ -20,12 +20,14 @@ import java.io.File
         ClienteEntity::class,
         MovimientoInventarioEntity::class,
         CierreDiarioEntity::class,
-        CierreMensualEntity::class
+        CierreMensualEntity::class,
+        GastoEntity::class
     ],
-    version = 9,
+    version = 10,
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
-        AutoMigration(from = 8, to = 9)
+        AutoMigration(from = 8, to = 9),
+        AutoMigration(from = 9, to = 10)
     ],
     exportSchema = true
 )
@@ -38,6 +40,7 @@ abstract class StockCubaDatabase : RoomDatabase() {
     abstract fun clienteDao(): ClienteDao
     abstract fun movimientoInventarioDao(): MovimientoInventarioDao
     abstract fun cierreDao(): CierreDao
+    abstract fun gastoDao(): GastoDao
 
     /**
      * Clears all operation tables in the database, respecting foreign key order (T27).

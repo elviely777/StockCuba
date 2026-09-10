@@ -7,6 +7,7 @@ import dagger.hilt.components.SingletonComponent
 import cu.stockcuba.app.data.local.dao.CategoriaDao
 import cu.stockcuba.app.data.local.dao.CierreDao
 import cu.stockcuba.app.data.local.dao.ClienteDao
+import cu.stockcuba.app.data.local.dao.GastoDao
 import cu.stockcuba.app.data.local.dao.MovimientoInventarioDao
 import cu.stockcuba.app.data.local.dao.ProductoDao
 import cu.stockcuba.app.data.local.dao.VentaDao
@@ -55,4 +56,8 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideCierreDao(database: StockCubaDatabase): CierreDao = database.cierreDao()
+
+    @Provides
+    @Singleton
+    fun provideGastoDao(database: StockCubaDatabase): GastoDao = database.gastoDao()
 }

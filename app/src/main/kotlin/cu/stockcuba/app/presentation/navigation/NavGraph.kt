@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -63,6 +64,7 @@ import cu.stockcuba.app.presentation.ajustes.AjustesScreen
 import cu.stockcuba.app.presentation.ajustes.VinculacionScreen
 import cu.stockcuba.app.presentation.clientes.ClientesScreen
 import cu.stockcuba.app.presentation.dashboard.DashboardScreen
+import cu.stockcuba.app.presentation.gastos.GestionGastosScreen
 import cu.stockcuba.app.presentation.inventario.AjusteInventarioScreen
 import cu.stockcuba.app.presentation.inventario.HistorialMovimientosScreen
 import cu.stockcuba.app.presentation.inventario.InventarioScreen
@@ -160,7 +162,8 @@ fun AppNavHost() {
                 DashboardScreen(
                     onNavigateToNuevaVenta = { navController.navigate(Screen.NuevaVenta.route) },
                     onNavigateToHistorial = { navController.navigate(Screen.HistorialVentas.route) },
-                    onNavigateToInventario = { navController.navigate(Screen.Inventario.route) }
+                    onNavigateToInventario = { navController.navigate(Screen.Inventario.route) },
+                    onNavigateToGastos = { navController.navigate(Screen.Gastos.route) }
                 )
             }
 
@@ -298,16 +301,25 @@ fun AppNavHost() {
                 }
             }
 
-            // ===== Más (Ajustes, Clientes) =====
+            // ===== Más (Ajustes, Clientes, Gastos) =====
             navigation(startDestination = Screen.Mas.route, route = "mas_root") {
                 composable(Screen.Mas.route) {
                     MasScreen(
                         onAjustes = { navController.navigate(Screen.Ajustes.route) },
-                        onClientes = { navController.navigate(Screen.Clientes.route) }
+                        onClientes = { navController.navigate(Screen.Clientes.route) },
+                        onGastos = { navController.navigate(Screen.Gastos.route) }
                     )
                 }
                 composable(Screen.Clientes.route) {
                     ClientesScreen(onBack = { navController.popBackStack() })
+                }
+                composable(Screen.Gastos.route) {
+                    SecurityGate(
+                        securityRepository = securityRepository,
+                        onUnlocked = { /* unlocked */ }
+                    ) {
+                        GestionGastosScreen(onBack = { navController.popBackStack() })
+                    }
                 }
                 composable(Screen.Ajustes.route) {
                     SecurityGate(
@@ -397,7 +409,7 @@ fun DetalleProductoScreen(productoId: String, onEditar: (String) -> Unit, onBack
 }
 
 @Composable
-fun MasScreen(onAjustes: () -> Unit, onClientes: () -> Unit) {
+fun MasScreen(onAjustes: () -> Unit, onClientes: () -> Unit, onGastos: () -> Unit) {
     Scaffold(
         topBar = {
             Surface(
@@ -474,6 +486,20 @@ fun MasScreen(onAjustes: () -> Unit, onClientes: () -> Unit) {
                     Icon(Icons.Default.Person, contentDescription = null)
                     Spacer(Modifier.size(StockCubaSpacing.Sm))
                     Text("Clientes")
+                }
+
+                Button(
+                    onClick = onGastos,
+                    shape = Shape.ExtraGrande,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = StockCubaSpacing.Xl),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Icon(Icons.Default.Payments, contentDescription = null)
+                    Spacer(Modifier.size(StockCubaSpacing.Sm))
+                    Text("Gastos Operativos")
                 }
             }
         }

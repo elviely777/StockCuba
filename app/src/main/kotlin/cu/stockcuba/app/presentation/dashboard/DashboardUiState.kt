@@ -43,7 +43,8 @@ sealed interface DashboardUiState {
         val gananciaProyectada: Double = 0.0,
         
         // Rentabilidad Real del periodo
-        val totalGastos: Double = 0.0,
+        val totalGastos: Double = 0.0, // Costo de productos
+        val totalGastosOperativos: Double = 0.0, // Luz, salarios, etc
         val gananciaReal: Double = 0.0,
         
         // Listas

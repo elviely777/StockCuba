@@ -67,6 +67,10 @@ sealed interface Screen {
         override val route = "mas/vinculacion"
     }
 
+    data object Gastos : Screen {
+        override val route = "mas/gastos"
+    }
+
     data object AgregarProducto : Screen {
         override val route = "productos/agregar"
     }
