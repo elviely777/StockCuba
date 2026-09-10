@@ -8,6 +8,8 @@ data class Venta(
     val total: Double,
     val metodoPago: MetodoPago,
     val items: List<VentaItem>,
+    val totalOriginal: Double = 0.0,
+    val descuento: Double = 0.0,
     val clienteId: String?,
     val vendedorNombre: String = "Desconocido",
     val montoEfectivo: Double = 0.0,

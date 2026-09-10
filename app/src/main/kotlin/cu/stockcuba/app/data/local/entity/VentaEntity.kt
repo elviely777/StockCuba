@@ -33,6 +33,12 @@ data class VentaEntity(
     @ColumnInfo(name = "total")
     val total: Double,
 
+    @ColumnInfo(name = "total_original", defaultValue = "0.0")
+    val totalOriginal: Double = 0.0,
+
+    @ColumnInfo(name = "descuento", defaultValue = "0.0")
+    val descuento: Double = 0.0,
+
     @ColumnInfo(name = "metodo_pago")
     val metodoPago: String, // MetodoPago.name via TypeConverter
 

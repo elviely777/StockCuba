@@ -26,12 +26,13 @@ import java.io.File
         GastoEntity::class,
         AbonoEntity::class
     ],
-    version = 11,
+    version = 12,
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 8, to = 9),
         AutoMigration(from = 9, to = 10),
-        AutoMigration(from = 10, to = 11)
+        AutoMigration(from = 10, to = 11),
+        AutoMigration(from = 11, to = 12)
     ],
     exportSchema = true
 )

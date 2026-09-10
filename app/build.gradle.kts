@@ -18,7 +18,7 @@ android {
 
     // Version management
     val versionMajor = 1
-    val versionMinor = 4
+    val versionMinor = 5
     val versionPatch = 0
     val computedVersionCode = versionMajor * 10000 + versionMinor * 100 + versionPatch
     val computedVersionName = "$versionMajor.$versionMinor.$versionPatch"
@@ -211,6 +211,18 @@ dependencies {
 
     // Apache POI para crear archivos .xlsx
     implementation("org.apache.poi:poi-ooxml:5.4.0")
+
+    // CameraX & ML Kit
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.mlkit.barcode.scanning)
+
+    // Charts (Vico)
+    implementation(libs.vico.compose)
+    implementation(libs.vico.compose.m3)
+    implementation(libs.vico.core)
 
     // Supabase / Ktor / Serialization
     implementation("io.ktor:ktor-client-core:2.3.8")

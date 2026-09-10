@@ -14,6 +14,8 @@ sealed interface NuevaVentaUiState {
         val productosDisponibles: List<Producto> = emptyList(),
         val carrito: List<CarritoItem> = emptyList(),
         val query: String = "",
+        val descuento: String = "",
+        val isDescuentoPorcentual: Boolean = true,
         val metodoPago: MetodoPago = MetodoPago.EFECTIVO,
         val efectivoRecibido: String = "",
         val transferenciaMonto: String = "",

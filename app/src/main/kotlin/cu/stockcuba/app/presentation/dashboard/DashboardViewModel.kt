@@ -171,6 +171,17 @@ class DashboardViewModel @Inject constructor(
                 .sortedByDescending { it.totalRecaudado }
         } else emptyList()
 
+        // --- CÁLCULO DE VENTAS SEMANALES PARA GRÁFICO (T75) ---
+        val trendSemanales = (0..6).reversed().map { daysAgo ->
+            val day = LocalDate.now().minusDays(daysAgo.toLong())
+            val startOfDay = day.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            val endOfDay = startOfDay + 24 * 60 * 60 * 1000 - 1
+            val totalDia = allVentas.filter { it.fecha.toEpochMilli() in startOfDay..endOfDay }.sumOf { it.total }
+            val label = day.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale("es", "ES"))
+                .replaceFirstChar { it.uppercase() }
+            label to totalDia
+        }
+
         DashboardUiState.Success(
             rolActual = rolActual,
             nombreVendedor = nombreVendedor,
@@ -192,6 +203,7 @@ class DashboardViewModel @Inject constructor(
             gananciaReal = gananciaReal,
             listaProductosBajoStock = productosBajoStock,
             ventasRecientes = allVentas.take(5),
+            ventasSemanales = trendSemanales,
             listaInsights = insights,
             eficienciaVendedores = eficiencia,
             tendenciaTotal = tendenciaTotal,

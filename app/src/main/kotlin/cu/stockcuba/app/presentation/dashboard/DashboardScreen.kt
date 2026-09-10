@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -42,6 +43,14 @@ import cu.stockcuba.app.presentation.security.RoleSelectionDialog
 import cu.stockcuba.app.presentation.theme.Shape
 import cu.stockcuba.app.presentation.theme.StockCubaColors
 import cu.stockcuba.app.presentation.theme.StockCubaSpacing
+import com.patrykandpatrick.vico.compose.axis.horizontal.rememberBottomAxis
+import com.patrykandpatrick.vico.compose.axis.vertical.rememberStartAxis
+import com.patrykandpatrick.vico.compose.chart.Chart
+import com.patrykandpatrick.vico.compose.chart.column.columnChart
+import com.patrykandpatrick.vico.compose.chart.line.lineChart
+import com.patrykandpatrick.vico.core.entry.entryModelOf
+import com.patrykandpatrick.vico.core.entry.ChartEntryModelProducer
+import com.patrykandpatrick.vico.core.entry.entryOf
 import kotlinx.coroutines.launch
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -284,6 +293,13 @@ fun DashboardContenidoFull(
         // --- 3. MÉTRICAS PRINCIPALES ---
         item {
             GridMetricas(state)
+        }
+
+        // --- 3b. GRÁFICO DE TENDENCIA (DUENO ONLY) (T75) ---
+        if (isDueno && state.ventasSemanales.isNotEmpty()) {
+            item {
+                VentasTrendCard(data = state.ventasSemanales)
+            }
         }
 
         // --- 4. BALANCE DE PAGOS ---
@@ -606,6 +622,50 @@ fun CardInsight(insight: ProductInsight) {
                 Text(insight.nombre, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.ExtraBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(insight.mensaje, style = MaterialTheme.typography.labelSmall, maxLines = 2, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+        }
+    }
+}
+
+@Composable
+fun VentasTrendCard(data: List<Pair<String, Double>>) {
+    val model = remember(data) {
+        entryModelOf(data.mapIndexed { index, pair -> entryOf(index, pair.second) })
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth().height(240.dp),
+        shape = Shape.Grande,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+    ) {
+        Column(modifier = Modifier.padding(StockCubaSpacing.Lg)) {
+            Text("Ventas Últimos 7 Días", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+            Spacer(Modifier.height(16.dp))
+            
+            Chart(
+                chart = columnChart(
+                    columns = listOf(
+                        com.patrykandpatrick.vico.core.component.shape.LineComponent(
+                            color = StockCubaColors.VerdeExito.toArgb(),
+                            thicknessDp = 12f,
+                            shape = com.patrykandpatrick.vico.core.component.shape.Shapes.roundedCornerShape(allPercent = 25)
+                        )
+                    )
+                ),
+                model = model,
+                startAxis = rememberStartAxis(
+                    label = com.patrykandpatrick.vico.compose.axis.axisLabelComponent(textSize = 8.sp),
+                    guideline = null
+                ),
+                bottomAxis = rememberBottomAxis(
+                    label = com.patrykandpatrick.vico.compose.axis.axisLabelComponent(textSize = 8.sp),
+                    valueFormatter = { value, _ -> 
+                        data.getOrNull(value.toInt())?.first ?: ""
+                    },
+                    guideline = null
+                ),
+                modifier = Modifier.fillMaxSize()
+            )
         }
     }
 }

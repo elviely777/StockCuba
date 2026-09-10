@@ -28,6 +28,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cu.stockcuba.app.domain.model.Categoria
 import cu.stockcuba.app.domain.model.Moneda
 import cu.stockcuba.app.domain.model.UnidadMedida
+import cu.stockcuba.app.presentation.scanner.ScannerScreen
 import cu.stockcuba.app.presentation.theme.Shape
 import cu.stockcuba.app.presentation.theme.StockCubaColors
 import cu.stockcuba.app.presentation.theme.StockCubaSpacing
@@ -42,6 +43,18 @@ fun FormularioProductoScreen(
     viewModel: FormularioProductoViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showScanner by remember { mutableStateOf(false) }
+
+    if (showScanner) {
+        ScannerScreen(
+            onBarcodeScanned = { code ->
+                viewModel.updateField("codigoBarras", code)
+                showScanner = false
+            },
+            onClose = { showScanner = false }
+        )
+        return
+    }
 
     LaunchedEffect(initialModo, initialProductoId) {
         if (initialModo == "editar" && initialProductoId != null) {
@@ -101,7 +114,11 @@ fun FormularioProductoScreen(
                     PantallaError(state.message, onRetry = { viewModel.resetForm() })
                 }
                 is FormularioProductoUiState.Editing -> {
-                    FormularioContenido(state = state, viewModel = viewModel)
+                    FormularioContenido(
+                        state = state, 
+                        viewModel = viewModel,
+                        onShowScanner = { showScanner = true }
+                    )
                 }
             }
         }
@@ -111,7 +128,8 @@ fun FormularioProductoScreen(
 @Composable
 fun FormularioContenido(
     state: FormularioProductoUiState.Editing,
-    viewModel: FormularioProductoViewModel
+    viewModel: FormularioProductoViewModel,
+    onShowScanner: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -139,6 +157,19 @@ fun FormularioContenido(
                     icon = Icons.Default.Description,
                     singleLine = false,
                     maxLines = 3
+                )
+
+                CampoTextoModerno(
+                    value = state.codigoBarras,
+                    onValueChange = { viewModel.updateField("codigoBarras", it) },
+                    label = "Código de Barras",
+                    placeholder = "Escanear o escribir...",
+                    icon = Icons.Default.QrCode,
+                    trailingIcon = {
+                        IconButton(onClick = onShowScanner) {
+                            Icon(Icons.Default.QrCodeScanner, contentDescription = "Escanear")
+                        }
+                    }
                 )
 
                 Text(
@@ -293,6 +324,7 @@ fun CampoTextoModerno(
     isError: Boolean = false,
     supportingText: String? = null,
     helpText: String? = null,
+    trailingIcon: @Composable (() -> Unit)? = null,
     keyboardType: KeyboardType = KeyboardType.Text,
     singleLine: Boolean = true,
     maxLines: Int = 1
@@ -306,7 +338,7 @@ fun CampoTextoModerno(
             label = { Text(label) },
             placeholder = { Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
             leadingIcon = { Icon(icon, contentDescription = null, tint = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary) },
-            trailingIcon = if (helpText != null) {
+            trailingIcon = trailingIcon ?: if (helpText != null) {
                 {
                     IconButton(onClick = { showHelp = !showHelp }) {
                         Icon(

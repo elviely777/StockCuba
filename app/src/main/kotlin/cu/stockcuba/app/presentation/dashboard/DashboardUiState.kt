@@ -51,6 +51,7 @@ sealed interface DashboardUiState {
         // Listas
         val listaProductosBajoStock: List<Producto>,
         val ventasRecientes: List<Venta> = emptyList(),
+        val ventasSemanales: List<Pair<String, Double>> = emptyList(), // Para el gráfico [Dia -> Total]
         val listaInsights: List<ProductInsight> = emptyList(),
         val eficienciaVendedores: List<VentaRepository.EficienciaVendedor> = emptyList(),
         

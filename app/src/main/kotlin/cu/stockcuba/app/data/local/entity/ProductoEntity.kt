@@ -52,6 +52,9 @@ data class ProductoEntity(
     @ColumnInfo(name = "unidad_medida")
     val unidadMedida: String, // UnidadMedida.name via TypeConverter
 
+    @ColumnInfo(name = "codigo_barras")
+    val codigoBarras: String? = null,
+
     @ColumnInfo(name = "categoria_id")
     val categoriaId: String,
 

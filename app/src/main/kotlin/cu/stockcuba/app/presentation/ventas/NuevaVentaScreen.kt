@@ -3,6 +3,7 @@ package cu.stockcuba.app.presentation.ventas
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,8 +30,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.launch
 import cu.stockcuba.app.domain.model.MetodoPago
 import cu.stockcuba.app.domain.model.Producto
+import cu.stockcuba.app.presentation.scanner.ScannerScreen
 import cu.stockcuba.app.presentation.dashboard.formatoCUP
 import cu.stockcuba.app.presentation.dashboard.formatoCantidad
 import cu.stockcuba.app.presentation.theme.Shape
@@ -45,7 +48,21 @@ fun NuevaVentaScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var showScanner by remember { mutableStateOf(false) }
     
+    if (showScanner) {
+        ScannerScreen(
+            onBarcodeScanned = { code ->
+                viewModel.buscarPorCodigoBarras(code)
+                showScanner = false
+            },
+            onClose = { showScanner = false }
+        )
+        return
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -74,7 +91,7 @@ fun NuevaVentaScreen(
         floatingActionButton = {
             if (uiState is NuevaVentaUiState.Editing) {
                 val state = uiState as NuevaVentaUiState.Editing
-                val totales = CarritoTotales.calcular(state.carrito)
+                val totales = viewModel.calcularTotales(state)
                 
                 if (state.carrito.isNotEmpty()) {
                     ExtendedFloatingActionButton(
@@ -107,14 +124,31 @@ fun NuevaVentaScreen(
             when (val state = uiState) {
                 is NuevaVentaUiState.Saving -> PantallaCargandoVenta("Registrando venta...")
                 is NuevaVentaUiState.Error -> PantallaErrorVenta(state.message, onRetry = { viewModel.cargarDatosIniciales() })
-                is NuevaVentaUiState.Saved -> PantallaExitoVenta(onContinue = onComplete)
+                is NuevaVentaUiState.Saved -> PantallaExitoVenta(
+                    ventaId = state.ventaId,
+                    onContinue = onComplete,
+                    onShareTicket = { id ->
+                        scope.launch {
+                            val uri = viewModel.generarYCompartirTicket(id)
+                            if (uri != null) {
+                                val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                    type = "application/pdf"
+                                    putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                context.startActivity(android.content.Intent.createChooser(intent, "Compartir Recibo"))
+                            }
+                        }
+                    }
+                )
                 is NuevaVentaUiState.Editing -> {
                     if (state.isLoading && state.productosDisponibles.isEmpty()) {
                         PantallaCargandoVenta("Cargando catálogo...")
                     } else {
                         NuevaVentaContenidoModerno(
                             state = state,
-                            viewModel = viewModel
+                            viewModel = viewModel,
+                            onShowScanner = { showScanner = true }
                         )
                     }
 
@@ -141,7 +175,8 @@ fun NuevaVentaScreen(
 @Composable
 fun NuevaVentaContenidoModerno(
     state: NuevaVentaUiState.Editing,
-    viewModel: NuevaVentaViewModel
+    viewModel: NuevaVentaViewModel,
+    onShowScanner: () -> Unit
 ) {
     val productosFiltrados = state.productosDisponibles.filter { 
         (it.nombre.lowercase().contains(state.query.lowercase()) || 
@@ -156,20 +191,36 @@ fun NuevaVentaContenidoModerno(
     ) {
         // --- 1. BUSCADOR ---
         item {
-            OutlinedTextField(
-                value = state.query,
-                onValueChange = { viewModel.setQuery(it) },
-                placeholder = { Text("Buscar producto...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                shape = Shape.Grande,
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    unfocusedBorderColor = Color.Transparent
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = state.query,
+                    onValueChange = { viewModel.setQuery(it) },
+                    placeholder = { Text("Buscar producto...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    modifier = Modifier.weight(1f),
+                    shape = Shape.Grande,
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        unfocusedBorderColor = Color.Transparent
+                    )
                 )
-            )
+
+                IconButton(
+                    onClick = onShowScanner,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(MaterialTheme.colorScheme.primaryContainer, Shape.Grande),
+                    colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.onPrimaryContainer)
+                ) {
+                    Icon(Icons.Default.QrCodeScanner, contentDescription = "Escanear")
+                }
+            }
         }
 
         // --- 1.5 FILTRO DE CATEGORÍAS ---
@@ -264,6 +315,61 @@ fun NuevaVentaContenidoModerno(
             }
         }
 
+        // --- 3.5 DESCUENTOS ---
+        if (state.carrito.isNotEmpty()) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = Shape.Grande,
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                ) {
+                    Column(modifier = Modifier.padding(StockCubaSpacing.Md)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.LocalOffer, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Descuento", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = state.descuento,
+                                onValueChange = { if (it.all { c -> c.isDigit() || c == '.' }) viewModel.setDescuento(it) },
+                                label = { Text("Valor") },
+                                modifier = Modifier.weight(1f),
+                                shape = Shape.Grande,
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                suffix = { Text(if (state.isDescuentoPorcentual) "%" else "CUP") }
+                            )
+                            
+                            Row(
+                                modifier = Modifier.background(MaterialTheme.colorScheme.surface, Shape.Grande).border(1.dp, MaterialTheme.colorScheme.outlineVariant, Shape.Grande),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                FilterChip(
+                                    selected = state.isDescuentoPorcentual,
+                                    onClick = { viewModel.setTipoDescuento(true) },
+                                    label = { Text("%") },
+                                    border = null,
+                                    shape = Shape.Grande,
+                                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.primary, selectedLabelColor = Color.White)
+                                )
+                                FilterChip(
+                                    selected = !state.isDescuentoPorcentual,
+                                    onClick = { viewModel.setTipoDescuento(false) },
+                                    label = { Text("$") },
+                                    border = null,
+                                    shape = Shape.Grande,
+                                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.primary, selectedLabelColor = Color.White)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // --- 4. CLIENTE ---
         if (state.carrito.isNotEmpty()) {
             item {
@@ -325,7 +431,7 @@ fun NuevaVentaContenidoModerno(
 
             // --- 6. ENTRADA DE MONTOS SEGÚN PAGO ---
             item {
-                val totales = CarritoTotales.calcular(state.carrito)
+                val totales = viewModel.calcularTotales(state)
                 
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
@@ -883,7 +989,7 @@ fun PantallaCargandoVenta(mensaje: String) {
 }
 
 @Composable
-fun PantallaExitoVenta(onContinue: () -> Unit) {
+fun PantallaExitoVenta(ventaId: String, onContinue: () -> Unit, onShareTicket: (String) -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize().padding(StockCubaSpacing.Xl),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -893,9 +999,24 @@ fun PantallaExitoVenta(onContinue: () -> Unit) {
         Spacer(Modifier.height(24.dp))
         Text("¡Venta Exitosa!", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold))
         Text("La venta ha sido registrada y el inventario actualizado.", textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        
         Spacer(Modifier.height(32.dp))
+        
+        Button(
+            onClick = { onShareTicket(ventaId) }, 
+            modifier = Modifier.fillMaxWidth().height(56.dp), 
+            shape = Shape.Grande,
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
+        ) {
+            Icon(Icons.Default.Share, null)
+            Spacer(Modifier.width(8.dp))
+            Text("Compartir Recibo (PDF)")
+        }
+
+        Spacer(Modifier.height(12.dp))
+
         Button(onClick = onContinue, modifier = Modifier.fillMaxWidth().height(56.dp), shape = Shape.Grande) {
-            Text("Continuar")
+            Text("Finalizar")
         }
     }
 }

@@ -74,6 +74,7 @@ class FormularioProductoViewModel @Inject constructor(
                             stockInicial = producto.stockActual.toString(),
                             stockMinimo = producto.stockMinimo.toString(),
                             unidadMedida = producto.unidadMedida,
+                            codigoBarras = producto.codigoBarras ?: "",
                             categoriaId = producto.categoriaId,
                             isEditing = true,
                             productoId = producto.id,
@@ -110,6 +111,7 @@ class FormularioProductoViewModel @Inject constructor(
                         "costoUnitario" -> state.copy(costoUnitario = value)
                         "stockInicial" -> state.copy(stockInicial = value)
                         "stockMinimo" -> state.copy(stockMinimo = value)
+                        "codigoBarras" -> state.copy(codigoBarras = value)
                         else -> state
                     }
                     // Limpiar error del campo al editar
@@ -264,6 +266,7 @@ class FormularioProductoViewModel @Inject constructor(
                             stockActual = currentState.stockInicial.toIntOrNull() ?: 0,
                             stockMinimo = currentState.stockMinimo.toIntOrNull() ?: 0,
                             unidadMedida = currentState.unidadMedida,
+                            codigoBarras = currentState.codigoBarras.trim().takeIf { it.isNotBlank() },
                             categoriaId = finalCategoriaId,
                             fechaCreacion = java.time.Instant.now(),
                             activo = true
@@ -300,6 +303,7 @@ class FormularioProductoViewModel @Inject constructor(
                     stockInicial = "",
                     stockMinimo = "",
                     unidadMedida = UnidadMedida.UNIDAD,
+                    codigoBarras = "",
                     categoriaId = state.categorias.firstOrNull()?.id,
                     isEditing = false,
                     productoId = null,
