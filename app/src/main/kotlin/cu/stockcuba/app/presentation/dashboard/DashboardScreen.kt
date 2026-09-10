@@ -95,14 +95,20 @@ fun DashboardScreen(
     }
 
     if (showCierreDialog && pendingCierreRange != null) {
+        val isDueno = (uiState as? DashboardUiState.Success)?.rolActual == RolUsuario.DUENO
+        
         AlertDialog(
             onDismissRequest = { showCierreDialog = false },
             title = { Text("Confirmar Cierre de ${if (pendingCierreRange == DashboardTimeRange.MES) "Mes" else "Jornada"}", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("¿Has registrado todos los gastos operativos (luz, salarios, etc.) de este periodo?")
+                    if (isDueno) {
+                        Text("¿Has registrado todos los gastos operativos (luz, salarios, etc.) de este periodo?")
+                    } else {
+                        Text("¿Confirmas que deseas finalizar la jornada y generar el reporte de ventas?")
+                    }
                     Text(
-                        "Al cerrar, se generará el reporte final y el balance quedará guardado oficialmente.",
+                        "Al cerrar, el balance quedará guardado oficialmente y no podrá ser modificado.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -132,11 +138,13 @@ fun DashboardScreen(
             },
             dismissButton = {
                 Row {
-                    TextButton(onClick = { 
-                        showCierreDialog = false
-                        onNavigateToGastos()
-                    }) {
-                        Text("Anotar Gastos")
+                    if (isDueno) {
+                        TextButton(onClick = { 
+                            showCierreDialog = false
+                            onNavigateToGastos()
+                        }) {
+                            Text("Anotar Gastos")
+                        }
                     }
                     TextButton(onClick = { showCierreDialog = false }) {
                         Text("Cancelar")
@@ -371,6 +379,7 @@ fun HeaderDashboardModerno(
     onCerrarTurno: () -> Unit
 ) {
     var showProfileMenu by remember { mutableStateOf(false) }
+    val isDueno = rolActual == RolUsuario.DUENO
 
     Column(verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
         Row(
@@ -473,17 +482,20 @@ fun HeaderDashboardModerno(
         // Selector de Rango (Chips)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Sm)) {
             items(DashboardTimeRange.entries) { range ->
-                val isSelected = currentRange == range
-                FilterChip(
-                    selected = isSelected,
-                    onClick = { onRangeChange(range) },
-                    label = { Text(range.name.lowercase().replaceFirstChar { it.uppercase() }) },
-                    shape = Shape.Full,
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primary,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                // Vendedor solo ve HOY y SEMANA para evitar cierres mensuales accidentales
+                if (isDueno || range != DashboardTimeRange.MES) {
+                    val isSelected = currentRange == range
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = { onRangeChange(range) },
+                        label = { Text(range.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                        shape = Shape.Full,
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                        )
                     )
-                )
+                }
             }
         }
     }

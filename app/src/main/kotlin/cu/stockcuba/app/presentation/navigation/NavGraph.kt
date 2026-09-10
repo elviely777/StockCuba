@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PointOfSale
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -60,6 +61,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import cu.stockcuba.app.domain.model.RolUsuario
 import cu.stockcuba.app.presentation.ajustes.AjustesScreen
 import cu.stockcuba.app.presentation.ajustes.VinculacionScreen
 import cu.stockcuba.app.presentation.clientes.ClientesScreen
@@ -304,7 +306,9 @@ fun AppNavHost() {
             // ===== Más (Ajustes, Clientes, Gastos) =====
             navigation(startDestination = Screen.Mas.route, route = "mas_root") {
                 composable(Screen.Mas.route) {
+                    val rolActual by securityViewModel.rolActual.collectAsState(RolUsuario.VENDEDOR)
                     MasScreen(
+                        rolActual = rolActual,
                         onAjustes = { navController.navigate(Screen.Ajustes.route) },
                         onClientes = { navController.navigate(Screen.Clientes.route) },
                         onGastos = { navController.navigate(Screen.Gastos.route) }
@@ -409,7 +413,14 @@ fun DetalleProductoScreen(productoId: String, onEditar: (String) -> Unit, onBack
 }
 
 @Composable
-fun MasScreen(onAjustes: () -> Unit, onClientes: () -> Unit, onGastos: () -> Unit) {
+fun MasScreen(
+    rolActual: RolUsuario,
+    onAjustes: () -> Unit, 
+    onClientes: () -> Unit, 
+    onGastos: () -> Unit
+) {
+    val isDueno = rolActual == RolUsuario.DUENO
+
     Scaffold(
         topBar = {
             Surface(
@@ -461,19 +472,22 @@ fun MasScreen(onAjustes: () -> Unit, onClientes: () -> Unit, onGastos: () -> Uni
                 
                 Spacer(Modifier.height(StockCubaSpacing.Md))
                 
-                Button(
-                    onClick = onAjustes,
-                    shape = Shape.ExtraGrande,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = StockCubaSpacing.Xl),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                ) {
-                    Icon(Icons.Default.Settings, contentDescription = null)
-                    Spacer(Modifier.size(StockCubaSpacing.Sm))
-                    Text("Ajustes")
+                if (isDueno) {
+                    Button(
+                        onClick = onAjustes,
+                        shape = Shape.ExtraGrande,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = StockCubaSpacing.Xl),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        Icon(Icons.Default.Settings, contentDescription = null)
+                        Spacer(Modifier.size(StockCubaSpacing.Sm))
+                        Text("Ajustes")
+                    }
                 }
+
                 Button(
                     onClick = onClientes,
                     shape = Shape.ExtraGrande,
@@ -488,18 +502,20 @@ fun MasScreen(onAjustes: () -> Unit, onClientes: () -> Unit, onGastos: () -> Uni
                     Text("Clientes")
                 }
 
-                Button(
-                    onClick = onGastos,
-                    shape = Shape.ExtraGrande,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = StockCubaSpacing.Xl),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                ) {
-                    Icon(Icons.Default.Payments, contentDescription = null)
-                    Spacer(Modifier.size(StockCubaSpacing.Sm))
-                    Text("Gastos Operativos")
+                if (isDueno) {
+                    Button(
+                        onClick = onGastos,
+                        shape = Shape.ExtraGrande,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = StockCubaSpacing.Xl),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        Icon(Icons.Default.Payments, contentDescription = null)
+                        Spacer(Modifier.size(StockCubaSpacing.Sm))
+                        Text("Gastos Operativos")
+                    }
                 }
             }
         }
