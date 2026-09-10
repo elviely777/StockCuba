@@ -144,8 +144,9 @@ fun NuevaVentaContenidoModerno(
     viewModel: NuevaVentaViewModel
 ) {
     val productosFiltrados = state.productosDisponibles.filter { 
-        it.nombre.lowercase().contains(state.query.lowercase()) || 
-        it.descripcion?.lowercase()?.contains(state.query.lowercase()) == true 
+        (it.nombre.lowercase().contains(state.query.lowercase()) || 
+        it.descripcion?.lowercase()?.contains(state.query.lowercase()) == true) &&
+        (state.selectedCategoryId == null || it.categoriaId == state.selectedCategoryId)
     }
 
     LazyColumn(
@@ -169,6 +170,39 @@ fun NuevaVentaContenidoModerno(
                     unfocusedBorderColor = Color.Transparent
                 )
             )
+        }
+
+        // --- 1.5 FILTRO DE CATEGORÍAS ---
+        item {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(horizontal = 4.dp)
+            ) {
+                item {
+                    FilterChip(
+                        selected = state.selectedCategoryId == null,
+                        onClick = { viewModel.setSelectedCategory(null) },
+                        label = { Text("Todos") },
+                        shape = Shape.Full
+                    )
+                }
+                items(state.categorias) { categoria ->
+                    FilterChip(
+                        selected = state.selectedCategoryId == categoria.id,
+                        onClick = { viewModel.setSelectedCategory(categoria.id) },
+                        label = { Text(categoria.nombre) },
+                        shape = Shape.Full,
+                        leadingIcon = {
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(categoria.color))
+                            )
+                        }
+                    )
+                }
+            }
         }
 
         // --- 2. SELECTOR DE PRODUCTOS (Horizontal) ---

@@ -27,7 +27,7 @@ fun validarNombre(nombre: String): Result<String> {
 fun validarTelefono(telefono: String): Result<String> {
     val trimmed = telefono.trim()
     if (trimmed.isBlank()) {
-        return Result.Failure(DomainError.ValidationError("telefono", "Formato: +53 5 XXX XXXX"))
+        return Result.Success("")
     }
     val cubanPhoneRegex = Pattern.compile("^(\\+53|53)?[0-9]{8}$")
     if (!cubanPhoneRegex.matcher(trimmed).matches()) {

@@ -27,6 +27,7 @@ import javax.inject.Inject
 class NuevaVentaViewModel @Inject constructor(
     private val productoRepository: ProductoRepository,
     private val clienteRepository: ClienteRepository,
+    private val categoriaRepository: cu.stockcuba.app.domain.repository.CategoriaRepository,
     private val registrarVentaUseCase: RegistrarVentaUseCase,
     private val ajustesDataStore: cu.stockcuba.app.presentation.ajustes.AjustesDataStore
 ) : ViewModel() {
@@ -41,6 +42,16 @@ class NuevaVentaViewModel @Inject constructor(
 
     fun cargarDatosIniciales() {
         viewModelScope.launch {
+            // Cargar categorías
+            categoriaRepository.getAll().firstOrNull()?.let { categorias ->
+                _uiState.update { state ->
+                    when (state) {
+                        is NuevaVentaUiState.Editing -> state.copy(categorias = categorias)
+                        else -> state
+                    }
+                }
+            }
+
             // Cargar productos activos
             productoRepository.getAll().firstOrNull()?.let { productos ->
                 _uiState.update { state ->
@@ -69,6 +80,15 @@ class NuevaVentaViewModel @Inject constructor(
         _uiState.update { state ->
             when (state) {
                 is NuevaVentaUiState.Editing -> state.copy(query = query)
+                else -> state
+            }
+        }
+    }
+
+    fun setSelectedCategory(categoryId: String?) {
+        _uiState.update { state ->
+            when (state) {
+                is NuevaVentaUiState.Editing -> state.copy(selectedCategoryId = categoryId)
                 else -> state
             }
         }

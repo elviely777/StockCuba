@@ -20,6 +20,8 @@ sealed interface NuevaVentaUiState {
         val idTransferencia: String = "",
         val clienteId: String? = null,
         val clientes: List<ClienteSimple> = emptyList(),
+        val categorias: List<cu.stockcuba.app.domain.model.Categoria> = emptyList(),
+        val selectedCategoryId: String? = null,
         val isLoading: Boolean = false,
         val errors: Map<String, String> = emptyMap(),
         val showSuccess: Boolean = false,

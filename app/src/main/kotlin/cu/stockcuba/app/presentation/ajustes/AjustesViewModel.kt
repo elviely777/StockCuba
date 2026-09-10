@@ -116,20 +116,24 @@ class AjustesViewModel @Inject constructor(
     }
 
     fun guardarNombreNegocio(nombre: String) {
-        val resultado = validarNombre(nombre)
         val currentState = _uiState.value as? AjustesUiState.Success ?: return
+        val resultado = validarNombre(nombre)
         
-        when (resultado) {
+        val nuevosErrores = when (resultado) {
             is Result.Success -> {
-                val nuevosErrores = currentState.validationErrors - "nombre"
-                _uiState.value = currentState.copy(validationErrors = nuevosErrores)
                 viewModelScope.launch { ajustesDataStore.guardarNombreNegocio(resultado.value) }
+                currentState.validationErrors - "nombre"
             }
             is Result.Failure -> {
-                val nuevosErrores = currentState.validationErrors + ("nombre" to resultado.error.toString())
-                _uiState.value = currentState.copy(validationErrors = nuevosErrores)
+                currentState.validationErrors + ("nombre" to resultado.error.toString())
             }
         }
+        
+        // Actualizamos el valor localmente de inmediato para evitar problemas de cursor
+        _uiState.value = currentState.copy(
+            nombreNegocio = nombre,
+            validationErrors = nuevosErrores
+        )
     }
 
     fun guardarDireccion(direccion: String) {
@@ -137,20 +141,34 @@ class AjustesViewModel @Inject constructor(
     }
 
     fun guardarTelefono(telefono: String) {
-        val resultado = validarTelefono(telefono)
         val currentState = _uiState.value as? AjustesUiState.Success ?: return
         
-        when (resultado) {
-            is Result.Success -> {
-                val nuevosErrores = currentState.validationErrors - "telefono"
-                _uiState.value = currentState.copy(validationErrors = nuevosErrores)
-                viewModelScope.launch { ajustesDataStore.guardarTelefono(resultado.value) }
-            }
+        // Filtrar para que solo entren números y el +
+        val telefonoLimpio = telefono.filter { it.isDigit() || it == '+' }
+        
+        // Siempre guardamos en el DataStore para persistencia
+        viewModelScope.launch { ajustesDataStore.guardarTelefono(telefonoLimpio) }
+        
+        val resultado = validarTelefono(telefonoLimpio)
+        val nuevosErrores = when (resultado) {
+            is Result.Success -> currentState.validationErrors - "telefono"
             is Result.Failure -> {
-                val nuevosErrores = currentState.validationErrors + ("telefono" to resultado.error.toString())
-                _uiState.value = currentState.copy(validationErrors = nuevosErrores)
+                // Solo mostramos el error si el campo no está vacío Y 
+                // ya tiene una longitud donde debería ser válido (mínimo 8 dígitos)
+                // O si tiene un formato que ya sabemos que está mal
+                if (telefonoLimpio.length >= 8) {
+                    currentState.validationErrors + ("telefono" to resultado.error.toString())
+                } else {
+                    currentState.validationErrors - "telefono"
+                }
             }
         }
+        
+        // Actualizamos el valor localmente de inmediato para evitar saltos de cursor
+        _uiState.value = currentState.copy(
+            telefono = telefonoLimpio,
+            validationErrors = nuevosErrores
+        )
     }
 
     fun guardarMoneda(moneda: Moneda) {
