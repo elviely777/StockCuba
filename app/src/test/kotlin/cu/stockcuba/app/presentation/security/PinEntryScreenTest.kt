@@ -38,7 +38,7 @@ class PinEntryScreenTest {
     @Test
     fun `PinEntryScreen - setup mode requires PIN and confirmation`() = runBlockingTest {
         // Given setup mode
-        doReturn(Result.Success(Unit)).when(securityRepository).setPin(any())
+        doReturn(Result.Success(Unit)).`when`(securityRepository).setPin(any())
         
         // When user enters PIN and confirms
         // Then securityRepository.setPin is called
@@ -49,7 +49,7 @@ class PinEntryScreenTest {
     @Test
     fun `PinEntryScreen - verify mode checks against stored PIN`() = runBlockingTest {
         // Given verify mode with existing PIN
-        doReturn(Result.Success(true)).when(securityRepository).verifyPin("1234")
+        doReturn(Result.Success(true)).`when`(securityRepository).verifyPin("1234")
         
         // When user enters correct PIN
         // Then securityRepository.verifyPin returns true

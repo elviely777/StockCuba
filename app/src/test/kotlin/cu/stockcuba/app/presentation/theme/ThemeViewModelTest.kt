@@ -31,7 +31,7 @@ class ThemeViewModelTest {
         MockitoAnnotations.openMocks(this)
 
         val temaFlow = MutableStateFlow("SYSTEM")
-        doReturn(temaFlow.asStateFlow()).when(ajustesDataStore).tema
+        doReturn(temaFlow.asStateFlow()).`when`(ajustesDataStore).tema
 
         viewModel = ThemeViewModel(ajustesDataStore)
     }
@@ -52,7 +52,7 @@ class ThemeViewModelTest {
 
         // Change to DARK via the mocked flow
         val newTemaFlow = MutableStateFlow("DARK")
-        doReturn(newTemaFlow.asStateFlow()).when(ajustesDataStore).tema
+        doReturn(newTemaFlow.asStateFlow()).`when`(ajustesDataStore).tema
         
         // Note: In real implementation, ThemeViewModel would observe the DataStore flow directly
         // This test verifies the initial mapping logic
@@ -62,7 +62,7 @@ class ThemeViewModelTest {
     @Test
     fun `ThemeViewModel mapea LIGHT string a ThemeMode.LIGHT`() = runBlockingTest {
         val temaFlow = MutableStateFlow("LIGHT")
-        doReturn(temaFlow.asStateFlow()).when(ajustesDataStore).tema
+        doReturn(temaFlow.asStateFlow()).`when`(ajustesDataStore).tema
 
         val vm = ThemeViewModel(ajustesDataStore)
         val collected = mutableListOf<ThemeMode>()
@@ -79,7 +79,7 @@ class ThemeViewModelTest {
     @Test
     fun `ThemeViewModel mapea DARK string a ThemeMode.DARK`() = runBlockingTest {
         val temaFlow = MutableStateFlow("DARK")
-        doReturn(temaFlow.asStateFlow()).when(ajustesDataStore).tema
+        doReturn(temaFlow.asStateFlow()).`when`(ajustesDataStore).tema
 
         val vm = ThemeViewModel(ajustesDataStore)
         val collected = mutableListOf<ThemeMode>()
@@ -96,7 +96,7 @@ class ThemeViewModelTest {
     @Test
     fun `ThemeViewModel usa SYSTEM como default cuando DataStore emite valor invalido`() = runBlockingTest {
         val temaFlow = MutableStateFlow("INVALID")
-        doReturn(temaFlow.asStateFlow()).when(ajustesDataStore).tema
+        doReturn(temaFlow.asStateFlow()).`when`(ajustesDataStore).tema
 
         val vm = ThemeViewModel(ajustesDataStore)
         val collected = mutableListOf<ThemeMode>()
@@ -114,7 +114,7 @@ class ThemeViewModelTest {
     @Test
     fun `ThemeViewModel reacciona a cambios en DataStore`() = runBlockingTest {
         val temaFlow = MutableStateFlow("LIGHT")
-        doReturn(temaFlow.asStateFlow()).when(ajustesDataStore).tema
+        doReturn(temaFlow.asStateFlow()).`when`(ajustesDataStore).tema
 
         val vm = ThemeViewModel(ajustesDataStore)
         val collected = mutableListOf<ThemeMode>()

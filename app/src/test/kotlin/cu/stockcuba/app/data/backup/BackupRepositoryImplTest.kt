@@ -57,7 +57,7 @@ class BackupRepositoryImplTest {
     fun setup() {
         MockitoAnnotations.openMocks(this)
         
-        doReturn(contentResolver).when(context) .contentResolver
+        doReturn(contentResolver).`when`(context).contentResolver
         
         backupRepository = BackupRepositoryImpl(context)
     }
@@ -65,11 +65,11 @@ class BackupRepositoryImplTest {
     @Test
     fun `exportDatabase - crea entrada en MediaStore con IS_PENDING=1`() = runBlockingTest {
         // Given
-        doReturn(pendingUri).when(contentResolver).insert(any(), any())
-        doReturn(outputStream).when(contentResolver).openOutputStream(pendingUri)
-        doReturn(1).when(contentResolver).update(any(), any(), any(), any())
-        doReturn(dbFile).when(context).getDatabasePath("stockcuba_db")
-        doReturn(true).when(dbFile).exists()
+        doReturn(pendingUri).`when`(contentResolver).insert(any(), any())
+        doReturn(outputStream).`when`(contentResolver).openOutputStream(pendingUri)
+        doReturn(1).`when`(contentResolver).update(any(), any(), any(), any())
+        doReturn(dbFile).`when`(context).getDatabasePath("stockcuba_db")
+        doReturn(true).`when`(dbFile).exists()
 
         // When
         val result = backupRepository.exportDatabase()
@@ -94,7 +94,7 @@ class BackupRepositoryImplTest {
     @Test
     fun `exportDatabase - falla si insert retorna null`() = runBlockingTest {
         // Given
-        doReturn(null).when(contentResolver).insert(any(), any())
+        doReturn(null).`when`(contentResolver).insert(any(), any())
 
         // When
         val result = backupRepository.exportDatabase()
@@ -108,8 +108,8 @@ class BackupRepositoryImplTest {
     @Test
     fun `exportDatabase - falla si openOutputStream lanza excepcion`() = runBlockingTest {
         // Given
-        doReturn(pendingUri).when(contentResolver).insert(any(), any())
-        doThrow(java.io.IOException("Disk full")).when(contentResolver).openOutputStream(pendingUri)
+        doReturn(pendingUri).`when`(contentResolver).insert(any(), any())
+        doThrow(java.io.IOException("Disk full")).`when`(contentResolver).openOutputStream(pendingUri)
 
         // When
         val result = backupRepository.exportDatabase()
@@ -123,16 +123,16 @@ class BackupRepositoryImplTest {
     @Test
     fun `exportDatabase - copia los 3 archivos: db, wal, shm`() = runBlockingTest {
         // Given
-        doReturn(pendingUri).when(contentResolver).insert(any(), any())
-        doReturn(outputStream).when(contentResolver).openOutputStream(pendingUri)
-        doReturn(1).when(contentResolver).update(any(), any(), any(), any())
-        doReturn(dbFile).when(context).getDatabasePath("stockcuba_db")
-        doReturn(true).when(dbFile).exists()
-        doReturn(dbDir).when(dbFile).parentFile
-        doReturn(walFile).when(dbDir, "${dbFile.name}-wal")
-        doReturn(shmFile).when(dbDir, "${dbFile.name}-shm")
-        doReturn(true).when(walFile).exists()
-        doReturn(true).when(shmFile).exists()
+        doReturn(pendingUri).`when`(contentResolver).insert(any(), any())
+        doReturn(outputStream).`when`(contentResolver).openOutputStream(pendingUri)
+        doReturn(1).`when`(contentResolver).update(any(), any(), any(), any())
+        doReturn(dbFile).`when`(context).getDatabasePath("stockcuba_db")
+        doReturn(true).`when`(dbFile).exists()
+        doReturn(dbDir).`when`(dbFile).parentFile
+        doReturn(walFile).`when`(dbDir, "${dbFile.name}-wal")
+        doReturn(shmFile).`when`(dbDir, "${dbFile.name}-shm")
+        doReturn(true).`when`(walFile).exists()
+        doReturn(true).`when`(shmFile).exists()
         
         // When
         val result = backupRepository.exportDatabase()
@@ -159,17 +159,17 @@ class BackupRepositoryImplTest {
         
         // Simulate sequential inserts returning different URIs
         var insertCall = 0
-        doReturn(mainDbUri).doReturn(walUri).doReturn(shmUri).when(contentResolver).insert(any(), any())
+        doReturn(mainDbUri).doReturn(walUri).doReturn(shmUri).`when`(contentResolver).insert(any(), any())
         
-        doReturn(outputStream).when(contentResolver).openOutputStream(any())
-        doReturn(1).when(contentResolver).update(any(), any(), any(), any())
-        doReturn(dbFile).when(context).getDatabasePath("stockcuba_db")
-        doReturn(true).when(dbFile).exists()
-        doReturn(dbDir).when(dbFile).parentFile
-        doReturn(walFile).when(dbDir, "${dbFile.name}-wal")
-        doReturn(shmFile).when(dbDir, "${dbFile.name}-shm")
-        doReturn(true).when(walFile).exists()
-        doReturn(true).when(shmFile).exists()
+        doReturn(outputStream).`when`(contentResolver).openOutputStream(any())
+        doReturn(1).`when`(contentResolver).update(any(), any(), any(), any())
+        doReturn(dbFile).`when`(context).getDatabasePath("stockcuba_db")
+        doReturn(true).`when`(dbFile).exists()
+        doReturn(dbDir).`when`(dbFile).parentFile
+        doReturn(walFile).`when`(dbDir, "${dbFile.name}-wal")
+        doReturn(shmFile).`when`(dbDir, "${dbFile.name}-shm")
+        doReturn(true).`when`(walFile).exists()
+        doReturn(true).`when`(shmFile).exists()
 
         // When
         val result = backupRepository.exportDatabase()
@@ -183,16 +183,16 @@ class BackupRepositoryImplTest {
     @Test
     fun `exportDatabase - handles missing WAL/SHM files gracefully`() = runBlockingTest {
         // Given - only main db file exists
-        doReturn(pendingUri).when(contentResolver).insert(any(), any())
-        doReturn(outputStream).when(contentResolver).openOutputStream(pendingUri)
-        doReturn(1).when(contentResolver).update(any(), any(), any(), any())
-        doReturn(dbFile).when(context).getDatabasePath("stockcuba_db")
-        doReturn(true).when(dbFile).exists()
-        doReturn(dbDir).when(dbFile).parentFile
-        doReturn(walFile).when(dbDir, "${dbFile.name}-wal")
-        doReturn(shmFile).when(dbDir, "${dbFile.name}-shm")
-        doReturn(false).when(walFile).exists()
-        doReturn(false).when(shmFile).exists()
+        doReturn(pendingUri).`when`(contentResolver).insert(any(), any())
+        doReturn(outputStream).`when`(contentResolver).openOutputStream(pendingUri)
+        doReturn(1).`when`(contentResolver).update(any(), any(), any(), any())
+        doReturn(dbFile).`when`(context).getDatabasePath("stockcuba_db")
+        doReturn(true).`when`(dbFile).exists()
+        doReturn(dbDir).`when`(dbFile).parentFile
+        doReturn(walFile).`when`(dbDir, "${dbFile.name}-wal")
+        doReturn(shmFile).`when`(dbDir, "${dbFile.name}-shm")
+        doReturn(false).`when`(walFile).exists()
+        doReturn(false).`when`(shmFile).exists()
         
         // When
         val result = backupRepository.exportDatabase()
@@ -212,16 +212,16 @@ class BackupRepositoryImplTest {
         val pendingUri1 = mock<Uri>()
         val pendingUri2 = mock<Uri>()
         
-        doReturn(pendingUri1).doReturn(pendingUri2).when(contentResolver).insert(any(), any())
-        doReturn(outputStream).doThrow(java.io.IOException("Write failed")).when(contentResolver).openOutputStream(any())
-        doReturn(1).when(contentResolver).update(any(), any(), any(), any())
-        doReturn(dbFile).when(context).getDatabasePath("stockcuba_db")
-        doReturn(true).when(dbFile).exists()
-        doReturn(dbDir).when(dbFile).parentFile
-        doReturn(walFile).when(dbDir, "${dbFile.name}-wal")
-        doReturn(shmFile).when(dbDir, "${dbFile.name}-shm")
-        doReturn(true).when(walFile).exists()
-        doReturn(true).when(shmFile).exists()
+        doReturn(pendingUri1).doReturn(pendingUri2).`when`(contentResolver).insert(any(), any())
+        doReturn(outputStream).doThrow(java.io.IOException("Write failed")).`when`(contentResolver).openOutputStream(any())
+        doReturn(1).`when`(contentResolver).update(any(), any(), any(), any())
+        doReturn(dbFile).`when`(context).getDatabasePath("stockcuba_db")
+        doReturn(true).`when`(dbFile).exists()
+        doReturn(dbDir).`when`(dbFile).parentFile
+        doReturn(walFile).`when`(dbDir, "${dbFile.name}-wal")
+        doReturn(shmFile).`when`(dbDir, "${dbFile.name}-shm")
+        doReturn(true).`when`(walFile).exists()
+        doReturn(true).`when`(shmFile).exists()
 
         // When
         val result = backupRepository.exportDatabase()

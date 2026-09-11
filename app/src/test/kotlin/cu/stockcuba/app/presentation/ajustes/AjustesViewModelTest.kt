@@ -66,25 +66,25 @@ class AjustesViewModelTest {
         val temaFlow = MutableStateFlow("SYSTEM")
         val seguridadFlow = MutableStateFlow(false)
 
-        doReturn(nombreFlow).when(ajustesDataStore).nombreNegocio
-        doReturn(direccionFlow).when(ajustesDataStore).direccion
-        doReturn(telefonoFlow).when(ajustesDataStore).telefono
-        doReturn(monedaFlow).when(ajustesDataStore).moneda
-        doReturn(impuestoFlow).when(ajustesDataStore).impuesto
-        doReturn(temaFlow).when(ajustesDataStore).tema
-        doReturn(seguridadFlow).when(ajustesDataStore).seguridadBiometrica
+        doReturn(nombreFlow).`when`(ajustesDataStore).nombreNegocio
+        doReturn(direccionFlow).`when`(ajustesDataStore).direccion
+        doReturn(telefonoFlow).`when`(ajustesDataStore).telefono
+        doReturn(monedaFlow).`when`(ajustesDataStore).moneda
+        doReturn(impuestoFlow).`when`(ajustesDataStore).impuesto
+        doReturn(temaFlow).`when`(ajustesDataStore).tema
+        doReturn(seguridadFlow).`when`(ajustesDataStore).seguridadBiometrica
 
         // Default success for save operations
-        doReturn(Result.Success(Unit)).when(ajustesDataStore).guardarNombreNegocio(any())
-        doReturn(Result.Success(Unit)).when(ajustesDataStore).guardarTelefono(any())
-        doReturn(Result.Success(Unit)).when(ajustesDataStore).guardarImpuesto(any())
-        doReturn(Result.Success(Unit)).when(ajustesDataStore).guardarTema(any())
-        doReturn(Result.Success(Unit)).when(ajustesDataStore).clearAll(any())
+        doReturn(Result.Success(Unit)).`when`(ajustesDataStore).guardarNombreNegocio(any())
+        doReturn(Result.Success(Unit)).`when`(ajustesDataStore).guardarTelefono(any())
+        doReturn(Result.Success(Unit)).`when`(ajustesDataStore).guardarImpuesto(any())
+        doReturn(Result.Success(Unit)).`when`(ajustesDataStore).guardarTema(any())
+        doReturn(Result.Success(Unit)).`when`(ajustesDataStore).clearAll(any())
 
-        doReturn(Result.Success(Unit)).when(database).clearAllTables()
+        doReturn(Result.Success(Unit)).`when`(database).clearAllTables()
 
         // Default for securityRepository.hasPin()
-        doReturn(flowOf(Result.Success(false))).when(securityRepository).hasPin()
+        doReturn(flowOf(Result.Success(false))).`when`(securityRepository).hasPin()
 
         viewModel = AjustesViewModel(ajustesDataStore, backupRepository, database, securityRepository, feedbackRepository)
         viewModel.onResetComplete = onResetComplete
@@ -234,7 +234,7 @@ class AjustesViewModelTest {
     fun `exportarBaseDatos - delega a BackupRepository y retorna Uri`() = runBlockingTest {
         // Given
         val expectedUri = mock<Uri>()
-        doReturn(Result.Success(expectedUri)).when(backupRepository).exportDatabase()
+        doReturn(Result.Success(expectedUri)).`when`(backupRepository).exportDatabase()
 
         // When
         val result = viewModel.exportarBaseDatos()
@@ -249,7 +249,7 @@ class AjustesViewModelTest {
     fun `exportarBaseDatos - propaga error si BackupRepository falla`() = runBlockingTest {
         // Given
         val error = cu.stockcuba.app.domain.model.DomainError.DatabaseError(java.io.IOException("Export failed"))
-        doReturn(Result.Failure(error)).when(backupRepository).exportDatabase()
+        doReturn(Result.Failure(error)).`when`(backupRepository).exportDatabase()
 
         // When
         val result = viewModel.exportarBaseDatos()
@@ -264,7 +264,7 @@ class AjustesViewModelTest {
     fun `importarBaseDatos - delega a BackupRepository con Uri`() = runBlockingTest {
         // Given
         val inputUri = mock<Uri>()
-        doReturn(Result.Success(Unit)).when(backupRepository).importDatabase(inputUri)
+        doReturn(Result.Success(Unit)).`when`(backupRepository).importDatabase(inputUri)
 
         // When
         val result = viewModel.importarBaseDatos(inputUri)
@@ -279,7 +279,7 @@ class AjustesViewModelTest {
         // Given
         val inputUri = mock<Uri>()
         val error = cu.stockcuba.app.domain.model.DomainError.DatabaseError(java.io.IOException("Import failed"))
-        doReturn(Result.Failure(error)).when(backupRepository).importDatabase(inputUri)
+        doReturn(Result.Failure(error)).`when`(backupRepository).importDatabase(inputUri)
 
         // When
         val result = viewModel.importarBaseDatos(inputUri)
@@ -295,7 +295,7 @@ class AjustesViewModelTest {
     @Test
     fun `sendFeedback - delega a FeedbackRepository y retorna Success`() = runBlockingTest {
         // Given
-        doReturn(Result.Success(Unit)).when(feedbackRepository).sendFeedback()
+        doReturn(Result.Success(Unit)).`when`(feedbackRepository).sendFeedback()
 
         // When
         val result = viewModel.sendFeedback()
@@ -309,7 +309,7 @@ class AjustesViewModelTest {
     fun `sendFeedback - propaga error si FeedbackRepository falla`() = runBlockingTest {
         // Given
         val error = cu.stockcuba.app.domain.model.DomainError.NotFound("email app", "No email app")
-        doReturn(Result.Failure(error)).when(feedbackRepository).sendFeedback()
+        doReturn(Result.Failure(error)).`when`(feedbackRepository).sendFeedback()
 
         // When
         val result = viewModel.sendFeedback()

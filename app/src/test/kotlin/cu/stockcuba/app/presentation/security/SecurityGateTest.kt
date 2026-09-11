@@ -41,8 +41,8 @@ class SecurityGateTest {
     @Test
     fun `SecurityGate - no PIN set, biometric disabled -> unlocked immediately`() = runBlockingTest {
         // Given
-        doReturn(Result.Success(false)).when(securityRepository).hasPin()
-        doReturn(Result.Success(false)).when(securityRepository).getBiometricEnabled()
+        doReturn(Result.Success(false)).`when`(securityRepository).hasPin()
+        doReturn(Result.Success(false)).`when`(securityRepository).getBiometricEnabled()
 
         // When / Then
         // SecurityGate should emit isUnlocked = true
@@ -53,8 +53,8 @@ class SecurityGateTest {
     @Test
     fun `SecurityGate - PIN set, biometric disabled -> shows PinEntryScreen`() = runBlockingTest {
         // Given
-        doReturn(Result.Success(true)).when(securityRepository).hasPin()
-        doReturn(Result.Success(false)).when(securityRepository).getBiometricEnabled()
+        doReturn(Result.Success(true)).`when`(securityRepository).hasPin()
+        doReturn(Result.Success(false)).`when`(securityRepository).getBiometricEnabled()
 
         // When / Then
         // SecurityGate should show PinEntryScreen in verify mode
@@ -64,8 +64,8 @@ class SecurityGateTest {
     @Test
     fun `SecurityGate - PIN set, biometric enabled -> shows BiometricPrompt first`() = runBlockingTest {
         // Given
-        doReturn(Result.Success(true)).when(securityRepository).hasPin()
-        doReturn(Result.Success(true)).when(securityRepository).getBiometricEnabled()
+        doReturn(Result.Success(true)).`when`(securityRepository).hasPin()
+        doReturn(Result.Success(true)).`when`(securityRepository).getBiometricEnabled()
 
         // When / Then
         // SecurityGate should show BiometricPrompt, on failure fallback to PinEntryScreen
@@ -75,8 +75,8 @@ class SecurityGateTest {
     @Test
     fun `SecurityGate - biometric cancel -> shows PinEntryScreen`() = runBlockingTest {
         // Given
-        doReturn(Result.Success(true)).when(securityRepository).hasPin()
-        doReturn(Result.Success(true)).when(securityRepository).getBiometricEnabled()
+        doReturn(Result.Success(true)).`when`(securityRepository).hasPin()
+        doReturn(Result.Success(true)).`when`(securityRepository).getBiometricEnabled()
 
         // When user cancels biometric
         // Then SecurityGate should show PinEntryScreen
@@ -95,8 +95,8 @@ class SecurityGateTest {
     @Test
     fun `SecurityGate - biometric success triggers onUnlocked(true)`() = runBlockingTest {
         // Given
-        doReturn(Result.Success(true)).when(securityRepository).hasPin()
-        doReturn(Result.Success(true)).when(securityRepository).getBiometricEnabled()
+        doReturn(Result.Success(true)).`when`(securityRepository).hasPin()
+        doReturn(Result.Success(true)).`when`(securityRepository).getBiometricEnabled()
         
         // When biometric authentication succeeds
         // Then onUnlocked(true) should be called
@@ -107,8 +107,8 @@ class SecurityGateTest {
     @Test
     fun `SecurityGate - biometric failure falls back to PIN entry`() = runBlockingTest {
         // Given
-        doReturn(Result.Success(true)).when(securityRepository).hasPin()
-        doReturn(Result.Success(true)).when(securityRepository).getBiometricEnabled()
+        doReturn(Result.Success(true)).`when`(securityRepository).hasPin()
+        doReturn(Result.Success(true)).`when`(securityRepository).getBiometricEnabled()
         
         // When biometric authentication fails
         // Then PinEntryScreen should be shown in Verify mode
@@ -119,8 +119,8 @@ class SecurityGateTest {
     @Test
     fun `SecurityGate - PIN verify success triggers onUnlocked(true)`() = runBlockingTest {
         // Given PIN set, biometric disabled or failed
-        doReturn(Result.Success(true)).when(securityRepository).hasPin()
-        doReturn(Result.Success(false)).when(securityRepository).getBiometricEnabled()
+        doReturn(Result.Success(true)).`when`(securityRepository).hasPin()
+        doReturn(Result.Success(false)).`when`(securityRepository).getBiometricEnabled()
         
         // When PIN is verified successfully
         // Then onUnlocked(true) should be called
@@ -131,8 +131,8 @@ class SecurityGateTest {
     @Test
     fun `SecurityGate - PIN verify failure stays on PIN entry with backoff`() = runBlockingTest {
         // Given
-        doReturn(Result.Success(true)).when(securityRepository).hasPin()
-        doReturn(Result.Success(false)).when(securityRepository).getBiometricEnabled()
+        doReturn(Result.Success(true)).`when`(securityRepository).hasPin()
+        doReturn(Result.Success(false)).`when`(securityRepository).getBiometricEnabled()
         
         // When PIN is incorrect
         // Then PinEntryScreen stays visible with backoff logic

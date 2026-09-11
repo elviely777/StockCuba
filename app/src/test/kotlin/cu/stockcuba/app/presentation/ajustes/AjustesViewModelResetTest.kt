@@ -76,25 +76,25 @@ class AjustesViewModelResetTest {
         val temaFlow = MutableStateFlow("SYSTEM")
         val seguridadFlow = MutableStateFlow(false)
 
-        doReturn(nombreFlow).when(ajustesDataStore).nombreNegocio
-        doReturn(direccionFlow).when(ajustesDataStore).direccion
-        doReturn(telefonoFlow).when(ajustesDataStore).telefono
-        doReturn(monedaFlow).when(ajustesDataStore).moneda
-        doReturn(impuestoFlow).when(ajustesDataStore).impuesto
-        doReturn(temaFlow).when(ajustesDataStore).tema
-        doReturn(seguridadFlow).when(ajustesDataStore).seguridadBiometrica
+        doReturn(nombreFlow).`when`(ajustesDataStore).nombreNegocio
+        doReturn(direccionFlow).`when`(ajustesDataStore).direccion
+        doReturn(telefonoFlow).`when`(ajustesDataStore).telefono
+        doReturn(monedaFlow).`when`(ajustesDataStore).moneda
+        doReturn(impuestoFlow).`when`(ajustesDataStore).impuesto
+        doReturn(temaFlow).`when`(ajustesDataStore).tema
+        doReturn(seguridadFlow).`when`(ajustesDataStore).seguridadBiometrica
 
         // Default success for save operations
-        doReturn(Result.Success(Unit)).when(ajustesDataStore).guardarNombreNegocio(any())
-        doReturn(Result.Success(Unit)).when(ajustesDataStore).guardarTelefono(any())
-        doReturn(Result.Success(Unit)).when(ajustesDataStore).guardarImpuesto(any())
-        doReturn(Result.Success(Unit)).when(ajustesDataStore).guardarTema(any())
-        doReturn(Result.Success(Unit)).when(ajustesDataStore).clearAll(any())
+        doReturn(Result.Success(Unit)).`when`(ajustesDataStore).guardarNombreNegocio(any())
+        doReturn(Result.Success(Unit)).`when`(ajustesDataStore).guardarTelefono(any())
+        doReturn(Result.Success(Unit)).`when`(ajustesDataStore).guardarImpuesto(any())
+        doReturn(Result.Success(Unit)).`when`(ajustesDataStore).guardarTema(any())
+        doReturn(Result.Success(Unit)).`when`(ajustesDataStore).clearAll(any())
 
-        doReturn(Result.Success(Unit)).when(database).clearAllTables()
+        doReturn(Result.Success(Unit)).`when`(database).clearAllTables()
 
         // Default for securityRepository.hasPin()
-        doReturn(flowOf(Result.Success(false))).when(securityRepository).hasPin()
+        doReturn(flowOf(Result.Success(false))).`when`(securityRepository).hasPin()
 
         viewModel = AjustesViewModel(ajustesDataStore, backupRepository, database, securityRepository, feedbackRepository)
         viewModel.onResetComplete = onResetComplete

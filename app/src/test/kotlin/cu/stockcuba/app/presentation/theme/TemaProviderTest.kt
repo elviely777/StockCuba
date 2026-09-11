@@ -35,7 +35,7 @@ class TemaProviderTest {
     fun setup() {
         MockitoAnnotations.openMocks(this)
         val temaFlow = MutableStateFlow("SYSTEM")
-        doReturn(temaFlow.asStateFlow()).when(ajustesDataStore).tema
+        doReturn(temaFlow.asStateFlow()).`when`(ajustesDataStore).tema
         testViewModel = ThemeViewModel(ajustesDataStore)
     }
 
@@ -43,7 +43,7 @@ class TemaProviderTest {
     fun `TemaProvider provee ThemeMode desde ThemeViewModel`() {
         // Change the test ViewModel's flow
         val temaFlow = MutableStateFlow("LIGHT")
-        doReturn(temaFlow.asStateFlow()).when(ajustesDataStore).tema
+        doReturn(temaFlow.asStateFlow()).`when`(ajustesDataStore).tema
         testViewModel = ThemeViewModel(ajustesDataStore)
 
         composeRule.setContent {
@@ -63,7 +63,7 @@ class TemaProviderTest {
     @Test
     fun `TemaProvider usa SYSTEM como default cuando ViewModel emite valor invalido`() {
         val temaFlow = MutableStateFlow("INVALID")
-        doReturn(temaFlow.asStateFlow()).when(ajustesDataStore).tema
+        doReturn(temaFlow.asStateFlow()).`when`(ajustesDataStore).tema
         testViewModel = ThemeViewModel(ajustesDataStore)
 
         composeRule.setContent {

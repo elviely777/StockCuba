@@ -50,7 +50,7 @@ class BiometricAuthenticatorTest {
     @Test
     fun `initialize - creates BiometricPrompt with lifecycle owner and executor`() = runBlockingTest {
         // Given
-        doReturn(executor).when(ContextCompat).getMainExecutor(context)
+        doReturn(executor).`when`(ContextCompat).getMainExecutor(context)
 
         // When
         authenticator.initialize(lifecycleOwner)
@@ -64,7 +64,7 @@ class BiometricAuthenticatorTest {
     @Test
     fun `authenticate - calls BiometricPrompt.authenticate with PromptInfo and CryptoObject`() = runBlockingTest {
         // Given
-        doReturn(executor).when(ContextCompat).getMainExecutor(context)
+        doReturn(executor).`when`(ContextCompat).getMainExecutor(context)
         authenticator.initialize(lifecycleOwner)
 
         // When
@@ -78,7 +78,7 @@ class BiometricAuthenticatorTest {
     @Test
     fun `authenticate - onAuthenticationSucceeded returns Result.Success(true) via callback`() = runBlockingTest {
         // Given
-        doReturn(executor).when(ContextCompat).getMainExecutor(context)
+        doReturn(executor).`when`(ContextCompat).getMainExecutor(context)
         authenticator.initialize(lifecycleOwner)
 
         // When
@@ -91,7 +91,7 @@ class BiometricAuthenticatorTest {
     @Test
     fun `authenticate - onAuthenticationError returns Result.Failure via callback`() = runBlockingTest {
         // Given
-        doReturn(executor).when(ContextCompat).getMainExecutor(context)
+        doReturn(executor).`when`(ContextCompat).getMainExecutor(context)
         authenticator.initialize(lifecycleOwner)
 
         // When
@@ -103,7 +103,7 @@ class BiometricAuthenticatorTest {
     @Test
     fun `authenticate - onAuthenticationFailed returns Result.Success(false) via callback`() = runBlockingTest {
         // Given
-        doReturn(executor).when(ContextCompat).getMainExecutor(context)
+        doReturn(executor).`when`(ContextCompat).getMainExecutor(context)
         authenticator.initialize(lifecycleOwner)
 
         // When
@@ -115,7 +115,7 @@ class BiometricAuthenticatorTest {
     @Test
     fun `cancel - cancels BiometricPrompt authentication`() = runBlockingTest {
         // Given
-        doReturn(executor).when(ContextCompat).getMainExecutor(context)
+        doReturn(executor).`when`(ContextCompat).getMainExecutor(context)
         authenticator.initialize(lifecycleOwner)
 
         // When

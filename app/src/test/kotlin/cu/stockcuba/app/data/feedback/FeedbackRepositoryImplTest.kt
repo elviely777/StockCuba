@@ -45,8 +45,8 @@ class FeedbackRepositoryImplTest {
     fun setup() {
         MockitoAnnotations.openMocks(this)
         
-        doReturn(packageManager).when(context).packageManager
-        doReturn("1.0.0").when(context).getString(any())
+        doReturn(packageManager).`when`(context).packageManager
+        doReturn("1.0.0").`when`(context).getString(any())
         
         repository = FeedbackRepositoryImpl(context)
     }
@@ -56,8 +56,8 @@ class FeedbackRepositoryImplTest {
         // Given
         val emailIntent = Intent(Intent.ACTION_SENDTO)
         val expectedPackages = ArrayList<ResolveInfo>().apply { add(resolveInfo) }
-        doReturn(expectedPackages).when(packageManager).queryIntentActivities(any(), any())
-        doReturn(true).when(context).getString(any())
+        doReturn(expectedPackages).`when`(packageManager).queryIntentActivities(any(), any())
+        doReturn(true).`when`(context).getString(any())
         
         // When
         val result = repository.sendFeedback()
@@ -73,8 +73,8 @@ class FeedbackRepositoryImplTest {
     fun `sendFeedback - includes app version in email body`() = runBlockingTest {
         // Given
         val expectedPackages = ArrayList<ResolveInfo>().apply { add(resolveInfo) }
-        doReturn(expectedPackages).when(packageManager).queryIntentActivities(any(), any())
-        doReturn("1.2.3").when(context).getString(any())
+        doReturn(expectedPackages).`when`(packageManager).queryIntentActivities(any(), any())
+        doReturn("1.2.3").`when`(context).getString(any())
 
         // When
         val result = repository.sendFeedback()
@@ -87,7 +87,7 @@ class FeedbackRepositoryImplTest {
     fun `sendFeedback - returns Failure when no email app available`() = runBlockingTest {
         // Given - no email apps can handle the intent
         val emptyList = ArrayList<ResolveInfo>()
-        doReturn(emptyList).when(packageManager).queryIntentActivities(any(), any())
+        doReturn(emptyList).`when`(packageManager).queryIntentActivities(any(), any())
 
         // When
         val result = repository.sendFeedback()
@@ -103,8 +103,8 @@ class FeedbackRepositoryImplTest {
     fun `sendFeedback - catches ActivityNotFoundException and returns Failure`() = runBlockingTest {
         // Given
         val expectedPackages = ArrayList<ResolveInfo>().apply { add(resolveInfo) }
-        doReturn(expectedPackages).when(packageManager).queryIntentActivities(any(), any())
-        doThrow(android.content.ActivityNotFoundException("No activity found")).when(context).startActivity(any())
+        doReturn(expectedPackages).`when`(packageManager).queryIntentActivities(any(), any())
+        doThrow(android.content.ActivityNotFoundException("No activity found")).`when`(context).startActivity(any())
 
         // When
         val result = repository.sendFeedback()
@@ -119,8 +119,8 @@ class FeedbackRepositoryImplTest {
     fun `sendFeedback - includes device model in email body`() = runBlockingTest {
         // Given
         val expectedPackages = ArrayList<ResolveInfo>().apply { add(resolveInfo) }
-        doReturn(expectedPackages).when(packageManager).queryIntentActivities(any(), any())
-        doReturn("Pixel 8").when(context).getString(any())
+        doReturn(expectedPackages).`when`(packageManager).queryIntentActivities(any(), any())
+        doReturn("Pixel 8").`when`(context).getString(any())
 
         // When
         val result = repository.sendFeedback()
@@ -133,8 +133,8 @@ class FeedbackRepositoryImplTest {
     fun `sendFeedback - includes Android version in email body`() = runBlockingTest {
         // Given
         val expectedPackages = ArrayList<ResolveInfo>().apply { add(resolveInfo) }
-        doReturn(expectedPackages).when(packageManager).queryIntentActivities(any(), any())
-        doReturn("14").when(context).getString(any())
+        doReturn(expectedPackages).`when`(packageManager).queryIntentActivities(any(), any())
+        doReturn("14").`when`(context).getString(any())
 
         // When
         val result = repository.sendFeedback()
@@ -147,7 +147,7 @@ class FeedbackRepositoryImplTest {
     fun `sendFeedback - includes theme, currency, PIN status in email body`() = runBlockingTest {
         // Given
         val expectedPackages = ArrayList<ResolveInfo>().apply { add(resolveInfo) }
-        doReturn(expectedPackages).when(packageManager).queryIntentActivities(any(), any())
+        doReturn(expectedPackages).`when`(packageManager).queryIntentActivities(any(), any())
 
         // When
         val result = repository.sendFeedback()

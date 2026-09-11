@@ -77,15 +77,15 @@ class AjustesScreenValidationTest {
         val temaFlow = MutableStateFlow("SYSTEM")
         val seguridadFlow = MutableStateFlow(false)
 
-        doReturn(nombreFlow).when(ajustesDataStore).nombreNegocio
-        doReturn(direccionFlow).when(ajustesDataStore).direccion
-        doReturn(telefonoFlow).when(ajustesDataStore).telefono
-        doReturn(monedaFlow).when(ajustesDataStore).moneda
-        doReturn(impuestoFlow).when(ajustesDataStore).impuesto
-        doReturn(temaFlow).when(ajustesDataStore).tema
-        doReturn(seguridadFlow).when(ajustesDataStore).seguridadBiometrica
-        doReturn(Result.Success(Unit)).when(ajustesDataStore).guardarNombreNegocio(any())
-        doReturn(flowOf(Result.Success(false))).when(securityRepository).hasPin()
+        doReturn(nombreFlow).`when`(ajustesDataStore).nombreNegocio
+        doReturn(direccionFlow).`when`(ajustesDataStore).direccion
+        doReturn(telefonoFlow).`when`(ajustesDataStore).telefono
+        doReturn(monedaFlow).`when`(ajustesDataStore).moneda
+        doReturn(impuestoFlow).`when`(ajustesDataStore).impuesto
+        doReturn(temaFlow).`when`(ajustesDataStore).tema
+        doReturn(seguridadFlow).`when`(ajustesDataStore).seguridadBiometrica
+        doReturn(Result.Success(Unit)).`when`(ajustesDataStore).guardarNombreNegocio(any())
+        doReturn(flowOf(Result.Success(false))).`when`(securityRepository).hasPin()
 
         val viewModel = AjustesViewModel(ajustesDataStore, backupRepository, database, securityRepository, feedbackRepository, {})
         
@@ -117,15 +117,15 @@ class AjustesScreenValidationTest {
         val temaFlow = MutableStateFlow("SYSTEM")
         val seguridadFlow = MutableStateFlow(false)
 
-        doReturn(nombreFlow).when(ajustesDataStore).nombreNegocio
-        doReturn(direccionFlow).when(ajustesDataStore).direccion
-        doReturn(telefonoFlow).when(ajustesDataStore).telefono
-        doReturn(monedaFlow).when(ajustesDataStore).moneda
-        doReturn(impuestoFlow).when(ajustesDataStore).impuesto
-        doReturn(temaFlow).when(ajustesDataStore).tema
-        doReturn(seguridadFlow).when(ajustesDataStore).seguridadBiometrica
-        doReturn(Result.Success(Unit)).when(ajustesDataStore).guardarNombreNegocio(any())
-        doReturn(flowOf(Result.Success(false))).when(securityRepository).hasPin()
+        doReturn(nombreFlow).`when`(ajustesDataStore).nombreNegocio
+        doReturn(direccionFlow).`when`(ajustesDataStore).direccion
+        doReturn(telefonoFlow).`when`(ajustesDataStore).telefono
+        doReturn(monedaFlow).`when`(ajustesDataStore).moneda
+        doReturn(impuestoFlow).`when`(ajustesDataStore).impuesto
+        doReturn(temaFlow).`when`(ajustesDataStore).tema
+        doReturn(seguridadFlow).`when`(ajustesDataStore).seguridadBiometrica
+        doReturn(Result.Success(Unit)).`when`(ajustesDataStore).guardarNombreNegocio(any())
+        doReturn(flowOf(Result.Success(false))).`when`(securityRepository).hasPin()
 
         val viewModel = AjustesViewModel(ajustesDataStore, backupRepository, database, securityRepository, feedbackRepository, {})
         
