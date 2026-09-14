@@ -49,23 +49,27 @@ class NuevaVentaViewModel @Inject constructor(
                 val usd = params[0] as Double
                 val mlc = params[1] as Double
                 val eur = params[2] as Double
-                val monedaBase = params[3] as Moneda
+                val baseCurrency = params[3] as Moneda
+                @Suppress("UNCHECKED_CAST")
                 val categorias = params[4] as List<Categoria>
+                @Suppress("UNCHECKED_CAST")
                 val productos = params[5] as List<Producto>
+                @Suppress("UNCHECKED_CAST")
                 val clientes = params[6] as List<Cliente>
 
                 val tasasMap = mapOf(
                     Moneda.USD to usd,
                     Moneda.MLC to mlc,
                     Moneda.EUR to eur,
-                    Moneda.CUP to 1.0
+                    Moneda.CUP to 1.0,
+                    Moneda.CLASICA to 1.0
                 )
                 
                 _uiState.update { state ->
                     if (state is NuevaVentaUiState.Editing) {
                         state.copy(
                             tasas = tasasMap,
-                            monedaBase = monedaBase,
+                            monedaBase = baseCurrency,
                             categorias = categorias,
                             productosDisponibles = productos.filter { it.activo && it.stockActual > 0 },
                             clientes = clientes.map { ClienteSimple(it.id, it.nombre, it.telefono) }
@@ -74,6 +78,55 @@ class NuevaVentaViewModel @Inject constructor(
                 }
             }.collect()
         }
+    }
+
+    private fun toBase(valor: Double, moneda: Moneda, state: NuevaVentaUiState.Editing): Double {
+        if (moneda == state.monedaBase) return valor
+        val tasaOrigen = state.tasas[moneda] ?: 1.0
+        val tasaDestino = state.tasas[state.monedaBase] ?: 1.0
+        return (valor * tasaOrigen) / tasaDestino
+    }
+
+    fun agregarAlCarrito(producto: Producto) {
+        _uiState.update { state ->
+            if (state !is NuevaVentaUiState.Editing) return@update state
+            
+            val existingIndex = state.carrito.indexOfFirst { it.producto.id == producto.id }
+            val newCarrito = state.carrito.toMutableList()
+
+            // El precio en el carrito SIEMPRE lo calculamos en moneda base para poder sumar totales
+            val precioEnBase = if (producto.vincularTasa) {
+                toBase(producto.precioVenta, producto.moneda, state)
+            } else {
+                // Si no está vinculado, el usuario quiere ese precio fijo, pero para el total
+                // de la venta (que es en monedaBase) tenemos que convertirlo.
+                toBase(producto.precioVenta, producto.moneda, state)
+            }
+
+            if (existingIndex >= 0) {
+                val item = newCarrito[existingIndex]
+                if (item.cantidad < item.stockDisponible) {
+                    newCarrito[existingIndex] = item.copy(cantidad = item.cantidad + 1, precioCalculado = precioEnBase)
+                }
+            } else {
+                if (producto.stockActual > 0) {
+                    newCarrito.add(CarritoItem(producto = producto, cantidad = 1, precioCalculado = precioEnBase))
+                }
+            }
+            state.copy(carrito = newCarrito)
+        }
+    }
+
+    fun calcularTotales(state: NuevaVentaUiState.Editing): CarritoTotales {
+        val base = state.carrito.sumOf { it.subtotal } // it.subtotal usa precioCalculado (moneda base)
+        val descValor = state.descuento.toDoubleOrNull() ?: 0.0
+        val descCalculado = if (state.isDescuentoPorcentual) {
+            base * (descValor / 100.0)
+        } else {
+            descValor
+        }
+        val final = (base - descCalculado).coerceAtLeast(0.0)
+        return CarritoTotales(subtotal = base, total = final)
     }
 
     fun setQuery(query: String) {
@@ -168,7 +221,7 @@ class NuevaVentaViewModel @Inject constructor(
         _uiState.update { state ->
             when (state) {
                 is NuevaVentaUiState.Editing -> {
-                    val total = CarritoTotales.calcular(state.carrito).total
+                    val total = calcularTotales(state).total
                     state.copy(
                         efectivoRecibido = total.toString(),
                         errors = state.errors - "efectivo"
@@ -282,37 +335,6 @@ class NuevaVentaViewModel @Inject constructor(
         }
     }
 
-    fun agregarAlCarrito(producto: Producto) {
-        _uiState.update { state ->
-            when (state) {
-                is NuevaVentaUiState.Editing -> {
-                    val existingIndex = state.carrito.indexOfFirst { it.producto.id == producto.id }
-                    val newCarrito = state.carrito.toMutableList()
-
-                    val precioCalculado = if (producto.vincularTasa) {
-                        val tasa = state.tasas[producto.moneda] ?: 1.0
-                        producto.precioVenta * tasa
-                    } else {
-                        null
-                    }
-
-                    if (existingIndex >= 0) {
-                        val item = newCarrito[existingIndex]
-                        if (item.cantidad < item.stockDisponible) {
-                            newCarrito[existingIndex] = item.copy(cantidad = item.cantidad + 1, precioCalculado = precioCalculado)
-                        }
-                    } else {
-                        if (producto.stockActual > 0) {
-                            newCarrito.add(CarritoItem(producto = producto, cantidad = 1, precioCalculado = precioCalculado))
-                        }
-                    }
-                    state.copy(carrito = newCarrito)
-                }
-                else -> state
-            }
-        }
-    }
-
     fun incrementarCantidad(productoId: String) {
         _uiState.update { state ->
             when (state) {
@@ -371,18 +393,6 @@ class NuevaVentaViewModel @Inject constructor(
                 else -> state
             }
         }
-    }
-
-    fun calcularTotales(state: NuevaVentaUiState.Editing): CarritoTotales {
-        val base = state.carrito.sumOf { it.subtotal }
-        val descValor = state.descuento.toDoubleOrNull() ?: 0.0
-        val descCalculado = if (state.isDescuentoPorcentual) {
-            base * (descValor / 100.0)
-        } else {
-            descValor
-        }
-        val final = (base - descCalculado).coerceAtLeast(0.0)
-        return CarritoTotales(subtotal = base, total = final)
     }
 
     fun confirmarVenta() {

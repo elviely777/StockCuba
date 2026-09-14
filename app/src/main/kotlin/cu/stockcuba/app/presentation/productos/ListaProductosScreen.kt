@@ -431,7 +431,7 @@ fun ProductoCardModerno(
             ) {
                 if (!producto.imagenUrl.isNullOrBlank()) {
                     AsyncImage(
-                        model = producto.imagenUrl,
+                        model = if (producto.imagenUrl.startsWith("/")) java.io.File(producto.imagenUrl) else producto.imagenUrl,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,

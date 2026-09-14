@@ -744,7 +744,7 @@ fun SeccionImagenProducto(
                 val displayUri = selectedImageUri ?: imagenUrl
                 if (displayUri != null) {
                     AsyncImage(
-                        model = displayUri,
+                        model = if (displayUri.startsWith("/")) java.io.File(displayUri) else displayUri,
                         contentDescription = "Imagen del producto",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop

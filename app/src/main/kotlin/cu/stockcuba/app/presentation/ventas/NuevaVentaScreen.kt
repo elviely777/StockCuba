@@ -278,7 +278,8 @@ fun NuevaVentaContenidoModerno(
                     ProductoVentaCard(
                         producto = producto,
                         onClick = { viewModel.agregarAlCarrito(producto) },
-                        tasas = state.tasas
+                        tasas = state.tasas,
+                        monedaBase = state.monedaBase
                     )
                 }
                 if (productosFiltrados.isEmpty()) {
@@ -575,16 +576,16 @@ fun NuevaVentaContenidoModerno(
 fun ProductoVentaCard(
     producto: Producto, 
     onClick: () -> Unit,
-    tasas: Map<cu.stockcuba.app.domain.model.Moneda, Double> = emptyMap()
+    tasas: Map<cu.stockcuba.app.domain.model.Moneda, Double> = emptyMap(),
+    monedaBase: cu.stockcuba.app.domain.model.Moneda = cu.stockcuba.app.domain.model.Moneda.CUP
 ) {
     // Cálculo de precio según moneda y tasa (similar a ListaProductos)
-    val precioDisplay = if (producto.vincularTasa) {
-        val tasa = tasas[producto.moneda] ?: 1.0
-        val enCUP = producto.precioVenta * tasa
-        enCUP.formatoCUP()
-    } else {
-        "%,.2f ${producto.moneda.name}".format(java.util.Locale.US, producto.precioVenta)
-    }
+    val precioDisplay = producto.precioVenta.formatoAuto(
+        moneda = producto.moneda,
+        vinculado = producto.vincularTasa,
+        tasa = tasas[producto.moneda] ?: 1.0,
+        monedaBase = monedaBase
+    )
 
     Card(
         modifier = Modifier
