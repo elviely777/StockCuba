@@ -47,6 +47,8 @@ sealed interface FormularioProductoUiState {
         val errors: Map<String, String> = emptyMap(),
         val isEditing: Boolean = false,
         val productoId: String? = null,
+        val imagenUrl: String? = null,
+        val selectedImageUri: String? = null, // URI local temporal
         val nuevaCategoriaNombre: String = "",
         val esNuevaCategoria: Boolean = false
     ) : FormularioProductoUiState

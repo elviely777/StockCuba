@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -28,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import cu.stockcuba.app.domain.model.Categoria
 import cu.stockcuba.app.domain.model.Producto
 import cu.stockcuba.app.presentation.dashboard.formatoCUP
@@ -310,6 +312,31 @@ fun ProductoCardModerno(
                     .width(6.dp)
                     .background(categoriaColor)
             )
+
+            // Miniatura de Imagen
+            Box(
+                modifier = Modifier
+                    .padding(start = StockCubaSpacing.Md, top = StockCubaSpacing.Md, bottom = StockCubaSpacing.Md)
+                    .size(64.dp)
+                    .clip(Shape.Mediano)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                if (producto.imagenUrl != null) {
+                    AsyncImage(
+                        model = producto.imagenUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.Image,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                }
+            }
 
             Column(
                 modifier = Modifier.padding(StockCubaSpacing.Md).weight(1f),

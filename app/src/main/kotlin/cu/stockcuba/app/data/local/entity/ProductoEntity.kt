@@ -58,6 +58,9 @@ data class ProductoEntity(
     @ColumnInfo(name = "categoria_id")
     val categoriaId: String,
 
+    @ColumnInfo(name = "imagen_url")
+    val imagenUrl: String? = null,
+
     @ColumnInfo(name = "fecha_creacion")
     val fechaCreacion: Long, // Instant epoch millis via TypeConverter
 

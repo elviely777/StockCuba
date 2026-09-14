@@ -13,6 +13,7 @@ data class Producto(
     val stockMinimo: Int,
     val unidadMedida: UnidadMedida,
     val codigoBarras: String? = null,
+    val imagenUrl: String? = null,
     val categoriaId: String,
     val fechaCreacion: Instant,
     val activo: Boolean = true,

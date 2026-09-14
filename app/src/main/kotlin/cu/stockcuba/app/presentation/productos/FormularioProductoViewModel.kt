@@ -8,9 +8,14 @@ import cu.stockcuba.app.domain.model.Result
 import cu.stockcuba.app.domain.model.UnidadMedida
 import cu.stockcuba.app.domain.repository.CategoriaRepository
 import cu.stockcuba.app.domain.repository.ProductoRepository
+import cu.stockcuba.app.domain.repository.StorageRepository
 import cu.stockcuba.app.domain.usecase.CrearProductoUseCase
 import cu.stockcuba.app.domain.usecase.ActualizarProductoUseCase
+import android.content.Context
+import androidx.core.content.FileProvider
+import java.io.File
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -23,8 +28,10 @@ import javax.inject.Inject
 
 @HiltViewModel
 class FormularioProductoViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val productoRepository: ProductoRepository,
     private val categoriaRepository: CategoriaRepository,
+    private val storageRepository: StorageRepository,
     private val crearProductoUseCase: CrearProductoUseCase,
     private val actualizarProductoUseCase: ActualizarProductoUseCase
 ) : ViewModel() {
@@ -79,6 +86,7 @@ class FormularioProductoViewModel @Inject constructor(
                             categoriaId = producto.categoriaId,
                             isEditing = true,
                             productoId = producto.id,
+                            imagenUrl = producto.imagenUrl,
                             isLoading = false
                         )
                         else -> state
@@ -147,6 +155,32 @@ class FormularioProductoViewModel @Inject constructor(
                 is FormularioProductoUiState.Editing -> state.copy(vincularTasa = vincular)
                 else -> state
             }
+        }
+    }
+
+    fun updateImage(uri: String?) {
+        _uiState.update { state ->
+            when (state) {
+                is FormularioProductoUiState.Editing -> state.copy(selectedImageUri = uri)
+                else -> state
+            }
+        }
+    }
+
+    /**
+     * Crea un URI temporal para capturar una foto con la cámara.
+     */
+    fun getTempCameraUri(): android.net.Uri? {
+        return try {
+            val directory = File(context.cacheDir, "product_images").apply { mkdirs() }
+            val file = File.createTempFile("camera_capture_", ".jpg", directory)
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+        } catch (e: Exception) {
+            null
         }
     }
 
@@ -266,6 +300,21 @@ class FormularioProductoViewModel @Inject constructor(
                             }
                         }
 
+                        // Si hay una nueva imagen seleccionada, subirla
+                        var imagenUrlFinal = currentState.imagenUrl
+                        if (currentState.selectedImageUri != null) {
+                            val bytes = getBytesFromUri(currentState.selectedImageUri)
+                            if (bytes != null) {
+                                val fileName = "prod_${UUID.randomUUID()}.jpg"
+                                val uploadResult = storageRepository.uploadFile(bytes, "product-images", fileName)
+                                if (uploadResult is Result.Success) {
+                                    imagenUrlFinal = uploadResult.value
+                                }
+                                // Si falla la subida, continuamos con la URL vieja o null, 
+                                // pero podríamos mostrar un error si es crítico.
+                            }
+                        }
+
                         val producto = Producto(
                             id = currentState.productoId ?: UUID.randomUUID().toString(),
                             nombre = currentState.nombre.trim(),
@@ -278,6 +327,7 @@ class FormularioProductoViewModel @Inject constructor(
                             unidadMedida = currentState.unidadMedida,
                             codigoBarras = currentState.codigoBarras.trim().takeIf { it.isNotBlank() },
                             categoriaId = finalCategoriaId,
+                            imagenUrl = imagenUrlFinal,
                             fechaCreacion = java.time.Instant.now(),
                             activo = true,
                             vincularTasa = currentState.vincularTasa
@@ -317,12 +367,24 @@ class FormularioProductoViewModel @Inject constructor(
                     codigoBarras = "",
                     vincularTasa = false,
                     categoriaId = state.categorias.firstOrNull()?.id,
+                    imagenUrl = null,
+                    selectedImageUri = null,
                     isEditing = false,
                     productoId = null,
                     errors = emptyMap()
                 )
                 else -> FormularioProductoUiState.Editing()
             }
+        }
+    }
+
+    private fun getBytesFromUri(uri: String): ByteArray? {
+        return try {
+            context.contentResolver.openInputStream(android.net.Uri.parse(uri))?.use {
+                it.readBytes()
+            }
+        } catch (e: Exception) {
+            null
         }
     }
 }

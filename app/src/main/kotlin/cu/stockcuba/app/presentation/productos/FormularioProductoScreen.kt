@@ -1,8 +1,11 @@
 package cu.stockcuba.app.presentation.productos
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,14 +20,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import cu.stockcuba.app.domain.model.Categoria
 import cu.stockcuba.app.domain.model.Moneda
 import cu.stockcuba.app.domain.model.UnidadMedida
@@ -136,6 +144,16 @@ fun FormularioContenido(
         contentPadding = PaddingValues(StockCubaSpacing.Lg),
         verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Lg)
     ) {
+        // --- SECCIÓN 0: IMAGEN ---
+        item {
+            SeccionImagenProducto(
+                imagenUrl = state.imagenUrl,
+                selectedImageUri = state.selectedImageUri,
+                onImageSelected = { viewModel.updateImage(it) },
+                viewModel = viewModel
+            )
+        }
+
         // --- SECCIÓN 1: IDENTIDAD ---
         item {
             SeccionFormulario(titulo = "Información General", icono = Icons.AutoMirrored.Filled.Label) {
@@ -561,6 +579,169 @@ fun PantallaError(mensaje: String, onRetry: () -> Unit) {
         Spacer(Modifier.height(24.dp))
         OutlinedButton(onClick = onRetry, modifier = Modifier.fillMaxWidth().height(56.dp), shape = Shape.Grande) {
             Text("Reintentar")
+        }
+    }
+}
+
+@Composable
+fun SeccionImagenProducto(
+    imagenUrl: String?,
+    selectedImageUri: String?,
+    onImageSelected: (String?) -> Unit,
+    viewModel: FormularioProductoViewModel
+) {
+    val context = LocalContext.current
+    var showDialog by remember { mutableStateOf(false) }
+    var tempUri by remember { mutableStateOf<android.net.Uri?>(null) }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { onImageSelected(it.toString()) }
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && tempUri != null) {
+            onImageSelected(tempUri.toString())
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            tempUri = viewModel.getTempCameraUri()
+            tempUri?.let { cameraLauncher.launch(it) }
+        }
+    }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text("Origen de la imagen", fontWeight = FontWeight.Bold) },
+            text = { Text("Selecciona cómo quieres añadir la foto del producto.") },
+            confirmButton = {},
+            dismissButton = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    TextButton(
+                        onClick = {
+                            val hasPermission = ContextCompat.checkSelfPermission(
+                                context,
+                                android.Manifest.permission.CAMERA
+                            ) == PackageManager.PERMISSION_GRANTED
+                            
+                            if (hasPermission) {
+                                tempUri = viewModel.getTempCameraUri()
+                                tempUri?.let { cameraLauncher.launch(it) }
+                            } else {
+                                permissionLauncher.launch(android.Manifest.permission.CAMERA)
+                            }
+                            showDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.PhotoCamera, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Cámara")
+                    }
+                    TextButton(
+                        onClick = {
+                            galleryLauncher.launch("image/*")
+                            showDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.PhotoLibrary, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Galería")
+                    }
+                }
+            },
+            shape = Shape.Grande
+        )
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = Shape.Grande,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+    ) {
+        Column(
+            modifier = Modifier.padding(StockCubaSpacing.Lg),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Image, contentDescription = null, tint = StockCubaColors.VerdeExito, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Imagen del Producto", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold))
+            }
+            
+            Spacer(Modifier.height(StockCubaSpacing.Md))
+
+            Box(
+                modifier = Modifier
+                    .size(160.dp)
+                    .clip(Shape.Grande)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { showDialog = true }
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, Shape.Grande),
+                contentAlignment = Alignment.Center
+            ) {
+                val displayUri = selectedImageUri ?: imagenUrl
+                if (displayUri != null) {
+                    AsyncImage(
+                        model = displayUri,
+                        contentDescription = "Imagen del producto",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                    
+                    // Botón para quitar imagen
+                    Box(
+                        modifier = Modifier.fillMaxSize().padding(8.dp),
+                        contentAlignment = Alignment.TopEnd
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(32.dp).clickable { onImageSelected(null) },
+                            shape = Shape.Full,
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = "Quitar", modifier = Modifier.padding(4.dp))
+                        }
+                    }
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.AddAPhoto, 
+                            contentDescription = null, 
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "Añadir Foto", 
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+            }
+            
+            if (selectedImageUri != null) {
+                Text(
+                    "Imagen seleccionada (se subirá al guardar)",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = StockCubaColors.VerdeExito,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
         }
     }
 }
