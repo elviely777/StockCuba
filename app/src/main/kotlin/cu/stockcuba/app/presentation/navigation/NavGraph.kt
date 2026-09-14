@@ -63,6 +63,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import cu.stockcuba.app.domain.model.RolUsuario
 import cu.stockcuba.app.presentation.ajustes.AjustesScreen
+import cu.stockcuba.app.presentation.ajustes.GestionCategoriasScreen
 import cu.stockcuba.app.presentation.ajustes.VinculacionScreen
 import cu.stockcuba.app.presentation.clientes.ClientesScreen
 import cu.stockcuba.app.presentation.dashboard.DashboardScreen
@@ -331,6 +332,14 @@ fun AppNavHost() {
                         onUnlocked = { /* unlocked */ }
                     ) {
                         AjustesScreen(onBack = { navController.popBackStack() }, navController = navController)
+                    }
+                }
+                composable(Screen.Categorias.route) {
+                    SecurityGate(
+                        securityRepository = securityRepository,
+                        onUnlocked = { /* unlocked */ }
+                    ) {
+                        GestionCategoriasScreen(onBack = { navController.popBackStack() })
                     }
                 }
                 composable(Screen.VinculacionNegocio.route) {

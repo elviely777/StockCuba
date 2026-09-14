@@ -14,8 +14,14 @@ sealed interface ListaProductosUiState {
         val categorias: List<Categoria>,
         val query: String = "",
         val categoriaSeleccionada: String? = null,
+        val tasas: Map<Moneda, Double> = emptyMap(),
+        val monedaBase: Moneda = Moneda.CUP,
+        val selectedProductIds: Set<String> = emptySet(),
         val isLoading: Boolean = false
-    ) : ListaProductosUiState
+    ) : ListaProductosUiState {
+        val isSelectionMode: Boolean
+            get() = selectedProductIds.isNotEmpty()
+    }
 
     data object Loading : ListaProductosUiState
 
@@ -56,6 +62,8 @@ sealed interface FormularioProductoUiState {
     data object Saving : FormularioProductoUiState
 
     data object Saved : FormularioProductoUiState
+
+    data object Deleted : FormularioProductoUiState
 
     data class Error(val message: String) : FormularioProductoUiState
 }

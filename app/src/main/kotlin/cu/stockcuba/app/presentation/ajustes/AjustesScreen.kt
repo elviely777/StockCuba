@@ -153,6 +153,9 @@ fun AjustesScreen(
                         onNavigateToVinculacion = {
                             navController.navigate(Screen.VinculacionNegocio.route)
                         },
+                        onNavigateToCategorias = {
+                            navController.navigate(Screen.Categorias.route)
+                        },
                         onMonedaClick = { showMonedaDialog = true },
                         onPrinterClick = {
                             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
@@ -293,6 +296,7 @@ fun AjustesContenidoModerno(
     onFeedback: () -> Unit,
     onSembrar: () -> Unit,
     onNavigateToVinculacion: () -> Unit,
+    onNavigateToCategorias: () -> Unit,
     onMonedaClick: () -> Unit,
     onPrinterClick: () -> Unit
 ) {
@@ -365,6 +369,16 @@ fun AjustesContenidoModerno(
                     },
                     icon = Icons.Default.MonetizationOn,
                     onClick = onMonedaClick
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+
+                FilaAccionAjuste(
+                    titulo = "Categorías de Productos",
+                    subtitulo = "Gestionar, añadir o eliminar categorías",
+                    icon = Icons.Default.Category,
+                    color = MaterialTheme.colorScheme.primary,
+                    onClick = onNavigateToCategorias
                 )
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))

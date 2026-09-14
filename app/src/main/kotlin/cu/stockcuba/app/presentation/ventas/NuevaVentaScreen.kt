@@ -35,6 +35,8 @@ import cu.stockcuba.app.domain.model.MetodoPago
 import cu.stockcuba.app.domain.model.Producto
 import cu.stockcuba.app.presentation.scanner.ScannerScreen
 import cu.stockcuba.app.presentation.dashboard.formatoCUP
+import cu.stockcuba.app.presentation.dashboard.formatoMoneda
+import cu.stockcuba.app.presentation.dashboard.formatoAuto
 import cu.stockcuba.app.presentation.dashboard.formatoCantidad
 import cu.stockcuba.app.presentation.theme.Shape
 import cu.stockcuba.app.presentation.theme.StockCubaColors
@@ -109,7 +111,7 @@ fun NuevaVentaScreen(
                                 Icon(Icons.Default.Check, contentDescription = null)
                                 Spacer(Modifier.width(12.dp))
                                 Text(
-                                    text = "Vender • ${totales.total.formatoCUP()}",
+                                    text = "Vender • ${totales.total.formatoMoneda((uiState as NuevaVentaUiState.Editing).monedaBase)}",
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                                 )
                             }
@@ -275,7 +277,8 @@ fun NuevaVentaContenidoModerno(
                 items(productosFiltrados) { producto ->
                     ProductoVentaCard(
                         producto = producto,
-                        onClick = { viewModel.agregarAlCarrito(producto) }
+                        onClick = { viewModel.agregarAlCarrito(producto) },
+                        tasas = state.tasas
                     )
                 }
                 if (productosFiltrados.isEmpty()) {
@@ -569,7 +572,20 @@ fun NuevaVentaContenidoModerno(
 }
 
 @Composable
-fun ProductoVentaCard(producto: Producto, onClick: () -> Unit) {
+fun ProductoVentaCard(
+    producto: Producto, 
+    onClick: () -> Unit,
+    tasas: Map<cu.stockcuba.app.domain.model.Moneda, Double> = emptyMap()
+) {
+    // Cálculo de precio según moneda y tasa (similar a ListaProductos)
+    val precioDisplay = if (producto.vincularTasa) {
+        val tasa = tasas[producto.moneda] ?: 1.0
+        val enCUP = producto.precioVenta * tasa
+        enCUP.formatoCUP()
+    } else {
+        "%,.2f ${producto.moneda.name}".format(java.util.Locale.US, producto.precioVenta)
+    }
+
     Card(
         modifier = Modifier
             .width(140.dp)
@@ -591,7 +607,7 @@ fun ProductoVentaCard(producto: Producto, onClick: () -> Unit) {
             )
             Column {
                 Text(
-                    producto.precioVenta.formatoCUP(),
+                    precioDisplay,
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -623,7 +639,11 @@ fun ItemCarritoCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(item.producto.nombre, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
-                Text(item.precioUnitario.formatoCUP(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = item.precioUnitario.formatoAuto(item.producto.moneda, item.producto.vincularTasa), 
+                    style = MaterialTheme.typography.bodySmall, 
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
             
             Row(

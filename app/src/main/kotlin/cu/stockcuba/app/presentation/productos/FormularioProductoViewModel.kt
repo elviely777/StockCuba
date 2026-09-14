@@ -300,18 +300,14 @@ class FormularioProductoViewModel @Inject constructor(
                             }
                         }
 
-                        // Si hay una nueva imagen seleccionada, subirla
+                        // ESTRATEGIA LOCAL-FIRST: Guardar imagen localmente para disponibilidad inmediata
                         var imagenUrlFinal = currentState.imagenUrl
                         if (currentState.selectedImageUri != null) {
-                            val bytes = getBytesFromUri(currentState.selectedImageUri)
-                            if (bytes != null) {
-                                val fileName = "prod_${UUID.randomUUID()}.jpg"
-                                val uploadResult = storageRepository.uploadFile(bytes, "product-images", fileName)
-                                if (uploadResult is Result.Success) {
-                                    imagenUrlFinal = uploadResult.value
-                                }
-                                // Si falla la subida, continuamos con la URL vieja o null, 
-                                // pero podríamos mostrar un error si es crítico.
+                            val fileName = "prod_${UUID.randomUUID()}.jpg"
+                            val localFile = saveImageLocally(currentState.selectedImageUri, fileName)
+                            if (localFile != null) {
+                                // Usamos el path local de inmediato para que salga "directo"
+                                imagenUrlFinal = localFile.absolutePath
                             }
                         }
 
@@ -333,10 +329,16 @@ class FormularioProductoViewModel @Inject constructor(
                             vincularTasa = currentState.vincularTasa
                         )
 
+                        // Guardar en la DB local primero (con la ruta de la imagen local)
                         val result = if (currentState.isEditing) {
                             actualizarProductoUseCase(producto)
                         } else {
                             crearProductoUseCase(producto)
+                        }
+
+                        // Sincronización en segundo plano con Supabase
+                        if (currentState.selectedImageUri != null && result is Result.Success) {
+                            subirImagenEnSegundoPlano(producto)
                         }
 
                         _uiState.update { _ ->
@@ -348,6 +350,67 @@ class FormularioProductoViewModel @Inject constructor(
                     }
                 }
                 else -> Unit
+            }
+        }
+    }
+
+    private fun saveImageLocally(uriString: String, fileName: String): File? {
+        return try {
+            val directory = File(context.filesDir, "product_images").apply { mkdirs() }
+            val destFile = File(directory, fileName)
+            val uri = android.net.Uri.parse(uriString)
+            
+            // Si la URI ya es un path local del sistema, solo la usamos
+            if (uriString.startsWith("/")) {
+                val sourceFile = File(uriString)
+                if (sourceFile.exists()) {
+                    sourceFile.copyTo(destFile, overwrite = true)
+                    return destFile
+                }
+            }
+
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                destFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            destFile
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun subirImagenEnSegundoPlano(producto: Producto) {
+        viewModelScope.launch {
+            val localPath = producto.imagenUrl ?: return@launch
+            if (!localPath.startsWith("/")) return@launch // Solo subir si es path local
+
+            val file = File(localPath)
+            if (file.exists()) {
+                val bytes = file.readBytes()
+                val fileName = file.name
+                val uploadResult = storageRepository.uploadFile(bytes, "product-images", fileName)
+                
+                if (uploadResult is Result.Success) {
+                    // Actualizar el producto con la URL de la nube (opcional, para multi-dispositivo)
+                    val productoActualizado = producto.copy(imagenUrl = uploadResult.value)
+                    actualizarProductoUseCase(productoActualizado)
+                }
+            }
+        }
+    }
+
+    fun eliminar() {
+        val productoId = (uiState.value as? FormularioProductoUiState.Editing)?.productoId ?: return
+        
+        viewModelScope.launch {
+            _uiState.update { FormularioProductoUiState.Saving }
+            val result = productoRepository.deleteById(productoId)
+            _uiState.update { 
+                when (result) {
+                    is Result.Success -> FormularioProductoUiState.Deleted
+                    is Result.Failure -> FormularioProductoUiState.Error("No se pudo eliminar el producto")
+                }
             }
         }
     }

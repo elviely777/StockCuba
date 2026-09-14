@@ -3,24 +3,14 @@ package cu.stockcuba.app.presentation.ventas
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import android.net.Uri
-import cu.stockcuba.app.domain.model.Cliente
-import cu.stockcuba.app.domain.model.DomainError
-import cu.stockcuba.app.domain.model.MetodoPago
-import cu.stockcuba.app.domain.model.Producto
-import cu.stockcuba.app.domain.model.Result
-import cu.stockcuba.app.domain.model.Venta
-import cu.stockcuba.app.domain.model.VentaItem
+import cu.stockcuba.app.domain.model.*
 import cu.stockcuba.app.domain.repository.ClienteRepository
 import cu.stockcuba.app.domain.repository.ProductoRepository
 import cu.stockcuba.app.domain.usecase.RegistrarVentaUseCase
 import cu.stockcuba.app.presentation.dashboard.formatoCUP
+import cu.stockcuba.app.presentation.dashboard.formatoMoneda
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
@@ -47,60 +37,42 @@ class NuevaVentaViewModel @Inject constructor(
 
     fun cargarDatosIniciales() {
         viewModelScope.launch {
-            // Cargar tasas de cambio
-            kotlinx.coroutines.flow.combine(
+            combine(
                 ajustesDataStore.tasaUSD,
                 ajustesDataStore.tasaMLC,
-                ajustesDataStore.tasaEUR
-            ) { usd, mlc, eur ->
-                mapOf(
-                    cu.stockcuba.app.domain.model.Moneda.USD to usd,
-                    cu.stockcuba.app.domain.model.Moneda.MLC to mlc,
-                    cu.stockcuba.app.domain.model.Moneda.EUR to eur,
-                    cu.stockcuba.app.domain.model.Moneda.CUP to 1.0
+                ajustesDataStore.tasaEUR,
+                ajustesDataStore.moneda,
+                categoriaRepository.getAll(),
+                productoRepository.getAll(),
+                clienteRepository.getActivos()
+            ) { params: Array<Any> ->
+                val usd = params[0] as Double
+                val mlc = params[1] as Double
+                val eur = params[2] as Double
+                val monedaBase = params[3] as Moneda
+                val categorias = params[4] as List<Categoria>
+                val productos = params[5] as List<Producto>
+                val clientes = params[6] as List<Cliente>
+
+                val tasasMap = mapOf(
+                    Moneda.USD to usd,
+                    Moneda.MLC to mlc,
+                    Moneda.EUR to eur,
+                    Moneda.CUP to 1.0
                 )
-            }.collect { tasas ->
+                
                 _uiState.update { state ->
-                    when (state) {
-                        is NuevaVentaUiState.Editing -> state.copy(tasas = tasas)
-                        else -> state
-                    }
-                }
-            }
-        }
-
-        viewModelScope.launch {
-            // Cargar categorías
-            categoriaRepository.getAll().firstOrNull()?.let { categorias ->
-                _uiState.update { state ->
-                    when (state) {
-                        is NuevaVentaUiState.Editing -> state.copy(categorias = categorias)
-                        else -> state
-                    }
-                }
-            }
-
-            // Cargar productos activos
-            productoRepository.getAll().firstOrNull()?.let { productos ->
-                _uiState.update { state ->
-                    when (state) {
-                        is NuevaVentaUiState.Editing -> state.copy(productosDisponibles = productos.filter { it.activo && it.stockActual > 0 })
-                        else -> state
-                    }
-                }
-            }
-
-            // Cargar clientes
-            clienteRepository.getActivos().firstOrNull()?.let { clientes ->
-                _uiState.update { state ->
-                    when (state) {
-                        is NuevaVentaUiState.Editing -> state.copy(
+                    if (state is NuevaVentaUiState.Editing) {
+                        state.copy(
+                            tasas = tasasMap,
+                            monedaBase = monedaBase,
+                            categorias = categorias,
+                            productosDisponibles = productos.filter { it.activo && it.stockActual > 0 },
                             clientes = clientes.map { ClienteSimple(it.id, it.nombre, it.telefono) }
                         )
-                        else -> state
-                    }
+                    } else state
                 }
-            }
+            }.collect()
         }
     }
 
@@ -119,7 +91,6 @@ class NuevaVentaViewModel @Inject constructor(
         if (producto != null) {
             agregarAlCarrito(producto)
         } else {
-            // Podríamos mostrar un error en el futuro si el código no existe
             setQuery(codigo)
         }
     }
@@ -241,12 +212,11 @@ class NuevaVentaViewModel @Inject constructor(
                 showNuevoClienteDialog = true,
                 editingClienteId = clienteId,
                 nuevoClienteNombre = cliente.nombre,
-                nuevoClienteCI = "", // El CI no está en ClienteSimple, tendré que buscarlo o ignorarlo
+                nuevoClienteCI = "",
                 nuevoClienteTelefono = cliente.telefono ?: ""
             )
         }
         
-        // Cargar el CI real desde el repositorio
         viewModelScope.launch {
             clienteRepository.getByIdSync(clienteId).onSuccess { fullCliente ->
                 _uiState.update { state ->
@@ -305,7 +275,6 @@ class NuevaVentaViewModel @Inject constructor(
             }
 
             result.onSuccess {
-                // Actualizar lista de clientes y seleccionar el nuevo
                 cargarDatosIniciales()
                 setCliente(cliente.id)
                 setShowNuevoClienteDialog(false)
@@ -313,9 +282,6 @@ class NuevaVentaViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Agrega producto al carrito o incrementa cantidad.
-     */
     fun agregarAlCarrito(producto: Producto) {
         _uiState.update { state ->
             when (state) {
@@ -347,9 +313,6 @@ class NuevaVentaViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Incrementa cantidad de un item en el carrito.
-     */
     fun incrementarCantidad(productoId: String) {
         _uiState.update { state ->
             when (state) {
@@ -368,9 +331,6 @@ class NuevaVentaViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Decrementa cantidad de un item en el carrito.
-     */
     fun decrementarCantidad(productoId: String) {
         _uiState.update { state ->
             when (state) {
@@ -380,7 +340,7 @@ class NuevaVentaViewModel @Inject constructor(
                             if (item.cantidad > 1) {
                                 item.copy(cantidad = item.cantidad - 1)
                             } else {
-                                null // Se eliminará en el filter
+                                null
                             }
                         } else {
                             item
@@ -393,9 +353,6 @@ class NuevaVentaViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Elimina item del carrito.
-     */
     fun eliminarDelCarrito(productoId: String) {
         _uiState.update { state ->
             when (state) {
@@ -407,9 +364,6 @@ class NuevaVentaViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Limpiar carrito completo.
-     */
     fun limpiarCarrito() {
         _uiState.update { state ->
             when (state) {
@@ -419,11 +373,8 @@ class NuevaVentaViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Calcula totales del carrito incluyendo descuentos.
-     */
     fun calcularTotales(state: NuevaVentaUiState.Editing): CarritoTotales {
-        val base = CarritoTotales.calcular(state.carrito).total
+        val base = state.carrito.sumOf { it.subtotal }
         val descValor = state.descuento.toDoubleOrNull() ?: 0.0
         val descCalculado = if (state.isDescuentoPorcentual) {
             base * (descValor / 100.0)
@@ -434,9 +385,6 @@ class NuevaVentaViewModel @Inject constructor(
         return CarritoTotales(subtotal = base, total = final)
     }
 
-    /**
-     * Valida y confirma la venta.
-     */
     fun confirmarVenta() {
         _uiState.update { state ->
             when (state) {
@@ -475,40 +423,16 @@ class NuevaVentaViewModel @Inject constructor(
 
     private fun validarVenta(state: NuevaVentaUiState.Editing): Map<String, String> {
         val errors = mutableMapOf<String, String>()
+        if (state.carrito.isEmpty()) errors["carrito"] = "El carrito está vacío"
 
-        if (state.carrito.isEmpty()) {
-            errors["carrito"] = "El carrito está vacío"
-        }
-
-        // Validar método de pago mixto
         if (state.metodoPago == MetodoPago.MIXTO) {
             val efectivo = state.efectivoRecibido.toDoubleOrNull() ?: 0.0
             val transferencia = state.transferenciaMonto.toDoubleOrNull() ?: 0.0
             val total = calcularTotales(state).total
-
             if (kotlin.math.abs((efectivo + transferencia) - total) > 0.01) {
-                errors["pagoMixto"] = "La suma debe ser igual al total (${total.formatoCUP()})"
-            }
-            if (efectivo < 0 || transferencia < 0) {
-                errors["pagoMixto"] = "Los montos no pueden ser negativos"
+                errors["pagoMixto"] = "Suma incorrecta"
             }
         }
-
-        // Validar efectivo recibido
-        if (state.metodoPago == MetodoPago.EFECTIVO || state.metodoPago == MetodoPago.MIXTO) {
-            val efectivo = state.efectivoRecibido.toDoubleOrNull() ?: 0.0
-            val total = calcularTotales(state).total
-
-            if (state.metodoPago == MetodoPago.EFECTIVO && efectivo < total) {
-                errors["efectivo"] = "Monto insuficiente (Faltan ${(total - efectivo).formatoCUP()})"
-            }
-        }
-
-        // Validar crédito (debe haber un cliente seleccionado)
-        if (state.metodoPago == MetodoPago.CREDITO && state.clienteId == null) {
-            errors["metodoPago"] = "Debe seleccionar un cliente para ventas a crédito"
-        }
-
         return errors
     }
 
@@ -516,7 +440,7 @@ class NuevaVentaViewModel @Inject constructor(
         val items = state.carrito.map { item ->
             VentaItem(
                 id = UUID.randomUUID().toString(),
-                ventaId = "", // Se llenará en el use case
+                ventaId = "",
                 productoId = item.producto.id,
                 nombreProducto = item.producto.nombre,
                 cantidad = item.cantidad,
@@ -526,63 +450,22 @@ class NuevaVentaViewModel @Inject constructor(
         }
 
         val totales = calcularTotales(state)
-        val total = totales.total
-        val totalOriginal = totales.subtotal
-        val descuento = totalOriginal - total
-
-        val montoEfectivo = when(state.metodoPago) {
-            MetodoPago.EFECTIVO -> total
-            MetodoPago.MIXTO -> state.efectivoRecibido.toDoubleOrNull() ?: 0.0
-            else -> 0.0
-        }
-
-        val montoTransferencia = when(state.metodoPago) {
-            MetodoPago.TRANSFERENCIA -> total
-            MetodoPago.MIXTO -> state.transferenciaMonto.toDoubleOrNull() ?: 0.0
-            else -> 0.0
-        }
-
-        val nombreVendedor = if (ajustesDataStore.rolActual.first() == cu.stockcuba.app.domain.model.RolUsuario.DUENO) {
-            "Dueño"
-        } else {
-            ajustesDataStore.nombreVendedor.first().takeIf { it.isNotBlank() } ?: "Vendedor"
-        }
+        val nombreVendedor = if (ajustesDataStore.rolActual.first() == RolUsuario.DUENO) "Dueño" else ajustesDataStore.nombreVendedor.first()
 
         return Venta(
             id = UUID.randomUUID().toString(),
             fecha = java.time.Instant.now(),
-            total = total,
-            totalOriginal = totalOriginal,
-            descuento = descuento,
+            total = totales.total,
+            totalOriginal = totales.subtotal,
+            descuento = totales.subtotal - totales.total,
             metodoPago = state.metodoPago,
             items = items,
             clienteId = state.clienteId,
             vendedorNombre = nombreVendedor,
-            montoEfectivo = montoEfectivo,
-            montoTransferencia = montoTransferencia,
-            idTransferencia = state.idTransferencia.takeIf { it.isNotBlank() }
+            montoEfectivo = if (state.metodoPago == MetodoPago.EFECTIVO) totales.total else 0.0,
+            montoTransferencia = if (state.metodoPago == MetodoPago.TRANSFERENCIA) totales.total else 0.0,
+            idTransferencia = state.idTransferencia
         )
-    }
-
-    fun resetVenta() {
-        _uiState.update { state ->
-            when (state) {
-                is NuevaVentaUiState.Editing -> state.copy(
-                    carrito = emptyList(),
-                    query = "",
-                    descuento = "",
-                    isDescuentoPorcentual = true,
-                    metodoPago = MetodoPago.EFECTIVO,
-                    efectivoRecibido = "",
-                    transferenciaMonto = "",
-                    idTransferencia = "",
-                    clienteId = null,
-                    showSuccess = false,
-                    errors = emptyMap()
-                )
-                else -> NuevaVentaUiState.empty
-            }
-        }
     }
 
     suspend fun generarYCompartirTicket(ventaId: String): Uri? {

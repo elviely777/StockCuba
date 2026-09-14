@@ -32,8 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import cu.stockcuba.app.domain.model.Categoria
 import cu.stockcuba.app.domain.model.Producto
-import cu.stockcuba.app.presentation.dashboard.formatoCUP
-import cu.stockcuba.app.presentation.dashboard.formatoCantidad
+import cu.stockcuba.app.presentation.dashboard.*
 import cu.stockcuba.app.presentation.theme.Shape
 import cu.stockcuba.app.presentation.theme.StockCubaColors
 import cu.stockcuba.app.presentation.theme.StockCubaSpacing
@@ -49,24 +48,37 @@ fun ListaProductosScreen(
     viewModel: ListaProductosViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    
+    val stateSuccess = uiState as? ListaProductosUiState.Success
+    val isSelectionMode = stateSuccess?.isSelectionMode == true
+    val selectedCount = stateSuccess?.selectedProductIds?.size ?: 0
+
     Scaffold(
         topBar = {
-            ListaProductosHeader(
-                count = (uiState as? ListaProductosUiState.Success)?.productos?.size ?: 0,
-                query = (uiState as? ListaProductosUiState.Success)?.query ?: "",
-                onQueryChange = { viewModel.setQuery(it) }
-            )
+            if (isSelectionMode) {
+                SelectionHeader(
+                    count = selectedCount,
+                    onClear = { viewModel.clearSelection() },
+                    onDelete = { viewModel.deleteSelected() }
+                )
+            } else {
+                ListaProductosHeader(
+                    count = stateSuccess?.productos?.size ?: 0,
+                    query = stateSuccess?.query ?: "",
+                    onQueryChange = { viewModel.setQuery(it) }
+                )
+            }
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onAgregar,
-                containerColor = StockCubaColors.VerdeExito,
-                contentColor = Color(0xFF001E1C),
-                shape = Shape.Grande,
-                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar", modifier = Modifier.size(28.dp))
+            if (!isSelectionMode) {
+                FloatingActionButton(
+                    onClick = onAgregar,
+                    containerColor = StockCubaColors.VerdeExito,
+                    contentColor = Color(0xFF001E1C),
+                    shape = Shape.Grande,
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Agregar", modifier = Modifier.size(28.dp))
+                }
             }
         }
     ) { padding ->
@@ -77,11 +89,10 @@ fun ListaProductosScreen(
                 .background(MaterialTheme.colorScheme.background)
         ) {
             // ===== BARRA DE CATEGORÍAS (CHIPS MODERNOS) =====
-            if (uiState is ListaProductosUiState.Success) {
-                val state = uiState as ListaProductosUiState.Success
+            if (stateSuccess != null) {
                 CategoriasBarraHorizontal(
-                    categorias = state.categorias,
-                    seleccionada = state.categoriaSeleccionada,
+                    categorias = stateSuccess.categorias,
+                    seleccionada = stateSuccess.categoriaSeleccionada,
                     onSelect = { viewModel.setCategoria(it) }
                 )
             }
@@ -102,14 +113,74 @@ fun ListaProductosScreen(
                             ListaProductosLazy(
                                 productos = state.productos,
                                 categorias = state.categorias,
-                                onDetalle = onDetalle,
-                                onEditar = onEditar
+                                tasas = state.tasas,
+                                monedaBase = state.monedaBase,
+                                selectedIds = state.selectedProductIds,
+                                onDetalle = { id ->
+                                    if (state.isSelectionMode) {
+                                        viewModel.toggleSelection(id)
+                                    } else {
+                                        onDetalle(id)
+                                    }
+                                },
+                                onLongClick = { viewModel.toggleSelection(it) }
                             )
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SelectionHeader(
+    count: Int,
+    onClear: () -> Unit,
+    onDelete: () -> Unit
+) {
+    var showConfirmDelete by remember { mutableStateOf(false) }
+
+    TopAppBar(
+        title = { Text("$count seleccionados") },
+        navigationIcon = {
+            IconButton(onClick = onClear) {
+                Icon(Icons.Default.Close, contentDescription = "Cancelar")
+            }
+        },
+        actions = {
+            IconButton(onClick = { showConfirmDelete = true }) {
+                Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = MaterialTheme.colorScheme.error)
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        )
+    )
+
+    if (showConfirmDelete) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDelete = false },
+            title = { Text("¿Eliminar $count productos?") },
+            text = { Text("Esta acción eliminará los productos seleccionados permanentemente.") },
+            confirmButton = {
+                TextButton(
+                    onClick = { 
+                        onDelete()
+                        showConfirmDelete = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Eliminar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDelete = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }
 
@@ -255,10 +326,13 @@ fun CategoriaChip(
 
 @Composable
 fun ListaProductosLazy(
-    productos: List<Producto>,
+    productos: List<cu.stockcuba.app.domain.model.Producto>,
     categorias: List<Categoria>,
+    tasas: Map<cu.stockcuba.app.domain.model.Moneda, Double>,
+    monedaBase: cu.stockcuba.app.domain.model.Moneda,
+    selectedIds: Set<String>,
     onDetalle: (String) -> Unit,
-    onEditar: (String) -> Unit
+    onLongClick: (String) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -267,12 +341,16 @@ fun ListaProductosLazy(
     ) {
         items(productos, key = { it.id }) { producto ->
             val categoria = categorias.find { it.id == producto.categoriaId }
+            val isSelected = selectedIds.contains(producto.id)
             ProductoCardModerno(
                 producto = producto,
                 categoriaNombre = categoria?.nombre ?: "Sin categoría",
                 categoriaColor = categoria?.let { Color(it.color) } ?: MaterialTheme.colorScheme.outline,
+                tasas = tasas,
+                monedaBase = monedaBase,
+                isSelected = isSelected,
                 onClick = { onDetalle(producto.id) },
-                onLongClick = { onEditar(producto.id) }
+                onLongClick = { onLongClick(producto.id) }
             )
         }
     }
@@ -281,9 +359,12 @@ fun ListaProductosLazy(
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun ProductoCardModerno(
-    producto: Producto,
+    producto: cu.stockcuba.app.domain.model.Producto,
     categoriaNombre: String,
     categoriaColor: Color,
+    tasas: Map<cu.stockcuba.app.domain.model.Moneda, Double>,
+    monedaBase: cu.stockcuba.app.domain.model.Moneda,
+    isSelected: Boolean = false,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
@@ -291,27 +372,53 @@ fun ProductoCardModerno(
     val statusColor = producto.stockStatusColor()
     val statusBg = producto.stockStatusBackground()
 
+    // Cálculo de precio según moneda y tasa
+    val precioDisplay = producto.precioVenta.formatoAuto(
+        moneda = producto.moneda,
+        vinculado = producto.vincularTasa,
+        tasa = tasas[producto.moneda] ?: 1.0,
+        monedaBase = monedaBase
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clip(Shape.Grande)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick),
         shape = Shape.Grande,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(
+            1.dp, 
+            if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 1.dp)
     ) {
         Row(
             modifier = Modifier.height(IntrinsicSize.Min),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Barra lateral de color de categoría
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(6.dp)
-                    .background(categoriaColor)
-            )
+            // Checkbox o barra de selección
+            if (isSelected) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(40.dp)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                }
+            } else {
+                // Barra lateral de color de categoría
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(6.dp)
+                        .background(categoriaColor)
+                )
+            }
 
             // Miniatura de Imagen
             Box(
@@ -322,12 +429,14 @@ fun ProductoCardModerno(
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center
             ) {
-                if (producto.imagenUrl != null) {
+                if (!producto.imagenUrl.isNullOrBlank()) {
                     AsyncImage(
                         model = producto.imagenUrl,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        error = androidx.compose.ui.res.painterResource(id = android.R.drawable.ic_menu_report_image),
+                        placeholder = androidx.compose.ui.res.painterResource(id = android.R.drawable.ic_menu_gallery)
                     )
                 } else {
                     Icon(
@@ -356,7 +465,7 @@ fun ProductoCardModerno(
                         shape = Shape.Pequeno
                     ) {
                         Text(
-                            producto.precioVenta.formatoCUP(),
+                            precioDisplay,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold),
                             color = MaterialTheme.colorScheme.primary

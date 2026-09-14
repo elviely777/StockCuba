@@ -61,6 +61,7 @@ sealed interface DashboardUiState {
         
         val ultimoCierre: CierreDiario? = null,
         val ultimoCierreMensual: cu.stockcuba.app.domain.model.CierreMensual? = null,
+        val monedaBase: Moneda = Moneda.CUP,
         val isLoading: Boolean = false
     ) : DashboardUiState
 
@@ -82,16 +83,29 @@ sealed interface DashboardUiState {
 }
 
 /**
- * Extensiones para formateo de moneda (CUP - Pesos Cubanos)
+ * Extensiones para formateo de moneda dinámico
  */
-fun Double.formatoCUP(): String {
-    return "%,.2f CUP".format(java.util.Locale.US, this)
+fun Double.formatoMoneda(moneda: Moneda): String {
+    return "%,.2f ${moneda.name}".format(java.util.Locale.US, this)
 }
 
-fun Double.formatoCUPEntero(): String {
-    return "%,.0f CUP".format(java.util.Locale.US, this)
+fun Double.formatoAuto(
+    moneda: Moneda, 
+    vinculado: Boolean, 
+    tasa: Double = 1.0, 
+    monedaBase: Moneda = Moneda.CUP
+): String {
+    return if (vinculado) {
+        (this * tasa).formatoMoneda(monedaBase)
+    } else {
+        this.formatoMoneda(moneda)
+    }
 }
 
 fun Int.formatoCantidad(): String {
     return "%,d".format(java.util.Locale.US, this)
 }
+
+// Retrocompatibilidad
+fun Double.formatoCUP(): String = this.formatoMoneda(Moneda.CUP)
+fun Double.formatoCUPEntero(): String = "%,.0f CUP".format(java.util.Locale.US, this)

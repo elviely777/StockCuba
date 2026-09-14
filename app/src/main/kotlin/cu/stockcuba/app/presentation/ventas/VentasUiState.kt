@@ -25,6 +25,7 @@ sealed interface NuevaVentaUiState {
         val categorias: List<cu.stockcuba.app.domain.model.Categoria> = emptyList(),
         val selectedCategoryId: String? = null,
         val tasas: Map<cu.stockcuba.app.domain.model.Moneda, Double> = emptyMap(),
+        val monedaBase: cu.stockcuba.app.domain.model.Moneda = cu.stockcuba.app.domain.model.Moneda.CUP,
         val isLoading: Boolean = false,
         val errors: Map<String, String> = emptyMap(),
         val showSuccess: Boolean = false,

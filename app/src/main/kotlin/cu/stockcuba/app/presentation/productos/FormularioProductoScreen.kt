@@ -89,6 +89,39 @@ fun FormularioProductoScreen(
                         Icon(imageVector = Icons.Default.Close, contentDescription = "Cerrar")
                     }
                 },
+                actions = {
+                    if (uiState is FormularioProductoUiState.Editing && (uiState as FormularioProductoUiState.Editing).isEditing) {
+                        var showConfirmDelete by remember { mutableStateOf(false) }
+                        
+                        IconButton(onClick = { showConfirmDelete = true }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = MaterialTheme.colorScheme.error)
+                        }
+
+                        if (showConfirmDelete) {
+                            AlertDialog(
+                                onDismissRequest = { showConfirmDelete = false },
+                                title = { Text("¿Eliminar producto?") },
+                                text = { Text("Esta acción no se puede deshacer.") },
+                                confirmButton = {
+                                    TextButton(
+                                        onClick = { 
+                                            viewModel.eliminar()
+                                            showConfirmDelete = false
+                                        },
+                                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                                    ) {
+                                        Text("Eliminar")
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showConfirmDelete = false }) {
+                                        Text("Cancelar")
+                                    }
+                                }
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     titleContentColor = MaterialTheme.colorScheme.onSurface
@@ -116,7 +149,18 @@ fun FormularioProductoScreen(
                     PantallaCargando("Guardando producto...")
                 }
                 is FormularioProductoUiState.Saved -> {
-                    PantallaExito(onSave)
+                    PantallaExito(
+                        titulo = "¡Producto Guardado!",
+                        mensaje = "El catálogo ha sido actualizado correctamente.",
+                        onContinue = onSave
+                    )
+                }
+                is FormularioProductoUiState.Deleted -> {
+                    PantallaExito(
+                        titulo = "¡Producto Eliminado!",
+                        mensaje = "El producto ha sido removido del inventario.",
+                        onContinue = onSave
+                    )
                 }
                 is FormularioProductoUiState.Error -> {
                     PantallaError(state.message, onRetry = { viewModel.resetForm() })
@@ -544,7 +588,11 @@ fun PantallaCargando(mensaje: String) {
 }
 
 @Composable
-fun PantallaExito(onContinue: () -> Unit) {
+fun PantallaExito(
+    titulo: String,
+    mensaje: String,
+    onContinue: () -> Unit
+) {
     Column(
         modifier = Modifier.fillMaxSize().padding(StockCubaSpacing.Xl),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -556,8 +604,8 @@ fun PantallaExito(onContinue: () -> Unit) {
             }
         }
         Spacer(Modifier.height(24.dp))
-        Text("¡Producto Guardado!", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
-        Text("El catálogo ha sido actualizado correctamente.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+        Text(titulo, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
+        Text(mensaje, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
         Spacer(Modifier.height(32.dp))
         Button(onClick = onContinue, modifier = Modifier.fillMaxWidth().height(56.dp), shape = Shape.Grande) {
             Text("Continuar")
