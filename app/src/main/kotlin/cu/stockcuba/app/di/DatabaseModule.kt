@@ -1,7 +1,6 @@
 package cu.stockcuba.app.di
 
 import android.content.Context
-import androidx.room.Room
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import cu.stockcuba.app.data.local.dao.CategoriaDao
@@ -24,13 +23,7 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(@dagger.hilt.android.qualifiers.ApplicationContext context: Context): StockCubaDatabase {
-        return Room.databaseBuilder(
-            context,
-            StockCubaDatabase::class.java,
-            "stockcuba_db"
-        )
-            .fallbackToDestructiveMigration() // v1 only, replace with migrations later
-            .build()
+        return StockCubaDatabase.getInstance(context)
     }
 
     @Provides
