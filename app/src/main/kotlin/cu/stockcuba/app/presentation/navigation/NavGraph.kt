@@ -78,6 +78,7 @@ import cu.stockcuba.app.presentation.security.SecurityViewModel
 import cu.stockcuba.app.presentation.ventas.HistorialVentasScreen
 import cu.stockcuba.app.presentation.ventas.NuevaVentaScreen
 import cu.stockcuba.app.presentation.ventas.DetalleVentaScreen
+import cu.stockcuba.app.presentation.ventas_historicas.VentasHistoricasScreen
 import cu.stockcuba.app.presentation.theme.StockCubaColors
 import cu.stockcuba.app.presentation.theme.StockCubaSpacing
 import cu.stockcuba.app.presentation.theme.Shape
@@ -332,6 +333,14 @@ fun AppNavHost() {
                         onUnlocked = { /* unlocked */ }
                     ) {
                         AjustesScreen(onBack = { navController.popBackStack() }, navController = navController)
+                    }
+                }
+                composable(Screen.VentasHistoricas.route) {
+                    SecurityGate(
+                        securityRepository = securityRepository,
+                        onUnlocked = { /* unlocked */ }
+                    ) {
+                        VentasHistoricasScreen(onBack = { navController.popBackStack() })
                     }
                 }
                 composable(Screen.Categorias.route) {

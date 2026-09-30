@@ -24,9 +24,10 @@ import java.io.File
         CierreDiarioEntity::class,
         CierreMensualEntity::class,
         GastoEntity::class,
-        AbonoEntity::class
+        AbonoEntity::class,
+        VentaDiariaResumenEntity::class
     ],
-    version = 14,
+    version = 15,
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 8, to = 9),
@@ -34,7 +35,8 @@ import java.io.File
         AutoMigration(from = 10, to = 11),
         AutoMigration(from = 11, to = 12),
         AutoMigration(from = 12, to = 13),
-        AutoMigration(from = 13, to = 14)
+        AutoMigration(from = 13, to = 14),
+        AutoMigration(from = 14, to = 15)
     ],
     exportSchema = true
 )
@@ -49,6 +51,7 @@ abstract class StockCubaDatabase : RoomDatabase() {
     abstract fun cierreDao(): CierreDao
     abstract fun gastoDao(): GastoDao
     abstract fun abonoDao(): AbonoDao
+    abstract fun ventaDiariaResumenDao(): VentaDiariaResumenDao
 
     /**
      * Clears all operation tables in the database, respecting foreign key order (T27).
@@ -63,6 +66,7 @@ abstract class StockCubaDatabase : RoomDatabase() {
             cierreDao().deleteAll()
             ventaDao().deleteAllItems()
             ventaDao().deleteAll()
+            ventaDiariaResumenDao().deleteAll()
             productoDao().deleteAll()
             clienteDao().deleteAll()
             categoriaDao().deleteAll()
@@ -178,10 +182,33 @@ abstract class StockCubaDatabase : RoomDatabase() {
         val MIGRATION_12_14 = object : Migration(12, 14) { override fun migrate(db: SupportSQLiteDatabase) = reconstruirEsquemaLiteralV14(db) }
         val MIGRATION_13_14 = object : Migration(13, 14) { override fun migrate(db: SupportSQLiteDatabase) = reconstruirEsquemaLiteralV14(db) }
 
+        /**
+         * Migración v14 → v15: Agrega tabla ventas_diarias_resumen para ventas históricas manuales.
+         * No requiere migración de datos existente (tabla nueva vacía).
+         */
+        val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP TABLE IF EXISTS `ventas_diarias_resumen`")
+                db.execSQL("DROP INDEX IF EXISTS `idx_ventas_diarias_fecha`")
+                db.execSQL("DROP INDEX IF EXISTS `index_ventas_diarias_resumen_fecha`")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `ventas_diarias_resumen` (
+                        `fecha` INTEGER NOT NULL,
+                        `total` REAL NOT NULL,
+                        `fecha_creacion` INTEGER NOT NULL,
+                        `sync_status` TEXT NOT NULL DEFAULT 'SYNCED',
+                        PRIMARY KEY(`fecha`)
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_ventas_diarias_resumen_fecha` ON `ventas_diarias_resumen` (`fecha`)")
+            }
+        }
+
         val ALL_MANUAL_MIGRATIONS = arrayOf(
-            MIGRATION_1_14, MIGRATION_2_14, MIGRATION_3_14, MIGRATION_4_14, MIGRATION_5_14, 
-            MIGRATION_6_14, MIGRATION_7_14, MIGRATION_8_14, MIGRATION_9_14, MIGRATION_10_14, 
-            MIGRATION_11_14, MIGRATION_12_14, MIGRATION_13_14
+            MIGRATION_1_14, MIGRATION_2_14, MIGRATION_3_14, MIGRATION_4_14, MIGRATION_5_14,
+            MIGRATION_6_14, MIGRATION_7_14, MIGRATION_8_14, MIGRATION_9_14, MIGRATION_10_14,
+            MIGRATION_11_14, MIGRATION_12_14, MIGRATION_13_14,
+            MIGRATION_14_15
         )
 
         fun getInstance(context: Context): StockCubaDatabase {

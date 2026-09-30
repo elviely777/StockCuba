@@ -31,6 +31,13 @@ interface VentaRepository {
 
     fun getEficienciaVendedores(desde: Long, hasta: Long): Flow<List<EficienciaVendedor>>
 
+    /**
+     * Obtiene totales diarios combinados (ventas reales + ventas históricas manuales)
+     * para el rango de fechas especificado.
+     * Retorna un Map<fecha, totalCombinado> donde totalCombinado = totalVentasReales + totalVentasManuales
+     */
+    fun getDailyTotalsBlended(desde: Long, hasta: Long): Flow<Map<Long, Double>>
+
     data class ResumenDia(
         val fecha: Long,
         val totalVendido: Double,

@@ -2,11 +2,13 @@ package cu.stockcuba.app.data.repository
 
 import cu.stockcuba.app.data.local.database.StockCubaDatabase
 import cu.stockcuba.app.data.local.dao.VentaDao
+import cu.stockcuba.app.data.local.dao.VentaDiariaResumenDao
 import cu.stockcuba.app.data.mapper.*
 import cu.stockcuba.app.domain.model.*
 import cu.stockcuba.app.domain.repository.InventarioRepository
 import cu.stockcuba.app.domain.repository.VentaRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import androidx.room.withTransaction
@@ -16,6 +18,7 @@ import javax.inject.Singleton
 @Singleton
 class VentaRepositoryImpl @Inject constructor(
     private val ventaDao: VentaDao,
+    private val ventaDiariaResumenDao: VentaDiariaResumenDao,
     private val database: StockCubaDatabase,
     private val inventarioRepository: InventarioRepository
 ) : VentaRepository {
@@ -164,6 +167,27 @@ class VentaRepositoryImpl @Inject constructor(
             ))
         } catch (e: Exception) {
             Result.Failure(DomainError.DatabaseError(e))
+        }
+    }
+
+    override fun getDailyTotalsBlended(desde: Long, hasta: Long): Flow<Map<Long, Double>> {
+        return combine(
+            ventaDao.getDailyTotalsByRange(desde, hasta),
+            ventaDiariaResumenDao.getDailyTotalsByRange(desde, hasta)
+        ) { reales, manuales ->
+            val mapaCombinado = mutableMapOf<Long, Double>()
+
+            // Agregar ventas reales
+            for (item in reales) {
+                mapaCombinado[item.fecha] = mapaCombinado.getOrDefault(item.fecha, 0.0) + item.total
+            }
+
+            // Sumar ventas manuales (históricas)
+            for (item in manuales) {
+                mapaCombinado[item.fecha] = mapaCombinado.getOrDefault(item.fecha, 0.0) + item.total
+            }
+
+            mapaCombinado
         }
     }
 }

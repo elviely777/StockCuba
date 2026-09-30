@@ -156,6 +156,9 @@ fun AjustesScreen(
                         onNavigateToCategorias = {
                             navController.navigate(Screen.Categorias.route)
                         },
+                        onNavigateToVentasHistoricas = {
+                            navController.navigate(Screen.VentasHistoricas.route)
+                        },
                         onMonedaClick = { showMonedaDialog = true },
                         onPrinterClick = {
                             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
@@ -297,6 +300,7 @@ fun AjustesContenidoModerno(
     onSembrar: () -> Unit,
     onNavigateToVinculacion: () -> Unit,
     onNavigateToCategorias: () -> Unit,
+    onNavigateToVentasHistoricas: () -> Unit,
     onMonedaClick: () -> Unit,
     onPrinterClick: () -> Unit
 ) {
@@ -490,7 +494,7 @@ fun AjustesContenidoModerno(
 
         // --- SECCIÓN 4: DATOS ---
         item {
-            SeccionAjustesModerna(titulo = "Gestión de Datos", icono = Icons.Default.Storage, color = Color(0xFFF59E0B)) {
+SeccionAjustesModerna(titulo = "Gestión de Datos", icono = Icons.Default.Storage, color = Color(0xFFF59E0B)) {
                 FilaAccionAjuste(
                     titulo = "Copia de Seguridad",
                     subtitulo = "Exportar base de datos completa",
@@ -505,6 +509,17 @@ fun AjustesContenidoModerno(
                     color = MaterialTheme.colorScheme.primary,
                     onClick = onExportarInventario
                 )
+                // Ventas Históricas - solo visible para DUENO
+                if (state.rolActual == cu.stockcuba.app.domain.model.RolUsuario.DUENO) {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                    FilaAccionAjuste(
+                        titulo = "Ventas Históricas",
+                        subtitulo = "Registro manual de ventas por día",
+                        icon = Icons.Default.CalendarMonth,
+                        color = MaterialTheme.colorScheme.primary,
+                        onClick = onNavigateToVentasHistoricas
+                    )
+                }
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
                 FilaAccionAjuste(
                     titulo = "Restaurar Datos",

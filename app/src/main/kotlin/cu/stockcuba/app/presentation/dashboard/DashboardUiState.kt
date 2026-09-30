@@ -52,6 +52,8 @@ sealed interface DashboardUiState {
         val listaProductosBajoStock: List<Producto>,
         val ventasRecientes: List<Venta> = emptyList(),
         val ventasSemanales: List<Pair<String, Double>> = emptyList(), // Para el gráfico [Dia -> Total]
+        // 30-day blended trend for chart
+        val tendencia30Dias: List<Pair<String, Double>> = emptyList(),
         val listaInsights: List<ProductInsight> = emptyList(),
         val eficienciaVendedores: List<VentaRepository.EficienciaVendedor> = emptyList(),
         

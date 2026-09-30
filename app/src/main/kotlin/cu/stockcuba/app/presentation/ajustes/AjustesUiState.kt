@@ -1,6 +1,7 @@
 package cu.stockcuba.app.presentation.ajustes
 
 import cu.stockcuba.app.domain.model.Moneda
+import cu.stockcuba.app.domain.model.RolUsuario
 
 /**
  * Estado de UI para la pantalla de Ajustes.
@@ -13,6 +14,7 @@ sealed interface AjustesUiState {
         val moneda: Moneda = Moneda.CUP,
         val impuesto: Double = 0.0,
         val tema: String = "SYSTEM",
+        val rolActual: RolUsuario = RolUsuario.VENDEDOR,
         
         // Tasas
         val tasaUSD: Double = 320.0,

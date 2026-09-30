@@ -25,4 +25,11 @@ interface ReportRepository {
      * Genera un reporte mensual consolidado a .xlsx.
      */
     suspend fun generarReporteMensualXlsx(mes: Int, anio: Int): Result<Uri>
+
+    /**
+     * Obtiene totales diarios combinados (ventas reales + ventas históricas manuales)
+     * para el rango de fechas especificado.
+     * Retorna un Map<fecha, totalCombinado> donde totalCombinado = totalVentasReales + totalVentasManuales
+     */
+    suspend fun obtenerTotalesDiariosCombinados(desde: Long, hasta: Long): Result<Map<Long, Double>>
 }

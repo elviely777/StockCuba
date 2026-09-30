@@ -12,6 +12,7 @@ import cu.stockcuba.app.domain.model.InsightTipo
 import cu.stockcuba.app.domain.model.RolUsuario
 import cu.stockcuba.app.domain.repository.*
 import cu.stockcuba.app.domain.usecase.ObtenerProductosBajoStockUseCase
+import cu.stockcuba.app.domain.usecase.ObtenerResumenDelDiaUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
@@ -19,6 +20,7 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -32,7 +34,8 @@ class DashboardViewModel @Inject constructor(
     private val gastoRepository: cu.stockcuba.app.domain.repository.GastoRepository,
     val securityRepository: cu.stockcuba.app.domain.security.SecurityRepository,
     private val ajustesDataStore: cu.stockcuba.app.presentation.ajustes.AjustesDataStore,
-    private val obtenerProductosBajoStockUseCase: ObtenerProductosBajoStockUseCase
+    private val obtenerProductosBajoStockUseCase: ObtenerProductosBajoStockUseCase,
+    private val obtenerResumenDelDiaUseCase: ObtenerResumenDelDiaUseCase
 ) : ViewModel() {
 
     private val _timeRange = MutableStateFlow(DashboardTimeRange.HOY)
@@ -52,7 +55,12 @@ class DashboardViewModel @Inject constructor(
         ajustesDataStore.tasaMLC,
         ajustesDataStore.tasaEUR,
         gastoRepository.getAll(),
-        clienteRepository.getActivos()
+        clienteRepository.getActivos(),
+        // Blended totals flow for reactive updates
+        ventaRepository.getDailyTotalsBlended(
+            LocalDate.now().minusDays(30).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+            LocalDate.now().atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        )
     ) { array ->
         val range = array[0] as DashboardTimeRange
         val productosBajoStock = array[1] as List<Producto>
@@ -68,6 +76,7 @@ class DashboardViewModel @Inject constructor(
         val tasaEUR = array[11] as Double
         val allGastos = array[12] as List<cu.stockcuba.app.domain.model.Gasto>
         val activeClientes = array[13] as List<cu.stockcuba.app.domain.model.Cliente>
+        val blendedTotalsMap = array[14] as Map<Long, Double>
 
         val tasas = mapOf(
             cu.stockcuba.app.domain.model.Moneda.USD to tasaUSD,
@@ -108,8 +117,21 @@ class DashboardViewModel @Inject constructor(
         // Buscar si hay cierre mensual este mes
         val cierreMensual = cierresMensuales.find { it.mes == now.monthValue && it.anio == now.year }
 
-        val totalVendido = periodVentas.sumOf { it.total }
-        val totalPrevio = prevVentas.sumOf { it.total }
+        // ---- Use blended totals for HOY range, real ventas for other ranges ----
+        val totalVendido = when (range) {
+            DashboardTimeRange.HOY -> {
+                // Use blended total for today
+                blendedTotalsMap[inicioHoy] ?: periodVentas.sumOf { it.total }
+            }
+            else -> periodVentas.sumOf { it.total }
+        }
+        val totalPrevio = when (range) {
+            DashboardTimeRange.HOY -> {
+                val inicioAyer = now.minusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                blendedTotalsMap[inicioAyer] ?: prevVentas.sumOf { it.total }
+            }
+            else -> prevVentas.sumOf { it.total }
+        }
 
         val totalGastos = periodVentas.flatMap { it.items }.sumOf { item ->
             val producto = allProductos.find { it.id == item.productoId }
@@ -171,14 +193,23 @@ class DashboardViewModel @Inject constructor(
                 .sortedByDescending { it.totalRecaudado }
         } else emptyList()
 
-        // --- CÁLCULO DE VENTAS SEMANALES PARA GRÁFICO (T75) ---
+        // --- CÁLCULO DE VENTAS SEMANALES PARA GRÁFICO (T75) - BLENDED ---
         val trendSemanales = (0..6).reversed().map { daysAgo ->
             val day = LocalDate.now().minusDays(daysAgo.toLong())
             val startOfDay = day.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-            val endOfDay = startOfDay + 24 * 60 * 60 * 1000 - 1
-            val totalDia = allVentas.filter { it.fecha.toEpochMilli() in startOfDay..endOfDay }.sumOf { it.total }
+            // Use blended total for each day
+            val totalDia = blendedTotalsMap[startOfDay] ?: allVentas.filter { it.fecha.toEpochMilli() in startOfDay..startOfDay + 24 * 60 * 60 * 1000 - 1 }.sumOf { it.total }
             val label = day.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale("es", "ES"))
                 .replaceFirstChar { it.uppercase() }
+            label to totalDia
+        }
+
+        // --- CÁLCULO DE TENDENCIA 30 DÍAS (BLENDED) ---
+        val trend30Dias = (0..29).reversed().map { daysAgo ->
+            val day = LocalDate.now().minusDays(daysAgo.toLong())
+            val startOfDay = day.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            val totalDia = blendedTotalsMap[startOfDay] ?: allVentas.filter { it.fecha.toEpochMilli() in startOfDay..startOfDay + 24 * 60 * 60 * 1000 - 1 }.sumOf { it.total }
+            val label = day.format(DateTimeFormatter.ofPattern("dd/MM", java.util.Locale("es", "ES")))
             label to totalDia
         }
 
@@ -204,6 +235,7 @@ class DashboardViewModel @Inject constructor(
             listaProductosBajoStock = productosBajoStock,
             ventasRecientes = allVentas.take(5),
             ventasSemanales = trendSemanales,
+            tendencia30Dias = trend30Dias,
             listaInsights = insights,
             eficienciaVendedores = eficiencia,
             tendenciaTotal = tendenciaTotal,

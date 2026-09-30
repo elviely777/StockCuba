@@ -19,7 +19,7 @@ android {
     // Version management
     val versionMajor = 1
     val versionMinor = 7
-    val versionPatch = 1
+    val versionPatch = 2
     val computedVersionCode = versionMajor * 10000 + versionMinor * 100 + versionPatch
     val computedVersionName = "$versionMajor.$versionMinor.$versionPatch"
 
@@ -98,6 +98,7 @@ defaultConfig {
             excludes += "/META-INF/{AL2.0,LGPL2.1,LICENSE,LICENSE.txt,NOTICE,NOTICE.txt}"
             excludes += "META-INF/gradle/incremental.annotation.processors"
         }
+        jniLibs.pickFirsts += "libdatastore_shared_counter.so"
     }
 
     compileOptions {
@@ -146,6 +147,10 @@ room {
 dependencies {
     configurations.all {
         exclude(group = "org.jetbrains.kotlinx", module = "kotlinx-coroutines-slf4j")
+        // Exclude transitive JVM variants that cause massive duplicate classes
+        exclude(group = "androidx.datastore", module = "datastore-core-jvm")
+        // Note: datastore-core-okio-jvm NOT excluded globally (needed for OkioStorage)
+        // It only duplicates AtomicBoolean/AtomicInt with datastore-core-android
     }
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     // Core AndroidX
@@ -196,9 +201,15 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil)
 
-    // DataStore Preferences
+    // DataStore Preferences - use lib with manual transitive control
     implementation(libs.datastore.preferences)
-    implementation(libs.datastore.core)
+    // Ensure Android variant of core is used
+    implementation("androidx.datastore:datastore-core-android:1.1.1")
+    // Add okio storage explicitly, excluding its transitive core-jvm (use Android core instead)
+    implementation("androidx.datastore:datastore-core-okio-jvm:1.1.1") {
+        exclude(group = "androidx.datastore", module = "datastore-core-jvm")
+    }
+    // implementation(libs.datastore.core)  // REMOVIDO: duplicado con datastore.preferences (trae core-android)
 
     // Biometric
     implementation(libs.biometric)

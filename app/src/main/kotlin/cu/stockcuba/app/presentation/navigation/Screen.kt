@@ -93,8 +93,13 @@ sealed interface Screen {
         }
     }
 
-    data object EditarProducto : Screen {
+data object EditarProducto : Screen {
         override val route = "productos/editar"
+    }
+
+    // ===== VENTAS HISTÓRICAS =====
+    data object VentasHistoricas : Screen {
+        override val route = "ventas-historicas"
     }
 
     // ===== INVENTARIO SUB-DESTINATIONS =====

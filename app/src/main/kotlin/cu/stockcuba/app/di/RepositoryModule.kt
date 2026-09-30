@@ -9,6 +9,7 @@ import cu.stockcuba.app.data.repository.InventarioRepositoryImpl
 import cu.stockcuba.app.data.repository.ProductoRepositoryImpl
 import cu.stockcuba.app.data.repository.ReportRepositoryImpl
 import cu.stockcuba.app.data.repository.VentaRepositoryImpl
+import cu.stockcuba.app.data.repository.VentaDiariaResumenRepositoryImpl
 import cu.stockcuba.app.domain.repository.BusinessRepository
 import cu.stockcuba.app.domain.repository.CategoriaRepository
 import cu.stockcuba.app.domain.repository.CierreRepository
@@ -19,6 +20,7 @@ import cu.stockcuba.app.domain.repository.InventarioRepository
 import cu.stockcuba.app.domain.repository.ProductoRepository
 import cu.stockcuba.app.domain.repository.ReportRepository
 import cu.stockcuba.app.domain.repository.VentaRepository
+import cu.stockcuba.app.domain.repository.VentaDiariaResumenRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -64,6 +66,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindAbonoRepository(impl: AbonoRepositoryImpl): AbonoRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindVentaDiariaResumenRepository(impl: VentaDiariaResumenRepositoryImpl): VentaDiariaResumenRepository
 
     // BusinessRepository binding moved to SupabaseModule.kt (SupabaseBusinessRepository)
 }

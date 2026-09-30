@@ -9,6 +9,7 @@ import cu.stockcuba.app.BuildConfig
 import cu.stockcuba.app.data.backup.BackupRepository
 import cu.stockcuba.app.data.local.database.StockCubaDatabase
 import cu.stockcuba.app.domain.model.Moneda
+import cu.stockcuba.app.domain.model.RolUsuario
 import cu.stockcuba.app.data.repository.DataSeeder
 import cu.stockcuba.app.domain.feedback.FeedbackRepository
 import cu.stockcuba.app.domain.model.Result
@@ -64,6 +65,7 @@ class AjustesViewModel @Inject constructor(
                 ajustesDataStore.moneda,
                 ajustesDataStore.impuesto,
                 ajustesDataStore.tema,
+                ajustesDataStore.rolActual,
                 ajustesDataStore.isVinculado,
                 ajustesDataStore.businessId,
                 hasPinFlow,
@@ -80,14 +82,15 @@ class AjustesViewModel @Inject constructor(
                     moneda = array[3] as Moneda,
                     impuesto = array[4] as Double,
                     tema = array[5] as String,
-                    isVinculado = array[6] as Boolean,
-                    businessId = (array[7] as? String) ?: "",
-                    tienePin = array[8] as Boolean,
-                    tasaUSD = array[9] as Double,
-                    tasaMLC = array[10] as Double,
-                    tasaEUR = array[11] as Double,
-                    printerName = (array[12] as? String) ?: "No vinculada",
-                    printerMac = array[13] as? String,
+                    rolActual = array[6] as RolUsuario,
+                    isVinculado = array[7] as Boolean,
+                    businessId = (array[8] as? String) ?: "",
+                    tienePin = array[9] as Boolean,
+                    tasaUSD = array[10] as Double,
+                    tasaMLC = array[11] as Double,
+                    tasaEUR = array[12] as Double,
+                    printerName = (array[13] as? String) ?: "No vinculada",
+                    printerMac = array[14] as? String,
                     appVersion = BuildConfig.VERSION_NAME,
                     validationErrors = emptyMap()
                 )

@@ -55,6 +55,16 @@ class ReportRepositoryImpl @Inject constructor(
     // ==========================================================
     //  REPORTE DE CIERRE DIARIO — 6 hojas
     // ==========================================================
+    override suspend fun obtenerTotalesDiariosCombinados(desde: Long, hasta: Long): Result<Map<Long, Double>> {
+        return try {
+            // Use VentaRepository's blended query as single source of truth
+            val blendedTotals = ventaRepository.getDailyTotalsBlended(desde, hasta).first()
+            Result.Success(blendedTotals)
+        } catch (e: Exception) {
+            Result.Failure(DomainError.DatabaseError(e))
+        }
+    }
+
     override suspend fun generarReporteDiarioXlsx(fecha: Long): Result<Uri> = withContext(Dispatchers.IO) {
         return@withContext try {
             val zoneId = ZoneId.systemDefault()
@@ -72,12 +82,17 @@ class ReportRepositoryImpl @Inject constructor(
             val productosActivos = productos.filter { it.activo }
             val categoriasMap = categoriaRepository.getAll().first().associateBy { it.id }
 
-            // ---- Totales generales del día ----
-            val totalRecaudado = ventas.sumOf { it.total }
+            // ---- Totales generales del día (BLENDED: reales + manuales) ----
+            val blendedResult = ventaRepository.getDailyTotalsBlended(startOfDay, endOfDay).first()
+            val totalRecaudado = blendedResult[startOfDay] ?: ventas.sumOf { it.total }
             val totalEfectivo = ventas.sumOf { it.montoEfectivo }
             val totalTransferencia = ventas.sumOf { it.montoTransferencia }
             val cantidadVentas = ventas.size
             val ticketPromedio = if (cantidadVentas > 0) totalRecaudado / cantidadVentas else 0.0
+
+            // ---- Optional: Manual entry amount for audit trace ----
+            val totalReal = ventas.sumOf { it.total }
+            val totalManual = if (totalRecaudado > totalReal) totalRecaudado - totalReal else 0.0
 
             // ---- Agregación por producto vendido ----
             data class VentaProducto(
@@ -132,6 +147,11 @@ class ReportRepositoryImpl @Inject constructor(
 
             fila = escribirSubtitulo(workbook, sheetResumen, "=== RESUMEN DE CAJA ===", fila)
             fila = escribirDato(workbook, sheetResumen, "Total Recaudado", totalRecaudado.formatoCUP(), fila)
+            // Optional audit trace: show manual historical entries if any
+            if (totalManual > 0) {
+                fila = escribirDato(workbook, sheetResumen, "  ↳ Ventas reales", totalReal.formatoCUP(), fila)
+                fila = escribirDato(workbook, sheetResumen, "  ↳ Ventas históricas manuales", totalManual.formatoCUP(), fila)
+            }
             fila = escribirDato(workbook, sheetResumen, "Cobrado en Efectivo", totalEfectivo.formatoCUP(), fila)
             fila = escribirDato(workbook, sheetResumen, "Cobrado por Transferencia", totalTransferencia.formatoCUP(), fila)
             fila = escribirDato(workbook, sheetResumen, "Cantidad de Ventas", cantidadVentas.toString(), fila)
@@ -355,6 +375,12 @@ class ReportRepositoryImpl @Inject constructor(
             val productosMap = productos.associateBy { it.id }
             val nombreNegocio = ajustesDataStore.nombreNegocio.first()
 
+            // ---- Blended totals for the month (real + manual) ----
+            val blendedTotals = ventaRepository.getDailyTotalsBlended(startOfMonth, endOfMonth).first()
+            val totalRecaudadoReal = ventas.sumOf { it.total }
+            val totalRecaudadoBlended = blendedTotals.values.sum()
+            val totalManual = if (totalRecaudadoBlended > totalRecaudadoReal) totalRecaudadoBlended - totalRecaudadoReal else 0.0
+
             val workbook = XSSFWorkbook()
 
             // 1. Resumen Ejecutivo Mensual
@@ -365,7 +391,6 @@ class ReportRepositoryImpl @Inject constructor(
             fila = escribirTitulo(workbook, sheetResumen, "Negocio: $nombreNegocio", fila)
             fila++
 
-            val totalRecaudado = ventas.sumOf { it.total }
             val totalEfectivo = ventas.sumOf { it.montoEfectivo }
             val totalTransferencia = ventas.sumOf { it.montoTransferencia }
             
@@ -373,25 +398,31 @@ class ReportRepositoryImpl @Inject constructor(
                 val p = productosMap[item.productoId]
                 (p?.costoUnitario ?: 0.0) * item.cantidad
             }
-            val gananciaReal = totalRecaudado - totalCostos
+            // Ganancia uses real ventas only (manual entries don't have cost data)
+            val gananciaReal = totalRecaudadoReal - totalCostos
             
             val diasVenta = ventas.groupBy { it.fecha.atZone(zoneId).toLocalDate() }.size
-            val promedioDiario = if (diasVenta > 0) totalRecaudado / diasVenta else 0.0
+            val promedioDiario = if (diasVenta > 0) totalRecaudadoBlended / diasVenta else 0.0
 
-            fila = escribirDato(workbook, sheetResumen, "Total Facturado Mes", totalRecaudado.formatoCUP(), fila)
+            fila = escribirDato(workbook, sheetResumen, "Total Facturado Mes (Combinado)", totalRecaudadoBlended.formatoCUP(), fila)
+            // Optional audit trace
+            if (totalManual > 0) {
+                fila = escribirDato(workbook, sheetResumen, "  ↳ Ventas reales", totalRecaudadoReal.formatoCUP(), fila)
+                fila = escribirDato(workbook, sheetResumen, "  ↳ Ventas históricas manuales", totalManual.formatoCUP(), fila)
+            }
             fila = escribirDato(workbook, sheetResumen, "Costo de Mercancía (Gastos)", totalCostos.formatoCUP(), fila)
-            fila = escribirDato(workbook, sheetResumen, "Ganancia Real del Mes", gananciaReal.formatoCUP(), fila)
+            fila = escribirDato(workbook, sheetResumen, "Ganancia Real del Mes (solo reales)", gananciaReal.formatoCUP(), fila)
             fila++
             fila = escribirDato(workbook, sheetResumen, "Total Efectivo", totalEfectivo.formatoCUP(), fila)
             fila = escribirDato(workbook, sheetResumen, "Total Transferencia", totalTransferencia.formatoCUP(), fila)
             fila = escribirDato(workbook, sheetResumen, "Días con Actividad", diasVenta.toString(), fila)
-            fila = escribirDato(workbook, sheetResumen, "Promedio Venta Diaria", promedioDiario.formatoCUP(), fila)
+            fila = escribirDato(workbook, sheetResumen, "Promedio Venta Diaria (Combinado)", promedioDiario.formatoCUP(), fila)
             fila++
 
-            // 2. Tendencia Diaria
+            // 2. Tendencia Diaria (BLENDED: real + manual per day)
             val sheetTendencia = workbook.createSheet("Tendencia Diaria")
             val headTendencia = sheetTendencia.createRow(0)
-            listOf("DÍA", "VENTAS", "EFECTIVO", "TRANSF.", "TOTAL").forEachIndexed { i, t -> 
+            listOf("DÍA", "VENTAS", "EFECTIVO", "TRANSF.", "TOTAL REAL", "TOTAL COMBINADO").forEachIndexed { i, t -> 
                 headTendencia.createCell(i).setCellValue(t)
                 headTendencia.getCell(i).setCellStyle(crearEstiloTitulo(workbook))
             }
@@ -402,11 +433,30 @@ class ReportRepositoryImpl @Inject constructor(
             var rIdx = 1
             ventasPorDia.forEach { (fecha, vList) ->
                 val row = sheetTendencia.createRow(rIdx++)
+                val startOfDay = fecha.atStartOfDay(zoneId).toInstant().toEpochMilli()
+                val totalRealDia = vList.sumOf { it.total }
+                val totalCombinadoDia = blendedTotals[startOfDay] ?: totalRealDia
                 row.createCell(0).setCellValue(fecha.format(DateTimeFormatter.ISO_LOCAL_DATE))
                 row.createCell(1).setCellValue(vList.size.toDouble())
                 row.createCell(2).setCellValue(vList.sumOf { it.montoEfectivo }.formatoCUP())
                 row.createCell(3).setCellValue(vList.sumOf { it.montoTransferencia }.formatoCUP())
-                row.createCell(4).setCellValue(vList.sumOf { it.total }.formatoCUP())
+                row.createCell(4).setCellValue(totalRealDia.formatoCUP())
+                row.createCell(5).setCellValue(totalCombinadoDia.formatoCUP())
+            }
+            
+            // Also include days with only manual entries (no real ventas)
+            val diasConVentas = ventasPorDia.keys.toSet()
+            blendedTotals.keys.forEach { fechaMillis ->
+                val fecha = Instant.ofEpochMilli(fechaMillis).atZone(zoneId).toLocalDate()
+                if (fecha !in diasConVentas) {
+                    val row = sheetTendencia.createRow(rIdx++)
+                    row.createCell(0).setCellValue(fecha.format(DateTimeFormatter.ISO_LOCAL_DATE))
+                    row.createCell(1).setCellValue(0.0)
+                    row.createCell(2).setCellValue("0.00")
+                    row.createCell(3).setCellValue("0.00")
+                    row.createCell(4).setCellValue("0.00")
+                    row.createCell(5).setCellValue(blendedTotals[fechaMillis]!!.formatoCUP())
+                }
             }
 
             // 3. Ranking de Productos (Mes)
