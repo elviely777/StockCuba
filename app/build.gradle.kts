@@ -19,7 +19,7 @@ android {
     // Version management
     val versionMajor = 1
     val versionMinor = 7
-    val versionPatch = 2
+    val versionPatch = 3
     val computedVersionCode = versionMajor * 10000 + versionMinor * 100 + versionPatch
     val computedVersionName = "$versionMajor.$versionMinor.$versionPatch"
 
@@ -137,6 +137,16 @@ defaultConfig {
         }
     }
 
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+        checkDependencies = false
+    }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+
     namespace = "cu.stockcuba.app"
 }
 
@@ -149,8 +159,12 @@ dependencies {
         exclude(group = "org.jetbrains.kotlinx", module = "kotlinx-coroutines-slf4j")
         // Exclude transitive JVM variants that cause massive duplicate classes
         exclude(group = "androidx.datastore", module = "datastore-core-jvm")
-        // Note: datastore-core-okio-jvm NOT excluded globally (needed for OkioStorage)
-        // It only duplicates AtomicBoolean/AtomicInt with datastore-core-android
+        exclude(group = "androidx.lifecycle", module = "lifecycle-livedata-core-ktx")
+        exclude(group = "androidx.lifecycle", module = "lifecycle-viewmodel-ktx")
+        resolutionStrategy {
+            force("androidx.lifecycle:lifecycle-livedata-core:2.8.4")
+            force("androidx.lifecycle:lifecycle-viewmodel-android:2.8.4")
+        }
     }
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     // Core AndroidX

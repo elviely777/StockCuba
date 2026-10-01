@@ -56,14 +56,22 @@ class BackupRepositoryImpl @Inject constructor(
             }
 
             // Export ONLY the main .db file (now contains all data after checkpoint)
-            val contentValues = ContentValues().apply {
-                put(MediaStore.Downloads.DISPLAY_NAME, "${baseFileName}.db")
-                put(MediaStore.Downloads.RELATIVE_PATH, relativePath)
-                put(MediaStore.Downloads.IS_PENDING, 1)
-                put(MediaStore.Downloads.MIME_TYPE, "application/x-sqlite3")
+            val downloadsUri = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI
+            } else {
+                MediaStore.Files.getContentUri("external")
             }
 
-            val pendingUri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, "${baseFileName}.db")
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                    put(MediaStore.Downloads.RELATIVE_PATH, relativePath)
+                    put(MediaStore.Downloads.IS_PENDING, 1)
+                }
+                put(MediaStore.MediaColumns.MIME_TYPE, "application/x-sqlite3")
+            }
+
+            val pendingUri = contentResolver.insert(downloadsUri, contentValues)
                 ?: return@withContext Result.Failure(DomainError.DatabaseError(IOException("Failed to create MediaStore entry")))
 
             val outputStream = contentResolver.openOutputStream(pendingUri)
@@ -79,13 +87,15 @@ class BackupRepositoryImpl @Inject constructor(
             }
 
             // Publish the file
-            val publishValues = ContentValues().apply {
-                put(MediaStore.Downloads.IS_PENDING, 0)
-            }
-            val updated = contentResolver.update(pendingUri, publishValues, null, null)
-            if (updated <= 0) {
-                contentResolver.delete(pendingUri, null, null)
-                return@withContext Result.Failure(DomainError.DatabaseError(IOException("Failed to publish MediaStore entry")))
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                val publishValues = ContentValues().apply {
+                    put(MediaStore.Downloads.IS_PENDING, 0)
+                }
+                val updated = contentResolver.update(pendingUri, publishValues, null, null)
+                if (updated <= 0) {
+                    contentResolver.delete(pendingUri, null, null)
+                    return@withContext Result.Failure(DomainError.DatabaseError(IOException("Failed to publish MediaStore entry")))
+                }
             }
 
             Result.Success(pendingUri)

@@ -25,9 +25,10 @@ import java.io.File
         CierreMensualEntity::class,
         GastoEntity::class,
         AbonoEntity::class,
-        VentaDiariaResumenEntity::class
+        VentaDiariaResumenEntity::class,
+        VentaDiariaItemEntity::class
     ],
-    version = 15,
+    version = 16,
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 8, to = 9),
@@ -66,6 +67,7 @@ abstract class StockCubaDatabase : RoomDatabase() {
             cierreDao().deleteAll()
             ventaDao().deleteAllItems()
             ventaDao().deleteAll()
+            ventaDiariaResumenDao().deleteAllItems()
             ventaDiariaResumenDao().deleteAll()
             productoDao().deleteAll()
             clienteDao().deleteAll()
@@ -204,11 +206,33 @@ abstract class StockCubaDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `venta_diaria_items` (
+                        `id` TEXT NOT NULL,
+                        `fecha` INTEGER NOT NULL,
+                        `producto_id` TEXT NOT NULL,
+                        `nombre_producto` TEXT NOT NULL,
+                        `cantidad` INTEGER NOT NULL,
+                        `precio_unitario` REAL NOT NULL,
+                        `subtotal` REAL NOT NULL,
+                        PRIMARY KEY(`id`),
+                        FOREIGN KEY(`fecha`) REFERENCES `ventas_diarias_resumen`(`fecha`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                        FOREIGN KEY(`producto_id`) REFERENCES `productos`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_venta_diaria_items_fecha` ON `venta_diaria_items` (`fecha`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_venta_diaria_items_producto_id` ON `venta_diaria_items` (`producto_id`)")
+            }
+        }
+
         val ALL_MANUAL_MIGRATIONS = arrayOf(
             MIGRATION_1_14, MIGRATION_2_14, MIGRATION_3_14, MIGRATION_4_14, MIGRATION_5_14,
             MIGRATION_6_14, MIGRATION_7_14, MIGRATION_8_14, MIGRATION_9_14, MIGRATION_10_14,
             MIGRATION_11_14, MIGRATION_12_14, MIGRATION_13_14,
-            MIGRATION_14_15
+            MIGRATION_14_15,
+            MIGRATION_15_16
         )
 
         fun getInstance(context: Context): StockCubaDatabase {
