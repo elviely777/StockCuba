@@ -154,8 +154,8 @@ class DashboardViewModel @Inject constructor(
 
         // IPB e IPC (T66)
         val activeProductos = allProductos.filter { it.activo }
-        val ipb = activeProductos.sumOf { it.stockActual * toBase(it.precioVenta, it.moneda) }
-        val ipc = activeProductos.sumOf { it.stockActual * toBase(it.costoUnitario, it.moneda) }
+        val ipb = activeProductos.sumOf { it.stockActual * it.precioVenta }
+        val ipc = activeProductos.sumOf { it.stockActual * it.costoUnitario }
         val gananciaProyectada = ipb - ipc
 
         val topProducto = periodVentas.flatMap { it.items }
