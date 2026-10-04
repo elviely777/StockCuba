@@ -141,22 +141,41 @@ abstract class StockCubaDatabase : RoomDatabase() {
             db.execSQL("CREATE INDEX `index_abonos_fecha` ON `abonos` (`fecha`)")
 
             // 5. Restaurar datos fundamentales
-            try { db.execSQL("INSERT OR IGNORE INTO `categorias` (id, nombre, color, fecha_creacion) SELECT id, nombre, 0, 0 FROM `categorias_backup` ") } catch(_: Exception) {}
-            db.execSQL("INSERT OR IGNORE INTO `categorias` (id, nombre, color, fecha_creacion) VALUES ('general', 'General', -1, 0)")
+            try {
+                db.execSQL("""
+                    INSERT OR IGNORE INTO `categorias` (id, nombre, color, fecha_creacion, activo) 
+                    SELECT id, nombre, COALESCE(color, -1), COALESCE(fecha_creacion, 0), COALESCE(activo, 1) FROM `categorias_backup`
+                """.trimIndent())
+            } catch(_: Exception) {}
+            db.execSQL("INSERT OR IGNORE INTO `categorias` (id, nombre, color, fecha_creacion, activo) VALUES ('general', 'General', -1, 0, 1)")
             
             try {
                 db.execSQL("""
-                    INSERT OR IGNORE INTO `productos` (id, nombre, descripcion, precio_venta, costo_unitario, stock_actual, stock_minimo, unidad_medida, categoria_id, fecha_creacion, fecha_actualizacion) 
-                    SELECT id, nombre, descripcion, precio_venta, 0.0, stock_actual, 0, 'UNIDAD', COALESCE(categoria_id, 'general'), fecha_creacion, fecha_creacion FROM `productos_backup` 
+                    INSERT OR IGNORE INTO `productos` (id, nombre, descripcion, precio_venta, costo_unitario, moneda, stock_actual, stock_minimo, unidad_medida, codigo_barras, categoria_id, imagen_url, fecha_creacion, activo, vincular_tasa, fecha_actualizacion, sync_status) 
+                    SELECT id, nombre, descripcion, precio_venta, COALESCE(costo_unitario, 0.0), COALESCE(moneda, 'CUP'), stock_actual, COALESCE(stock_minimo, 0), COALESCE(unidad_medida, 'UNIDAD'), codigo_barras, COALESCE(categoria_id, 'general'), imagen_url, COALESCE(fecha_creacion, 0), COALESCE(activo, 1), COALESCE(vincular_tasa, 0), COALESCE(fecha_actualizacion, fecha_creacion), COALESCE(sync_status, 'SYNCED') FROM `productos_backup` 
                 """.trimIndent())
             } catch(_: Exception) {}
             
-            try { db.execSQL("INSERT OR IGNORE INTO `clientes` (id, nombre, ci, fecha_creacion) SELECT id, nombre, ci, fecha_creacion FROM `clientes_backup` ") } catch(_: Exception) {}
-            try { db.execSQL("INSERT OR IGNORE INTO `ventas` (id, fecha, total, metodo_pago, cliente_id, monto_efectivo, monto_transferencia, fecha_creacion) SELECT id, fecha, total, metodo_pago, cliente_id, total, 0.0, fecha FROM `ventas_backup` ") } catch(_: Exception) {}
+            try {
+                db.execSQL("""
+                    INSERT OR IGNORE INTO `clientes` (id, nombre, ci, telefono, notas, saldo_deuda, fecha_creacion, activo) 
+                    SELECT id, nombre, ci, telefono, notas, COALESCE(saldo_deuda, 0.0), COALESCE(fecha_creacion, 0), COALESCE(activo, 1) FROM `clientes_backup`
+                """.trimIndent())
+            } catch(_: Exception) {}
+            
+            try {
+                db.execSQL("""
+                    INSERT OR IGNORE INTO `ventas` (id, fecha, total, total_original, descuento, metodo_pago, cliente_id, monto_efectivo, monto_transferencia, id_transferencia, vendedor_nombre, fecha_creacion, sync_status) 
+                    SELECT id, fecha, total, COALESCE(total_original, total), COALESCE(descuento, 0.0), metodo_pago, cliente_id, COALESCE(monto_efectivo, total), COALESCE(monto_transferencia, 0.0), id_transferencia, COALESCE(vendedor_nombre, 'Desconocido'), COALESCE(fecha_creacion, fecha), COALESCE(sync_status, 'SYNCED') FROM `ventas_backup`
+                """.trimIndent())
+            } catch(_: Exception) {}
+            
             try { db.execSQL("INSERT OR IGNORE INTO `venta_items` SELECT * FROM `venta_items_backup` ") } catch(_: Exception) {}
             try { db.execSQL("INSERT OR IGNORE INTO `movimientos_inventario` SELECT * FROM `movimientos_inventario_backup` ") } catch(_: Exception) {}
             try { db.execSQL("INSERT OR IGNORE INTO `cierres_diarios` SELECT * FROM `cierres_diarios_backup` ") } catch(_: Exception) {}
             try { db.execSQL("INSERT OR IGNORE INTO `cierres_mensuales` SELECT * FROM `cierres_mensuales_backup` ") } catch(_: Exception) {}
+            try { db.execSQL("INSERT OR IGNORE INTO `gastos` SELECT * FROM `gastos_backup` ") } catch(_: Exception) {}
+            try { db.execSQL("INSERT OR IGNORE INTO `abonos` SELECT * FROM `abonos_backup` ") } catch(_: Exception) {}
 
             // 6. Actualizar identity_hash y user_version
             db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)")
