@@ -33,7 +33,11 @@ sealed interface NuevaVentaUiState {
         val editingClienteId: String? = null, // null = creando, not null = editando
         val nuevoClienteNombre: String = "",
         val nuevoClienteCI: String = "",
-        val nuevoClienteTelefono: String = ""
+        val nuevoClienteTelefono: String = "",
+        val isEditing: Boolean = false,
+        val editingVentaId: String? = null,
+        val fechaOriginal: java.time.Instant? = null,
+        val vendedorNombreOriginal: String? = null
     ) : NuevaVentaUiState
 
     data object Saving : NuevaVentaUiState

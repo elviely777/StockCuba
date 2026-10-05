@@ -85,6 +85,9 @@ interface VentaDao {
         insertItems(items)
     }
 
+    @Query("DELETE FROM venta_items WHERE venta_id = :ventaId")
+    suspend fun deleteItemsByVentaId(ventaId: String)
+
     // Clear all methods for reset (T27)
     @Query("DELETE FROM venta_items")
     suspend fun deleteAllItems()

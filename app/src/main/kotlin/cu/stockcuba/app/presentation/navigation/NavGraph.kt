@@ -213,7 +213,26 @@ fun AppNavHost() {
                         securityRepository = securityRepository,
                         onUnlocked = { /* unlocked */ }
                     ) {
-                        DetalleVentaScreen(ventaId = ventaId, onBack = { navController.popBackStack() })
+                        DetalleVentaScreen(
+                            ventaId = ventaId, 
+                            onBack = { navController.popBackStack() },
+                            onEditar = { id -> navController.navigate(Screen.EditarVenta(id).route) }
+                        )
+                    }
+                }
+                composable(
+                    route = Screen.EditarVenta.ROUTE_PATTERN,
+                    arguments = listOf(navArgument("ventaId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val ventaId = backStackEntry.arguments?.getString("ventaId") ?: ""
+                    SecurityGate(
+                        securityRepository = securityRepository,
+                        onUnlocked = { /* unlocked */ }
+                    ) {
+                        NuevaVentaScreen(
+                            ventaIdParaEditar = ventaId,
+                            onComplete = { navController.popBackStack() }
+                        )
                     }
                 }
             }

@@ -55,6 +55,13 @@ sealed interface Screen {
         }
     }
 
+    data class EditarVenta(val ventaId: String) : Screen {
+        override val route = "ventas/editar/$ventaId"
+        companion object {
+            const val ROUTE_PATTERN = "ventas/editar/{ventaId}"
+        }
+    }
+
     data object Ajustes : Screen {
         override val route = "mas/ajustes"
     }

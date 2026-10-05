@@ -23,6 +23,8 @@ interface VentaRepository {
 
     suspend fun registrarVenta(venta: Venta): Result<Unit>
 
+    suspend fun editarVenta(venta: Venta): Result<Unit>
+
     suspend fun getTotalVendidoPorRango(desde: Long, hasta: Long): Result<Double>
 
     suspend fun getResumenDelDia(fecha: Long): Result<ResumenDia>

@@ -7,6 +7,7 @@ import cu.stockcuba.app.domain.model.Venta
 import cu.stockcuba.app.domain.model.VentaItem
 import cu.stockcuba.app.domain.repository.ClienteRepository
 import cu.stockcuba.app.domain.repository.ProductoRepository
+import cu.stockcuba.app.domain.repository.VentaRepository
 import cu.stockcuba.app.domain.usecase.RegistrarVentaUseCase
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runBlockingTest
@@ -19,15 +20,44 @@ class NuevaVentaViewModelTest {
 
     private lateinit var productoRepository: ProductoRepository
     private lateinit var clienteRepository: ClienteRepository
+    private lateinit var categoriaRepository: cu.stockcuba.app.domain.repository.CategoriaRepository
     private lateinit var registrarVentaUseCase: RegistrarVentaUseCase
+    private lateinit var editarVentaUseCase: cu.stockcuba.app.domain.usecase.EditarVentaUseCase
+    private lateinit var ajustesDataStore: cu.stockcuba.app.presentation.ajustes.AjustesDataStore
+    private lateinit var pdfTicketService: cu.stockcuba.app.data.service.PdfTicketService
+    private lateinit var printerService: cu.stockcuba.app.data.service.BluetoothPrinterService
+    private lateinit var ventaRepository: VentaRepository
     private lateinit var viewModel: NuevaVentaViewModel
 
     @Before
     fun setup() {
         productoRepository = mock()
         clienteRepository = mock()
+        categoriaRepository = mock()
         registrarVentaUseCase = mock()
-        viewModel = NuevaVentaViewModel(productoRepository, clienteRepository, registrarVentaUseCase)
+        editarVentaUseCase = mock()
+        ajustesDataStore = mock()
+        pdfTicketService = mock()
+        printerService = mock()
+        ventaRepository = mock()
+
+        whenever(ajustesDataStore.tasaUSD).thenReturn(flowOf(120.0))
+        whenever(ajustesDataStore.tasaMLC).thenReturn(flowOf(130.0))
+        whenever(ajustesDataStore.tasaEUR).thenReturn(flowOf(140.0))
+        whenever(ajustesDataStore.moneda).thenReturn(flowOf(cu.stockcuba.app.domain.model.Moneda.CUP))
+        whenever(categoriaRepository.getAll()).thenReturn(flowOf(emptyList()))
+
+        viewModel = NuevaVentaViewModel(
+            productoRepository,
+            clienteRepository,
+            categoriaRepository,
+            registrarVentaUseCase,
+            editarVentaUseCase,
+            ajustesDataStore,
+            pdfTicketService,
+            printerService,
+            ventaRepository
+        )
     }
 
     @Test
@@ -144,7 +174,7 @@ class NuevaVentaViewModelTest {
 
         // Then
         val state = viewModel.uiState.first() as NuevaVentaUiState.Editing
-        val totales = viewModel.calcularTotales(state.carrito)
+        val totales = CarritoTotales.calcular(state.carrito)
         assertEquals(35.0, totales.total, 0.001) // 20 + 15
     }
 

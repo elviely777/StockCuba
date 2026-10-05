@@ -97,6 +97,59 @@ class VentaRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun editarVenta(venta: Venta): Result<Unit> {
+        return try {
+            database.withTransaction {
+                val oldVentaEntity = ventaDao.getByIdSync(venta.id)
+                    ?: return@withTransaction Result.Failure(DomainError.NotFound("Venta", venta.id))
+                val oldItems = ventaDao.getItemsByVentaIdSync(venta.id)
+
+                val productoDao = database.productoDao()
+                val movimientoDao = database.movimientoInventarioDao()
+
+                // 1. Revertir inventario anterior (devolver stock)
+                oldItems.forEach { oldItem ->
+                    productoDao.updateStock(oldItem.productoId, oldItem.cantidad)
+                }
+
+                // 2. Revertir deuda de cliente anterior si era crédito
+                if (oldVentaEntity.metodoPago == MetodoPago.CREDITO.name && oldVentaEntity.clienteId != null) {
+                    database.clienteDao().updateDeuda(oldVentaEntity.clienteId, -oldVentaEntity.total)
+                }
+
+                // 3. Borrar items anteriores de la venta
+                ventaDao.deleteItemsByVentaId(venta.id)
+
+                // 4. Actualizar venta y sus nuevos items
+                val (ventaEntity, itemsEntities) = venta.toEntityWithItems()
+                ventaDao.insert(ventaEntity)
+                ventaDao.insertItems(itemsEntities)
+
+                // 5. Aplicar nueva deuda si es crédito
+                if (venta.metodoPago == MetodoPago.CREDITO && venta.clienteId != null) {
+                    database.clienteDao().updateDeuda(venta.clienteId, venta.total)
+                }
+
+                // 6. Aplicar nuevo inventario (descontar stock)
+                venta.items.forEach { item ->
+                    val movimiento = MovimientoInventario(
+                        id = java.util.UUID.randomUUID().toString(),
+                        productoId = item.productoId,
+                        tipo = TipoMovimientoInventario.VENTA,
+                        cantidad = item.cantidad,
+                        fecha = venta.fecha,
+                        motivo = "Edición Venta #${venta.id.take(8)}"
+                    )
+                    movimientoDao.insert(movimiento.toEntity())
+                    productoDao.updateStock(item.productoId, -item.cantidad)
+                }
+            }
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Failure(DomainError.DatabaseError(e))
+        }
+    }
+
     override suspend fun getTotalVendidoPorRango(desde: Long, hasta: Long): Result<Double> {
         return try {
             val total = ventaDao.getTotalByDateRange(desde, hasta).first() ?: 0.0

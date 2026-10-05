@@ -45,6 +45,7 @@ import cu.stockcuba.app.presentation.theme.StockCubaSpacing
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NuevaVentaScreen(
+    ventaIdParaEditar: String? = null,
     onComplete: () -> Unit,
     viewModel: NuevaVentaViewModel = hiltViewModel()
 ) {
@@ -53,6 +54,12 @@ fun NuevaVentaScreen(
     val scope = rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
     var showScanner by remember { mutableStateOf(false) }
+
+    LaunchedEffect(ventaIdParaEditar) {
+        if (ventaIdParaEditar != null) {
+            viewModel.cargarVentaParaEditar(ventaIdParaEditar)
+        }
+    }
     
     if (showScanner) {
         ScannerScreen(
@@ -69,7 +76,8 @@ fun NuevaVentaScreen(
         topBar = {
             TopAppBar(
                 title = { 
-                    Text("Punto de Venta", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)) 
+                    val isEditing = (uiState as? NuevaVentaUiState.Editing)?.isEditing == true
+                    Text(if (isEditing) "Editar Venta" else "Punto de Venta", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)) 
                 },
                 navigationIcon = {
                     IconButton(onClick = onComplete) {
@@ -111,7 +119,7 @@ fun NuevaVentaScreen(
                                 Icon(Icons.Default.Check, contentDescription = null)
                                 Spacer(Modifier.width(12.dp))
                                 Text(
-                                    text = "Vender • ${totales.total.formatoMoneda((uiState as NuevaVentaUiState.Editing).monedaBase)}",
+                                    text = if (state.isEditing) "Guardar Cambios • ${totales.total.formatoMoneda(state.monedaBase)}" else "Vender • ${totales.total.formatoMoneda(state.monedaBase)}",
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                                 )
                             }

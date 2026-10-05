@@ -21,6 +21,7 @@ class NuevaVentaViewModel @Inject constructor(
     private val clienteRepository: ClienteRepository,
     private val categoriaRepository: cu.stockcuba.app.domain.repository.CategoriaRepository,
     private val registrarVentaUseCase: RegistrarVentaUseCase,
+    private val editarVentaUseCase: cu.stockcuba.app.domain.usecase.EditarVentaUseCase,
     private val ajustesDataStore: cu.stockcuba.app.presentation.ajustes.AjustesDataStore,
     private val pdfTicketService: cu.stockcuba.app.data.service.PdfTicketService,
     private val printerService: cu.stockcuba.app.data.service.BluetoothPrinterService,
@@ -386,6 +387,49 @@ class NuevaVentaViewModel @Inject constructor(
         }
     }
 
+    fun cargarVentaParaEditar(ventaId: String) {
+        viewModelScope.launch {
+            val ventaResult = ventaRepository.getByIdSync(ventaId)
+            if (ventaResult is Result.Success) {
+                val venta = ventaResult.value
+                val itemsResult = ventaRepository.getItemsByVentaId(ventaId)
+                val items = itemsResult.valueOrNull ?: emptyList()
+
+                val productos = productoRepository.getAll().first()
+                val productosMap = productos.associateBy { it.id }
+
+                val carritoItems = items.mapNotNull { ventaItem ->
+                    val producto = productosMap[ventaItem.productoId] ?: return@mapNotNull null
+                    CarritoItem(
+                        producto = producto,
+                        cantidad = ventaItem.cantidad,
+                        precioCalculado = ventaItem.precioUnitario
+                    )
+                }
+
+                val descuentoVal = if (venta.descuento > 0) venta.descuento.toString() else ""
+
+                _uiState.update { state ->
+                    if (state is NuevaVentaUiState.Editing) {
+                        state.copy(
+                            carrito = carritoItems,
+                            metodoPago = venta.metodoPago,
+                            clienteId = venta.clienteId,
+                            descuento = descuentoVal,
+                            efectivoRecibido = if (venta.metodoPago == MetodoPago.EFECTIVO || venta.metodoPago == MetodoPago.MIXTO) venta.montoEfectivo.toString() else "",
+                            transferenciaMonto = if (venta.metodoPago == MetodoPago.TRANSFERENCIA || venta.metodoPago == MetodoPago.MIXTO) venta.montoTransferencia.toString() else "",
+                            idTransferencia = venta.idTransferencia ?: "",
+                            isEditing = true,
+                            editingVentaId = ventaId,
+                            fechaOriginal = venta.fecha,
+                            vendedorNombreOriginal = venta.vendedorNombre
+                        )
+                    } else state
+                }
+            }
+        }
+    }
+
     fun limpiarCarrito() {
         _uiState.update { state ->
             when (state) {
@@ -416,7 +460,11 @@ class NuevaVentaViewModel @Inject constructor(
                 is NuevaVentaUiState.Editing -> {
                     if (currentState.errors.isEmpty() && currentState.carrito.isNotEmpty()) {
                         val venta = construirVenta(currentState)
-                        val result = registrarVentaUseCase(venta)
+                        val result = if (currentState.isEditing) {
+                            editarVentaUseCase(venta)
+                        } else {
+                            registrarVentaUseCase(venta)
+                        }
 
                         _uiState.update { _ ->
                             when (result) {
@@ -447,10 +495,18 @@ class NuevaVentaViewModel @Inject constructor(
     }
 
     private suspend fun construirVenta(state: NuevaVentaUiState.Editing): Venta {
+        val ventaId = if (state.isEditing) state.editingVentaId!! else UUID.randomUUID().toString()
+        val fecha = if (state.isEditing) state.fechaOriginal!! else java.time.Instant.now()
+        val nombreVendedor = if (state.isEditing) {
+            state.vendedorNombreOriginal ?: if (ajustesDataStore.rolActual.first() == RolUsuario.DUENO) "Dueño" else ajustesDataStore.nombreVendedor.first()
+        } else {
+            if (ajustesDataStore.rolActual.first() == RolUsuario.DUENO) "Dueño" else ajustesDataStore.nombreVendedor.first()
+        }
+
         val items = state.carrito.map { item ->
             VentaItem(
                 id = UUID.randomUUID().toString(),
-                ventaId = "",
+                ventaId = ventaId,
                 productoId = item.producto.id,
                 nombreProducto = item.producto.nombre,
                 cantidad = item.cantidad,
@@ -460,11 +516,10 @@ class NuevaVentaViewModel @Inject constructor(
         }
 
         val totales = calcularTotales(state)
-        val nombreVendedor = if (ajustesDataStore.rolActual.first() == RolUsuario.DUENO) "Dueño" else ajustesDataStore.nombreVendedor.first()
 
         return Venta(
-            id = UUID.randomUUID().toString(),
-            fecha = java.time.Instant.now(),
+            id = ventaId,
+            fecha = fecha,
             total = totales.total,
             totalOriginal = totales.subtotal,
             descuento = totales.subtotal - totales.total,
@@ -472,8 +527,16 @@ class NuevaVentaViewModel @Inject constructor(
             items = items,
             clienteId = state.clienteId,
             vendedorNombre = nombreVendedor,
-            montoEfectivo = if (state.metodoPago == MetodoPago.EFECTIVO) totales.total else 0.0,
-            montoTransferencia = if (state.metodoPago == MetodoPago.TRANSFERENCIA) totales.total else 0.0,
+            montoEfectivo = when (state.metodoPago) {
+                MetodoPago.EFECTIVO -> state.efectivoRecibido.toDoubleOrNull() ?: totales.total
+                MetodoPago.MIXTO -> state.efectivoRecibido.toDoubleOrNull() ?: 0.0
+                else -> 0.0
+            },
+            montoTransferencia = when (state.metodoPago) {
+                MetodoPago.TRANSFERENCIA -> state.transferenciaMonto.toDoubleOrNull() ?: totales.total
+                MetodoPago.MIXTO -> state.transferenciaMonto.toDoubleOrNull() ?: 0.0
+                else -> 0.0
+            },
             idTransferencia = state.idTransferencia
         )
     }

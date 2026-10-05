@@ -38,6 +38,7 @@ import java.time.format.DateTimeFormatter
 fun DetalleVentaScreen(
     ventaId: String,
     onBack: () -> Unit,
+    onEditar: (String) -> Unit,
     viewModel: DetalleVentaViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -53,6 +54,11 @@ fun DetalleVentaScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { onEditar(ventaId) }) {
+                        Icon(Icons.Default.Edit, contentDescription = "Editar Venta", tint = MaterialTheme.colorScheme.primary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
