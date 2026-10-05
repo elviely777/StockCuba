@@ -221,7 +221,7 @@ class FormularioProductoViewModel @Inject constructor(
         if (state.precioVenta.trim().isEmpty()) {
             errors["precioVenta"] = "El precio de venta es obligatorio"
         } else {
-            state.precioVenta.toDoubleOrNull()?.let {
+            state.precioVenta.trim().replace(',', '.').toDoubleOrNull()?.let {
                 if (it < 0) errors["precioVenta"] = "El precio debe ser positivo"
             } ?: run { errors["precioVenta"] = "Precio inválido" }
         }
@@ -229,7 +229,7 @@ class FormularioProductoViewModel @Inject constructor(
         if (state.costoUnitario.trim().isEmpty()) {
             errors["costoUnitario"] = "El costo es obligatorio"
         } else {
-            state.costoUnitario.toDoubleOrNull()?.let {
+            state.costoUnitario.trim().replace(',', '.').toDoubleOrNull()?.let {
                 if (it < 0) errors["costoUnitario"] = "El costo debe ser positivo"
             } ?: run { errors["costoUnitario"] = "Costo inválido" }
         }
@@ -311,12 +311,15 @@ class FormularioProductoViewModel @Inject constructor(
                             }
                         }
 
+                        val precioVentaVal = currentState.precioVenta.trim().replace(',', '.').toDoubleOrNull() ?: 0.0
+                        val costoUnitarioVal = currentState.costoUnitario.trim().replace(',', '.').toDoubleOrNull() ?: 0.0
+
                         val producto = Producto(
                             id = currentState.productoId ?: UUID.randomUUID().toString(),
                             nombre = currentState.nombre.trim(),
                             descripcion = currentState.descripcion.trim().takeIf { it.isNotBlank() },
-                            precioVenta = currentState.precioVenta.toDoubleOrNull() ?: 0.0,
-                            costoUnitario = currentState.costoUnitario.toDoubleOrNull() ?: 0.0,
+                            precioVenta = precioVentaVal,
+                            costoUnitario = costoUnitarioVal,
                             moneda = currentState.moneda,
                             stockActual = currentState.stockInicial.toIntOrNull() ?: 0,
                             stockMinimo = currentState.stockMinimo.toIntOrNull() ?: 0,
