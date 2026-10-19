@@ -4,10 +4,10 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    id("org.jetbrains.kotlin.kapt") version "2.0.21"
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21"
-    id("org.jetbrains.kotlin.plugin.compose") version "2.0.21"
-    id("com.google.dagger.hilt.android") version "2.52"
+    kotlin("kapt")
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.hilt)
     alias(libs.plugins.androidx.room)
     // alias(libs.plugins.google.services)  // REMOVIDO - migración a Supabase
 }
@@ -19,7 +19,7 @@ android {
     // Version management
     val versionMajor = 1
     val versionMinor = 7
-    val versionPatch = 5
+    val versionPatch = 6
     val computedVersionCode = versionMajor * 10000 + versionMinor * 100 + versionPatch
     val computedVersionName = "$versionMajor.$versionMinor.$versionPatch"
 
@@ -75,25 +75,21 @@ defaultConfig {
         buildConfig = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = libs.versions.composeCompiler.get()
-    }
 
-    // Explicit Compose compiler options for Kotlin 2.0
-    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-        kotlinOptions {
-            freeCompilerArgs += listOf(
+    // Configure Kotlin compiler options
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+            freeCompilerArgs.addAll(
                 "-opt-in=kotlin.RequiresOptIn",
                 "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
                 "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
-                "-opt-in=androidx.lifecycle.ExperimentalLifecycleApi",
-                // Explicitly enable Compose compiler transformation
-                "-P", "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=true"
+                "-opt-in=androidx.lifecycle.ExperimentalLifecycleApi"
             )
         }
     }
 
-    packagingOptions {
+    packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1,LICENSE,LICENSE.txt,NOTICE,NOTICE.txt}"
             excludes += "META-INF/gradle/incremental.annotation.processors"
@@ -104,17 +100,7 @@ defaultConfig {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-        isCoreLibraryDesugaringEnabled = true
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
-        freeCompilerArgs += listOf(
-            "-opt-in=kotlin.RequiresOptIn",
-            "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
-            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
-            "-opt-in=androidx.lifecycle.ExperimentalLifecycleApi"
-        )
+        isCoreLibraryDesugaringEnabled = false
     }
 
     buildTypes {
@@ -148,6 +134,11 @@ defaultConfig {
     }
 
     namespace = "cu.stockcuba.app"
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+    buildToolsVersion = "34.0.0"
 }
 
 room {
@@ -166,7 +157,7 @@ dependencies {
             force("androidx.lifecycle:lifecycle-viewmodel-android:2.8.4")
         }
     }
-    coreLibraryDesugaring(libs.desugar.jdk.libs)
+    // coreLibraryDesugaring(libs.desugar.jdk.libs)
     // Core AndroidX
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -193,7 +184,6 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     kapt(libs.room.compiler)
-    kapt(libs.room.compiler.processing)
 
     // Retrofit + Moshi - using KAPT for Moshi
     implementation(libs.retrofit)
@@ -202,6 +192,7 @@ dependencies {
     implementation(libs.logging.interceptor)
     implementation(libs.moshi)
     implementation(libs.moshi.kotlin)
+    kapt(libs.moshi)
     kapt(libs.moshi.kotlin.codegen)
 
     // Navigation Compose
@@ -274,7 +265,7 @@ dependencies {
     androidTestImplementation(libs.truth)
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.ui.test)
-    androidTestImplementation(libs.compose.ui.test.manifest)
+    debugImplementation(libs.compose.ui.test.manifest)
     androidTestImplementation(libs.coroutines.test)
     debugImplementation(libs.hilt.compiler)
 }

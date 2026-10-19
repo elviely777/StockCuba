@@ -29,14 +29,27 @@ class InventarioRepositoryImpl @Inject constructor(
     override fun getHistorialPorRango(desde: Long, hasta: Long): Flow<List<MovimientoInventario>> =
         movimientoDao.getByDateRange(desde, hasta).map { it.map { it.toDomain() } }
 
-    override suspend fun registrarMovimiento(movimiento: MovimientoInventario): Result<Unit> {
+    override suspend fun registrarMovimiento(
+        movimiento: MovimientoInventario,
+        nuevoCostoUnitario: Double?,
+        nuevoPrecioVenta: Double?
+    ): Result<Unit> {
         return try {
             database.withTransaction {
                 movimientoDao.insert(movimiento.toEntity())
                 
-                // Actualizar el stock real en la tabla de productos (T58)
+                // Actualizar el stock real y opcionalmente precios en la tabla de productos
                 val productoDao = database.productoDao()
-                productoDao.updateStock(movimiento.productoId, movimiento.cantidadConSigno)
+                if (nuevoCostoUnitario != null || nuevoPrecioVenta != null) {
+                    productoDao.updateStockAndPrices(
+                        productoId = movimiento.productoId,
+                        cantidad = movimiento.cantidadConSigno,
+                        nuevoCosto = nuevoCostoUnitario,
+                        nuevoPrecio = nuevoPrecioVenta
+                    )
+                } else {
+                    productoDao.updateStock(movimiento.productoId, movimiento.cantidadConSigno)
+                }
             }
             Result.Success(Unit)
         } catch (e: Exception) {

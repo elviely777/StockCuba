@@ -88,13 +88,15 @@ class InventarioViewModel @Inject constructor(
     }
 
     /**
-     * Registra un movimiento de inventario (entrada/ajuste).
+     * Registra un movimiento de inventario (entrada/ajuste) y opcionalmente actualiza precios.
      */
     suspend fun registrarMovimiento(
         producto: Producto,
         tipo: TipoMovimientoInventario,
         cantidad: Int,
-        motivo: String?
+        motivo: String?,
+        nuevoCostoUnitario: Double? = null,
+        nuevoPrecioVenta: Double? = null
     ): Result<Unit> {
         val movimiento = MovimientoInventario(
             id = UUID.randomUUID().toString(),
@@ -104,6 +106,10 @@ class InventarioViewModel @Inject constructor(
             fecha = java.time.Instant.now(),
             motivo = motivo?.takeIf { it.isNotBlank() }
         )
-        return inventarioRepository.registrarMovimiento(movimiento)
+        return inventarioRepository.registrarMovimiento(
+            movimiento = movimiento,
+            nuevoCostoUnitario = nuevoCostoUnitario,
+            nuevoPrecioVenta = nuevoPrecioVenta
+        )
     }
 }

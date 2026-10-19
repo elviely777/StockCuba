@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="cu.stockcuba.app" />
-                  <option name="mobileSdkAppId" value="1:548996890499:android:32d3f9c637ad0acdcb00b6" />
-                  <option name="projectId" value="stockcuba-f2e58" />
-                  <option name="projectNumber" value="548996890499" />
+                  <option name="appId" value="PLACEHOLDER" />
+                  <option name="mobileSdkAppId" value="" />
+                  <option name="projectId" value="" />
+                  <option name="projectNumber" value="" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

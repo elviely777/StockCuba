@@ -12,7 +12,11 @@ interface InventarioRepository {
 
     fun getHistorialPorRango(desde: Long, hasta: Long): Flow<List<MovimientoInventario>>
 
-    suspend fun registrarMovimiento(movimiento: MovimientoInventario): Result<Unit>
+    suspend fun registrarMovimiento(
+        movimiento: MovimientoInventario,
+        nuevoCostoUnitario: Double? = null,
+        nuevoPrecioVenta: Double? = null
+    ): Result<Unit>
 
     suspend fun registrarMovimientos(movimientos: List<MovimientoInventario>): Result<Unit>
 

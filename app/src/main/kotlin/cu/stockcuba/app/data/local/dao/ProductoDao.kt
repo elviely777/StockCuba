@@ -68,6 +68,14 @@ interface ProductoDao {
         return updateStockInternal(productoId, cantidad, System.currentTimeMillis())
     }
 
+    @Query("UPDATE productos SET stock_actual = stock_actual + :cantidad, costo_unitario = CASE WHEN :nuevoCosto IS NOT NULL THEN :nuevoCosto ELSE costo_unitario END, precio_venta = CASE WHEN :nuevoPrecio IS NOT NULL THEN :nuevoPrecio ELSE precio_venta END, fecha_actualizacion = :now, sync_status = 'PENDING' WHERE id = :productoId")
+    suspend fun updateStockAndPricesInternal(productoId: String, cantidad: Int, nuevoCosto: Double?, nuevoPrecio: Double?, now: Long): Int
+
+    @Transaction
+    suspend fun updateStockAndPrices(productoId: String, cantidad: Int, nuevoCosto: Double?, nuevoPrecio: Double?): Int {
+        return updateStockAndPricesInternal(productoId, cantidad, nuevoCosto, nuevoPrecio, System.currentTimeMillis())
+    }
+
     @Query("UPDATE productos SET stock_actual = stock_actual - :cantidad, fecha_actualizacion = :now WHERE id = :productoId AND stock_actual >= :cantidad")
     suspend fun reserveStockInternal(productoId: String, cantidad: Int, now: Long): Int
 
