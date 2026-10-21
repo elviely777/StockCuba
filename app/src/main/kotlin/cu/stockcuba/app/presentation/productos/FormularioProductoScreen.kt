@@ -310,8 +310,7 @@ fun FormularioContenido(
                     CampoTextoModerno(
                         value = state.precioVenta,
                         onValueChange = { viewModel.updateField("precioVenta", it) },
-                        label = "Precio Venta",
-                        icon = Icons.Default.Sell,
+                        label = "Precio",
                         modifier = Modifier.weight(1f),
                         keyboardType = KeyboardType.Number,
                         isError = state.errors["precioVenta"] != null,
@@ -321,7 +320,6 @@ fun FormularioContenido(
                         value = state.costoUnitario,
                         onValueChange = { viewModel.updateField("costoUnitario", it) },
                         label = "Costo",
-                        icon = Icons.Default.AccountBalanceWallet,
                         modifier = Modifier.weight(1f),
                         keyboardType = KeyboardType.Number,
                         isError = state.errors["costoUnitario"] != null,
@@ -343,29 +341,39 @@ fun FormularioContenido(
                     onChange = { viewModel.updateUnidadMedida(it) }
                 )
                 
-                Row(modifier = Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
-                    CampoTextoModerno(
-                        value = state.stockInicial,
-                        onValueChange = { viewModel.updateField("stockInicial", it) },
-                        label = "Stock Actual",
-                        icon = Icons.Default.Inventory,
-                        modifier = Modifier.weight(1f),
-                        keyboardType = KeyboardType.Number,
-                        isError = state.errors["stockInicial"] != null,
-                        supportingText = state.errors["stockInicial"],
-                        helpText = "Cantidad total que tienes ahora mismo en tu negocio."
-                    )
-                    CampoTextoModerno(
-                        value = state.stockMinimo,
-                        onValueChange = { viewModel.updateField("stockMinimo", it) },
-                        label = "Stock Mínimo",
-                        icon = Icons.Default.NotificationImportant,
-                        modifier = Modifier.weight(1f),
-                        keyboardType = KeyboardType.Number,
-                        isError = state.errors["stockMinimo"] != null,
-                        supportingText = state.errors["stockMinimo"],
-                        helpText = "Cantidad mínima para activar alertas de reabastecimiento."
-                    )
+                Row(horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        CampoTextoModerno(
+                            value = state.stockInicial,
+                            onValueChange = { viewModel.updateField("stockInicial", it) },
+                            label = "Stock actual",
+                            keyboardType = KeyboardType.Number,
+                            isError = state.errors["stockInicial"] != null,
+                            supportingText = state.errors["stockInicial"]
+                        )
+                        Text(
+                            text = "Existencias que tienes hoy.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        CampoTextoModerno(
+                            value = state.stockMinimo,
+                            onValueChange = { viewModel.updateField("stockMinimo", it) },
+                            label = "Stock mínimo",
+                            keyboardType = KeyboardType.Number,
+                            isError = state.errors["stockMinimo"] != null,
+                            supportingText = state.errors["stockMinimo"]
+                        )
+                        Text(
+                            text = "Aviso al llegar a esta cantidad.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                        )
+                    }
                 }
             }
         }
@@ -407,7 +415,7 @@ fun CampoTextoModerno(
     onValueChange: (String) -> Unit,
     label: String,
     placeholder: String = "",
-    icon: ImageVector,
+    icon: ImageVector? = null,
     modifier: Modifier = Modifier,
     isError: Boolean = false,
     supportingText: String? = null,
@@ -425,7 +433,15 @@ fun CampoTextoModerno(
             onValueChange = onValueChange,
             label = { Text(label) },
             placeholder = { Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
-            leadingIcon = { Icon(icon, contentDescription = null, tint = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary) },
+            leadingIcon = icon?.let { vector ->
+                {
+                    Icon(
+                        imageVector = vector,
+                        contentDescription = null,
+                        tint = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                    )
+                }
+            },
             trailingIcon = trailingIcon ?: if (helpText != null) {
                 {
                     IconButton(onClick = { showHelp = !showHelp }) {
