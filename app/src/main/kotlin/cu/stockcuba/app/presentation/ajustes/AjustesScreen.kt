@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -429,29 +430,23 @@ fun AjustesContenidoModerno(
             SeccionAjustesModerna(titulo = "Tasas de Cambio", icono = Icons.Default.CurrencyExchange, color = Color(0xFF10B981)) {
                 Text("Valor de referencia respecto a moneda base", style = MaterialTheme.typography.labelSmall)
                 Row(horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
-                    CampoAjusteModerno(
-                        value = state.tasaUSD.toString(),
-                        onValueChange = { viewModel.guardarTasaUSD(it) },
+                    CampoTasaModerno(
                         label = "USD",
-                        icon = Icons.Default.AttachMoney,
-                        modifier = Modifier.weight(1f),
-                        keyboardType = KeyboardType.Decimal
+                        valor = state.tasaUSD,
+                        onGuardar = { viewModel.guardarTasaUSD(it) },
+                        modifier = Modifier.weight(1f)
                     )
-                    CampoAjusteModerno(
-                        value = state.tasaMLC.toString(),
-                        onValueChange = { viewModel.guardarTasaMLC(it) },
+                    CampoTasaModerno(
                         label = "MLC",
-                        icon = Icons.Default.CreditCard,
-                        modifier = Modifier.weight(1f),
-                        keyboardType = KeyboardType.Decimal
+                        valor = state.tasaMLC,
+                        onGuardar = { viewModel.guardarTasaMLC(it) },
+                        modifier = Modifier.weight(1f)
                     )
-                    CampoAjusteModerno(
-                        value = state.tasaEUR.toString(),
-                        onValueChange = { viewModel.guardarTasaEUR(it) },
+                    CampoTasaModerno(
                         label = "EUR",
-                        icon = Icons.Default.Euro,
-                        modifier = Modifier.weight(1f),
-                        keyboardType = KeyboardType.Decimal
+                        valor = state.tasaEUR,
+                        onGuardar = { viewModel.guardarTasaEUR(it) },
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
@@ -612,7 +607,7 @@ fun CampoAjusteModerno(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    icon: ImageVector,
+    icon: ImageVector? = null,
     error: String? = null,
     keyboardType: KeyboardType = KeyboardType.Text,
     modifier: Modifier = Modifier
@@ -621,7 +616,9 @@ fun CampoAjusteModerno(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
-        leadingIcon = { Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp)) },
+        leadingIcon = icon?.let { vector ->
+            { Icon(vector, contentDescription = null, modifier = Modifier.size(20.dp)) }
+        },
         isError = error != null,
         supportingText = { error?.let { Text(it) } },
         modifier = modifier.fillMaxWidth(),
@@ -634,6 +631,61 @@ fun CampoAjusteModerno(
         )
     )
 }
+
+/**
+ * Campo numérico de tasa de cambio.
+ *
+ * Las tres tasas se muestran en una fila estrecha, así que el valor va centrado y
+ * sin icono para que la cifra no quede desplazada ni recortada.
+ *
+ * El texto se edita en un estado local y solo se persiste cuando es un número
+ * válido: si el campo dependiera directamente del valor guardado, cada tecla
+ * reescribiría el contenido (al escribir "82." volvería a "82.0") y sería
+ * imposible corregir una tasa existente.
+ */
+@Composable
+private fun CampoTasaModerno(
+    label: String,
+    valor: Double,
+    onGuardar: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var enfocado by remember { mutableStateOf(false) }
+    var texto by remember { mutableStateOf(formatearTasa(valor)) }
+
+    LaunchedEffect(valor, enfocado) {
+        if (!enfocado) texto = formatearTasa(valor)
+    }
+
+    OutlinedTextField(
+        value = texto,
+        onValueChange = { entrada ->
+            val limpio = entrada.filter { it.isDigit() || it == '.' }.take(12)
+            texto = limpio
+            // No se guarda vacío ni cero: una tasa 0 rompería las conversiones.
+            if ((limpio.toDoubleOrNull() ?: 0.0) > 0.0) onGuardar(limpio)
+        },
+        label = { Text(label) },
+        modifier = modifier
+            .fillMaxWidth()
+            .onFocusChanged { enfocado = it.isFocused },
+        shape = Shape.Grande,
+        singleLine = true,
+        textStyle = MaterialTheme.typography.titleMedium.copy(
+            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.SemiBold
+        ),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+        colors = OutlinedTextFieldDefaults.colors(
+            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+            focusedBorderColor = MaterialTheme.colorScheme.primary
+        )
+    )
+}
+
+/** 320.0 → "320" · 320.5 → "320.5". Evita el ".0" colgando en las tasas enteras. */
+private fun formatearTasa(valor: Double): String =
+    if (valor == valor.toLong().toDouble()) valor.toLong().toString() else valor.toString()
 
 @Composable
 fun SelectorAjusteModerno(label: String, icon: ImageVector, onClick: () -> Unit) {

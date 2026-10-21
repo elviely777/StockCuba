@@ -70,13 +70,6 @@ data class CarritoItem(
 
     val puedeAumentar: Boolean
         get() = cantidad < stockDisponible
-
-    val stockStatusColor: androidx.compose.ui.graphics.Color
-        get() = when {
-            stockDisponible <= 0 -> cu.stockcuba.app.presentation.theme.StockCubaColors.CoralAlerta
-            stockDisponible <= producto.stockMinimo -> cu.stockcuba.app.presentation.theme.StockCubaColors.CoralAlerta
-            else -> cu.stockcuba.app.presentation.theme.StockCubaColors.VerdeExito
-        }
 }
 
 /**

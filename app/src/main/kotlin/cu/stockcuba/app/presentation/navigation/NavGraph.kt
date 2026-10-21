@@ -1,6 +1,8 @@
 package cu.stockcuba.app.presentation.navigation
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -82,6 +84,37 @@ import cu.stockcuba.app.presentation.ventas_historicas.VentasHistoricasScreen
 import cu.stockcuba.app.presentation.theme.StockCubaColors
 import cu.stockcuba.app.presentation.theme.StockCubaSpacing
 import cu.stockcuba.app.presentation.theme.Shape
+import cu.stockcuba.app.presentation.theme.ScColors
+import cu.stockcuba.app.presentation.common.ScBottomDock
+import cu.stockcuba.app.presentation.common.ScDockItem
+import cu.stockcuba.app.presentation.common.ScEmptyState
+import cu.stockcuba.app.presentation.common.ScLabel
+import cu.stockcuba.app.presentation.common.ScMoney
+import cu.stockcuba.app.presentation.common.ScPanel
+import cu.stockcuba.app.presentation.common.ScPrimaryButton
+import cu.stockcuba.app.presentation.common.ScScreenHeader
+import cu.stockcuba.app.presentation.common.ScSecondaryButton
+import cu.stockcuba.app.presentation.common.ScSectionHeader
+import cu.stockcuba.app.presentation.common.ScStatusPill
+import cu.stockcuba.app.presentation.common.ScTone
+import cu.stockcuba.app.presentation.dashboard.DashboardUiState
+import cu.stockcuba.app.presentation.dashboard.DashboardViewModel
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.Warehouse
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import cu.stockcuba.app.domain.model.Moneda
+import cu.stockcuba.app.domain.model.Venta
+import java.text.NumberFormat
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /**
  * NavGraph principal con Scaffold + Bottom Navigation Bar.
@@ -99,68 +132,53 @@ fun AppNavHost() {
     val securityViewModel: SecurityViewModel = hiltViewModel()
     val securityRepository = securityViewModel.securityRepository
 
-    // Bottom nav items
-    val bottomNavItems = listOf(
-        BottomNavItem(Screen.Dashboard, Icons.Filled.Dashboard, "Dashboard"),
-        BottomNavItem(Screen.Ventas, Icons.Filled.PointOfSale, "Ventas"),
-        BottomNavItem(Screen.Productos, Icons.Filled.Inventory, "Productos"),
-        BottomNavItem(Screen.Inventario, Icons.Filled.Inventory, "Inventario"),
-        BottomNavItem(Screen.Mas, Icons.Filled.Settings, "Más")
+    // Dock inferior
+    val dockItems = listOf(
+        ScDockItem(Screen.Dashboard.route, Icons.Filled.Dashboard, "Panel"),
+        ScDockItem(Screen.Ventas.route, Icons.Filled.PointOfSale, "Ventas"),
+        ScDockItem(Screen.Productos.route, Icons.Filled.Inventory2, "Productos"),
+        ScDockItem(Screen.Inventario.route, Icons.Filled.Warehouse, "Inventario"),
+        ScDockItem(Screen.Mas.route, Icons.Filled.MoreHoriz, "Más")
     )
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = ScColors.canvas,
         bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer
-            ) {
-                bottomNavItems.forEach { item ->
-                    val isSelected = currentDestination?.route?.startsWith(item.screen.route) == true
-                    NavigationBarItem(
-                        icon = { 
-                            Icon(
-                                item.icon, 
-                                contentDescription = item.label,
-                            ) 
-                        },
-                        label = { 
-                            Text(
-                                item.label, 
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
-                            ) 
-                        },
-                        selected = isSelected,
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.onPrimary,
-                            selectedTextColor = MaterialTheme.colorScheme.primary,
-                            indicatorColor = MaterialTheme.colorScheme.primary,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        onClick = {
-                            if (isSelected) {
-                                // Si ya está seleccionado, volver a la raíz de la pestaña (T28)
-                                navController.popBackStack(item.screen.route, inclusive = false)
-                            } else {
-                                navController.navigate(item.screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
+            // El POS y la edición de venta son flujos de pantalla completa: llevan
+            // su propia barra de cobro, así que el dock global se oculta.
+            val ocultarDock = currentDestination?.route?.let { ruta ->
+                ruta.startsWith(Screen.NuevaVenta.route) || ruta.startsWith("ventas/editar")
+            } ?: false
+            if (!ocultarDock) {
+                ScBottomDock(
+                    items = dockItems,
+                    currentRoute = currentDestination?.route,
+                    onSelect = { item ->
+                        val isSelected = currentDestination?.route?.startsWith(item.route) == true
+                        if (isSelected) {
+                            // Si ya está seleccionado, volver a la raíz de la pestaña (T28)
+                            navController.popBackStack(item.route, inclusive = false)
+                        } else {
+                            navController.navigate(item.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
                                 }
+                                launchSingleTop = true
+                                restoreState = true
                             }
                         }
-                    )
-                }
+                    }
+                )
             }
         }
     ) { innerPadding ->
         NavHost(
             navController,
             startDestination = Screen.Dashboard.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier
+                .padding(innerPadding)
+                .consumeWindowInsets(innerPadding)
         ) {
             composable(Screen.Dashboard.route) {
                 DashboardScreen(
@@ -378,63 +396,164 @@ fun AppNavHost() {
     }
 }
 
-data class BottomNavItem(val screen: Screen, val icon: androidx.compose.ui.graphics.vector.ImageVector, val label: String)
-
 // --- Placeholder Screens para completar el flujo ---
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VentasScreen(onNuevaVenta: () -> Unit, onHistorial: () -> Unit, onDetalleVenta: (String) -> Unit) {
-    Scaffold(
-        topBar = {
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 2.dp
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = StockCubaSpacing.Lg, vertical = StockCubaSpacing.Md)
-                        .statusBarsPadding()
+fun VentasScreen(
+    onNuevaVenta: () -> Unit,
+    onHistorial: () -> Unit,
+    onDetalleVenta: (String) -> Unit,
+    viewModel: DashboardViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val state = uiState as? DashboardUiState.Success
+    val total = state?.totalVendido ?: 0.0
+    val cantidad = state?.cantidadVentas ?: 0
+    val moneda = state?.monedaBase ?: Moneda.CUP
+    val recientes = state?.ventasRecientes.orEmpty()
+        .sortedByDescending { it.fecha }
+        .take(5)
+    val ticket = if (cantidad > 0) total / cantidad else 0.0
+    val montoTotal = "%,.2f".format(Locale.US, total)
+    val montoTicket = "%,.2f".format(Locale.US, ticket)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(ScColors.canvas)
+    ) {
+        ScScreenHeader(
+            title = "Ventas",
+            subtitle = "Cobros del día y comprobantes"
+        )
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                ScPanel(
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                    contentPadding = PaddingValues(18.dp)
                 ) {
-                    Text(
-                        "Ventas",
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        ScLabel("Cobrado hoy")
+                        Spacer(Modifier.weight(1f))
+                        ScStatusPill(
+                            text = if (cantidad > 0) "En caja" else "Sin movimientos",
+                            tone = if (cantidad > 0) ScTone.Positive else ScTone.Neutral
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    ScMoney(
+                        value = montoTotal,
+                        unit = moneda.name,
+                        style = MaterialTheme.typography.displaySmall,
+                        color = ScColors.dinero
                     )
-                    Text(
-                        "Gestión de transacciones",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    Spacer(Modifier.height(14.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {
+                        Column {
+                            ScLabel("Ventas")
+                            Text(
+                                text = cantidad.toString(),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = ScColors.texto
+                            )
+                        }
+                        Column {
+                            ScLabel("Ticket promedio")
+                            Text(
+                                text = "$montoTicket",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = ScColors.texto
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(18.dp))
+                    ScPrimaryButton(
+                        text = "Nueva venta",
+                        onClick = onNuevaVenta,
+                        icon = Icons.Default.Add
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    ScSecondaryButton(
+                        text = "Historial de ventas",
+                        onClick = onHistorial,
+                        icon = Icons.Default.History
+                    )
+                }
+            }
+
+            if (recientes.isEmpty()) {
+                item {
+                    ScEmptyState(
+                        icon = Icons.Default.Receipt,
+                        title = "Aún no hay ventas hoy",
+                        message = "Registra una venta y aquí verás cada cobro con su hora y su total.",
+                        actionLabel = "Registrar primera venta",
+                        onAction = onNuevaVenta
+                    )
+                }
+            } else {
+                item {
+                    ScSectionHeader(
+                        title = "Últimas ventas",
+                        actionLabel = "Ver todo",
+                        onAction = onHistorial
+                    )
+                }
+                items(recientes, key = { it.id }) { venta ->
+                    FilaVentaReciente(
+                        venta = venta,
+                        moneda = moneda,
+                        onClick = { onDetalleVenta(venta.id) }
                     )
                 }
             }
         }
-    ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Lg)
-            ) {
-                Button(
-                    onClick = onNuevaVenta, 
-                    shape = Shape.ExtraGrande,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = StockCubaSpacing.Xl)
-                ) { 
-                    Icon(Icons.Default.Add, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Nueva Venta") 
-                }
-                Button(
-                    onClick = onHistorial, 
-                    shape = Shape.ExtraGrande,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = StockCubaSpacing.Xl),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
-                ) { 
-                    Icon(Icons.Default.History, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Historial") 
-                }
+    }
+}
+
+@Composable
+private fun FilaVentaReciente(venta: Venta, moneda: Moneda, onClick: () -> Unit) {
+    val hora = remember(venta.fecha) {
+        DateTimeFormatter.ofPattern("HH:mm").format(venta.fecha.atZone(ZoneId.systemDefault()))
+    }
+    val metodo = venta.metodoPago.name.lowercase().replaceFirstChar { it.uppercase() }
+    Surface(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        shape = Shape.Mediano,
+        color = ScColors.panel,
+        border = BorderStroke(1.dp, ScColors.borde)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 13.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "${venta.numeroItems} ${if (venta.numeroItems == 1) "artículo" else "artículos"}",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = ScColors.texto
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = "$hora · $metodo",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ScColors.textoSecundario
+                )
             }
+            ScMoney(
+                value = "%,.2f".format(Locale.US, venta.total),
+                unit = moneda.name,
+                style = MaterialTheme.typography.titleLarge,
+                color = ScColors.texto
+            )
         }
     }
 }
@@ -458,104 +577,145 @@ fun MasScreen(
 ) {
     val isDueno = rolActual == RolUsuario.DUENO
 
-    Scaffold(
-        topBar = {
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 2.dp
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = StockCubaSpacing.Lg, vertical = StockCubaSpacing.Md)
-                        .statusBarsPadding()
-                ) {
-                    Text(
-                        "Más Opciones",
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(ScColors.canvas)
+    ) {
+        ScScreenHeader(
+            title = "Más",
+            subtitle = "Herramientas y configuración del negocio"
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            ScPanel(contentPadding = PaddingValues(0.dp)) {
+                if (isDueno) {
+                    FilaHerramienta(
+                        icon = Icons.Default.Settings,
+                        title = "Ajustes",
+                        subtitle = "Moneda, tasas, impresora y respaldo",
+                        onClick = onAjustes
                     )
-                    Text(
-                        "Configuración y herramientas adicionales",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    ScDividerHorizontal()
                 }
-            }
-        }
-    ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Lg)
-            ) {
-                Surface(
-                    color = Color.White,
-                    shape = CircleShape,
-                    modifier = Modifier.size(80.dp),
-                    shadowElevation = 4.dp
-                ) {
-                    androidx.compose.foundation.Image(
-                        painter = androidx.compose.ui.res.painterResource(id = cu.stockcuba.app.R.mipmap.ic_launcher_foreground),
-                        contentDescription = "Logo",
-                        modifier = Modifier.padding(12.dp).fillMaxSize()
-                    )
-                }
-                
-                Text(
-                    text = "StockCuba", 
-                    style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.ExtraBold),
-                    color = MaterialTheme.colorScheme.onSurface
+                FilaHerramienta(
+                    icon = Icons.Default.Person,
+                    title = "Clientes",
+                    subtitle = "Cuentas, saldos y abonos",
+                    onClick = onClientes
                 )
-                
-                Spacer(Modifier.height(StockCubaSpacing.Md))
-                
                 if (isDueno) {
-                    Button(
-                        onClick = onAjustes,
-                        shape = Shape.ExtraGrande,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = StockCubaSpacing.Xl),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    ) {
-                        Icon(Icons.Default.Settings, contentDescription = null)
-                        Spacer(Modifier.size(StockCubaSpacing.Sm))
-                        Text("Ajustes")
-                    }
-                }
-
-                Button(
-                    onClick = onClientes,
-                    shape = Shape.ExtraGrande,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = StockCubaSpacing.Xl),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ScDividerHorizontal()
+                    FilaHerramienta(
+                        icon = Icons.Default.Payments,
+                        title = "Gastos operativos",
+                        subtitle = "Luz, salarios y otros costos del mes",
+                        onClick = onGastos
                     )
-                ) {
-                    Icon(Icons.Default.Person, contentDescription = null)
-                    Spacer(Modifier.size(StockCubaSpacing.Sm))
-                    Text("Clientes")
                 }
+            }
 
-                if (isDueno) {
-                    Button(
-                        onClick = onGastos,
-                        shape = Shape.ExtraGrande,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = StockCubaSpacing.Xl),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
+            ScPanel(contentPadding = PaddingValues(18.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(ScColors.panelAlto, Shape.Mediano),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Payments, contentDescription = null)
-                        Spacer(Modifier.size(StockCubaSpacing.Sm))
-                        Text("Gastos Operativos")
+                        Text(
+                            text = "SC",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = ScColors.acento
+                        )
                     }
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "StockCuba",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = ScColors.texto
+                        )
+                        Text(
+                            text = "Inventario y ventas para tu negocio",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = ScColors.textoSecundario
+                        )
+                    }
+                    Spacer(Modifier.weight(1f))
+                    ScStatusPill(
+                        text = if (isDueno) "Dueño" else "Vendedor",
+                        tone = ScTone.Neutral
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ScDividerHorizontal() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 64.dp)
+            .height(1.dp)
+            .background(ScColors.borde)
+    )
+}
+
+@Composable
+private fun FilaHerramienta(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(ScColors.panelAlto, Shape.Pequeno),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = ScColors.acento,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                color = ScColors.texto
+            )
+            Spacer(Modifier.height(1.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = ScColors.textoSecundario
+            )
+        }
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = ScColors.textoDebil,
+            modifier = Modifier.size(18.dp)
+        )
     }
 }
 

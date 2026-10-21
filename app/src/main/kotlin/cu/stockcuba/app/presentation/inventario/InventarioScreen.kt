@@ -1,42 +1,80 @@
 package cu.stockcuba.app.presentation.inventario
 
-import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.EditCalendar
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cu.stockcuba.app.domain.model.Producto
-import cu.stockcuba.app.domain.model.TipoMovimientoInventario
-import cu.stockcuba.app.presentation.dashboard.formatoCUP
+import cu.stockcuba.app.domain.model.UnidadMedida
+import cu.stockcuba.app.presentation.common.ScEmptyState
+import cu.stockcuba.app.presentation.common.ScLevelBar
+import cu.stockcuba.app.presentation.common.ScMetricCell
+import cu.stockcuba.app.presentation.common.ScPanel
+import cu.stockcuba.app.presentation.common.ScScreenHeader
+import cu.stockcuba.app.presentation.common.ScSearchField
+import cu.stockcuba.app.presentation.common.ScStatusPill
+import cu.stockcuba.app.presentation.common.ScTone
 import cu.stockcuba.app.presentation.dashboard.formatoCantidad
+import cu.stockcuba.app.presentation.theme.ScColors
 import cu.stockcuba.app.presentation.theme.Shape
-import cu.stockcuba.app.presentation.theme.StockCubaColors
-import cu.stockcuba.app.presentation.theme.StockCubaSpacing
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Inventario · sistema "Mostrador".
+ *
+ * El encargo: leer el estado del almacén de un vistazo. La franja superior es un
+ * solo panel con tres celdas separadas por divisores verticales (OK / Bajo /
+ * Crítico) en vez de tres tarjetas de colores; los filtros son chips; y cada
+ * producto es una tarjeta compacta con su barra de nivel contra el mínimo.
+ *
+ * Misma lógica que antes: ViewModel, filtros, callbacks de ajuste e historial.
+ *
+ * Nota: Inventario es un destino del dock inferior, así que la cabecera no
+ * dibuja flecha de volver. El parámetro [onBack] se conserva porque el NavHost
+ * lo sigue pasando (y el gesto de atrás del sistema sigue funcionando).
+ */
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun InventarioScreen(
     onAjuste: (Producto) -> Unit,
@@ -45,61 +83,87 @@ fun InventarioScreen(
     viewModel: InventarioViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val state = uiState as? InventarioUiState.Success
+    val totalArticulos = state?.totalArticulos ?: 0
+    val filtrando = state != null && (state.query.isNotBlank() || state.filtroStock != FiltroStock.TODOS)
 
-    Scaffold(
-        topBar = {
-            InventarioHeader(
-                totalArticulos = (uiState as? InventarioUiState.Success)?.totalArticulos ?: 0,
-                query = (uiState as? InventarioUiState.Success)?.query ?: "",
-                onQueryChange = { viewModel.setQuery(it) },
-                onBack = onBack
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            when (val state = uiState) {
-                is InventarioUiState.Loading -> InventarioCargando()
-                is InventarioUiState.Error -> InventarioError(state.message, onRetry = { viewModel.limpiarFiltros() })
-                is InventarioUiState.Success -> {
-                    // ===== 1. RESUMEN RÁPIDO (OK, BAJO, SIN) =====
-                    ResumenInventarioModerno(
-                        ok = state.totalOk,
-                        bajo = state.totalBajo,
-                        sin = state.totalSinStock
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(ScColors.canvas)
+    ) {
+        ScScreenHeader(
+            title = "Inventario",
+            subtitle = when {
+                state == null -> null
+                filtrando -> "${state.productos.size} de $totalArticulos ${if (totalArticulos == 1) "producto" else "productos"}"
+                else -> "$totalArticulos ${if (totalArticulos == 1) "producto" else "productos"} en el catálogo"
+            }
+        )
+
+        ScSearchField(
+            value = state?.query.orEmpty(),
+            onValueChange = { viewModel.setQuery(it) },
+            placeholder = "Buscar producto",
+            onClear = { viewModel.setQuery("") },
+            modifier = Modifier.padding(horizontal = 20.dp)
+        )
+
+        when (val s = uiState) {
+            is InventarioUiState.Loading -> {
+                InventarioCargando(modifier = Modifier.fillMaxWidth().weight(1f))
+            }
+
+            is InventarioUiState.Error -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                ) {
+                    InventarioError(
+                        mensaje = s.message,
+                        onRetry = { viewModel.limpiarFiltros() }
                     )
+                }
+            }
 
-                    // ===== 2. FILTROS DE ESTADO (HORIZONTAL) =====
-                    FiltrosStockBarra(
-                        filtroActual = state.filtroStock,
-                        onFiltroChange = { viewModel.setFiltroStock(it) }
-                    )
+            is InventarioUiState.Success -> {
+                Spacer(Modifier.height(8.dp))
 
-                    // ===== 3. LISTA DE PRODUCTOS =====
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        if (state.productos.isEmpty()) {
-                            InventarioVacio(
-                                isFiltered = state.query.isNotEmpty() || state.filtroStock != FiltroStock.TODOS,
-                                onClear = { viewModel.limpiarFiltros() }
-                            )
-                        } else {
-                            LazyColumn(
-                                modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(StockCubaSpacing.Lg),
-                                verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)
-                            ) {
-                                items(state.productos, key = { it.producto.id }) { item ->
-                                    ProductoInventarioCardModerno(
-                                        item = item,
-                                        onAjuste = { onAjuste(item.producto) },
-                                        onHistorial = { onHistorial(item.producto) }
-                                    )
-                                }
-                                item { Spacer(modifier = Modifier.height(40.dp)) }
+                ResumenStock(
+                    ok = s.totalOk,
+                    bajo = s.totalBajo,
+                    sin = s.totalSinStock,
+                    onFiltro = { viewModel.setFiltroStock(it) }
+                )
+
+                ChipsFiltroStock(
+                    filtroActual = s.filtroStock,
+                    onFiltroChange = { viewModel.setFiltroStock(it) }
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                ) {
+                    if (s.productos.isEmpty()) {
+                        InventarioVacio(
+                            isFiltered = s.query.isNotEmpty() || s.filtroStock != FiltroStock.TODOS,
+                            onClear = { viewModel.limpiarFiltros() }
+                        )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 24.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            items(s.productos, key = { it.producto.id }) { item ->
+                                TarjetaStock(
+                                    item = item,
+                                    onAjuste = { onAjuste(item.producto) },
+                                    onHistorial = { onHistorial(item.producto) }
+                                )
                             }
                         }
                     }
@@ -109,367 +173,385 @@ fun InventarioScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+// =====================================================================================
+// FRANJA DE MÉTRICAS (UN SOLO PANEL CON DIVISORES)
+// =====================================================================================
+
 @Composable
-fun InventarioHeader(
-    totalArticulos: Int,
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onBack: (() -> Unit)? = null
+private fun ResumenStock(
+    ok: Int,
+    bajo: Int,
+    sin: Int,
+    onFiltro: (FiltroStock) -> Unit
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp
+    ScPanel(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        contentPadding = PaddingValues(0.dp)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = StockCubaSpacing.Lg, vertical = StockCubaSpacing.Md)
-                .statusBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)
+                .height(IntrinsicSize.Min)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (onBack != null) {
-                    IconButton(onClick = onBack) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
-                    }
-                }
-                
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "Inventario",
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)
-                    )
-                    Text(
-                        "$totalArticulos artículos en catálogo",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Surface(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                    shape = Shape.Full
-                ) {
-                    Icon(
-                        Icons.Default.Inventory,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(8.dp).size(24.dp)
-                    )
-                }
-            }
-
-            // Barra de búsqueda moderna
-            OutlinedTextField(
-                value = query,
-                onValueChange = onQueryChange,
-                placeholder = { Text("Buscar por nombre...", fontSize = 14.sp) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
-                trailingIcon = if (query.isNotEmpty()) {
-                    {
-                        IconButton(onClick = { onQueryChange("") }) {
-                            Icon(Icons.Default.Close, contentDescription = "Limpiar", modifier = Modifier.size(18.dp))
-                        }
-                    }
-                } else null,
-                modifier = Modifier.fillMaxWidth(),
-                shape = Shape.Grande,
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedBorderColor = MaterialTheme.colorScheme.primary
-                )
+            ScMetricCell(
+                label = "OK",
+                value = ok.toString(),
+                caption = "productos",
+                tone = ScTone.Positive,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .clickable { onFiltro(FiltroStock.OK) }
+            )
+            DivisorVertical()
+            ScMetricCell(
+                label = "Bajo",
+                value = bajo.toString(),
+                caption = "productos",
+                tone = ScTone.Money,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .clickable { onFiltro(FiltroStock.BAJO) }
+            )
+            DivisorVertical()
+            ScMetricCell(
+                label = "Crítico",
+                value = sin.toString(),
+                caption = "productos",
+                tone = ScTone.Danger,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .clickable { onFiltro(FiltroStock.SIN_STOCK) }
             )
         }
     }
 }
 
 @Composable
-fun ResumenInventarioModerno(ok: Int, bajo: Int, sin: Int) {
-    Row(
+private fun DivisorVertical() {
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = StockCubaSpacing.Lg, vertical = StockCubaSpacing.Md),
-        horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Sm)
-    ) {
-        MetricInventario(
-            label = "OK",
-            count = ok,
-            color = StockCubaColors.VerdeExito,
-            modifier = Modifier.weight(1f)
-        )
-        MetricInventario(
-            label = "BAJO",
-            count = bajo,
-            color = Color(0xFFF59E0B),
-            modifier = Modifier.weight(1f)
-        )
-        MetricInventario(
-            label = "CRÍTICO",
-            count = sin,
-            color = StockCubaColors.CoralAlerta,
-            modifier = Modifier.weight(1f)
-        )
-    }
+            .fillMaxHeight()
+            .width(1.dp)
+            .background(ScColors.borde)
+    )
 }
 
-@Composable
-fun MetricInventario(label: String, count: Int, color: Color, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier.height(64.dp),
-        shape = Shape.Grande,
-        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.08f)),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.2f))
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(count.toString(), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold), color = color)
-            Text(label, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = color.copy(alpha = 0.7f))
-        }
-    }
-}
+// =====================================================================================
+// FILTROS COMO CHIPS
+// =====================================================================================
 
 @Composable
-fun FiltrosStockBarra(
+private fun ChipsFiltroStock(
     filtroActual: FiltroStock,
     onFiltroChange: (FiltroStock) -> Unit
 ) {
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = StockCubaSpacing.Lg, vertical = StockCubaSpacing.Sm),
-        horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Sm)
+        // 20dp al inicio y 20dp al final: el último chip entra completo al llegar al borde.
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(FiltroStock.entries) { filtro ->
-            val isSelected = filtroActual == filtro
-            val color = when (filtro) {
-                FiltroStock.OK -> StockCubaColors.VerdeExito
-                FiltroStock.BAJO -> Color(0xFFF59E0B)
-                FiltroStock.SIN_STOCK -> StockCubaColors.CoralAlerta
-                FiltroStock.TODOS -> MaterialTheme.colorScheme.primary
-            }
-
-            Surface(
-                onClick = { onFiltroChange(filtro) },
-                modifier = Modifier.height(34.dp),
-                shape = Shape.Full,
-                color = if (isSelected) color.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                border = BorderStroke(1.dp, if (isSelected) color else Color.Transparent)
-            ) {
-                Text(
-                    text = when(filtro) {
-                        FiltroStock.TODOS -> "Todos"
-                        FiltroStock.OK -> "Existencia OK"
-                        FiltroStock.BAJO -> "Stock Bajo"
-                        FiltroStock.SIN_STOCK -> "Agotados"
-                    },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                    ),
-                    color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            ChipFiltro(
+                texto = filtro.etiquetaFiltro(),
+                seleccionado = filtroActual == filtro,
+                onClick = { onFiltroChange(filtro) }
+            )
         }
     }
 }
 
+/** Pastilla de filtro: jade tenue + borde jade cuando está activa, panel si no. */
 @Composable
-fun ProductoInventarioCardModerno(
+private fun ChipFiltro(
+    texto: String,
+    seleccionado: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.height(44.dp),
+        shape = Shape.Full,
+        color = if (seleccionado) ScColors.acento.copy(alpha = 0.13f) else ScColors.panel,
+        contentColor = if (seleccionado) ScColors.acento else ScColors.textoSecundario,
+        border = BorderStroke(1.dp, if (seleccionado) ScColors.acento else ScColors.borde)
+    ) {
+        Box(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = texto,
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+// =====================================================================================
+// TARJETA DE PRODUCTO CON BARRA DE NIVEL
+// =====================================================================================
+
+@Composable
+private fun TarjetaStock(
     item: ProductoConStock,
     onAjuste: () -> Unit,
     onHistorial: () -> Unit
 ) {
-    val statusColor = item.stockStatusColor()
-    val statusBg = item.stockStatusBackground()
-    val statusLabel = item.stockStatusLabel()
     val producto = item.producto
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = Shape.Grande,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
-            // Barra lateral de estado
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(6.dp)
-                    .background(statusColor)
-            )
-
-            Column(modifier = Modifier.padding(StockCubaSpacing.Md).weight(1f)) {
-                // Cabecera: Nombre + Badge
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = producto.nombre,
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "Unidad: ${producto.unidadMedida.name.lowercase()}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Surface(
-                        color = statusBg,
-                        shape = Shape.Full
-                    ) {
-                        Text(
-                            text = statusLabel,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = statusColor
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(12.dp))
-
-                // Info de Stock
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(
-                            "Existencia Actual",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = producto.stockActual.formatoCantidad(),
-                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
-                            color = if (item.stockStatus == StockStatus.SIN_STOCK) StockCubaColors.CoralAlerta else MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            "Mínimo",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = producto.stockMinimo.toString(),
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(16.dp))
-
-                // Acciones
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Sm)
-                ) {
-                    OutlinedButton(
-                        onClick = onHistorial,
-                        modifier = Modifier.weight(1f),
-                        shape = Shape.Grande,
-                        contentPadding = PaddingValues(0.dp)
-                    ) {
-                        Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Historial", style = MaterialTheme.typography.labelMedium)
-                    }
-                    Button(
-                        onClick = onAjuste,
-                        modifier = Modifier.weight(1f),
-                        shape = Shape.Grande,
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                        contentPadding = PaddingValues(0.dp)
-                    ) {
-                        Icon(Icons.Default.EditCalendar, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Ajustar", style = MaterialTheme.typography.labelMedium)
-                    }
-                }
-            }
-        }
+    val tone = item.stockStatus.tonoStock()
+    // La barra expresa la existencia contra el mínimo: el máximo son 2× el mínimo.
+    val progreso = (item.porcentajeStock / 2f).coerceIn(0f, 1f)
+    val colorCifra = when (item.stockStatus) {
+        StockStatus.SIN_STOCK -> ScColors.alerta
+        StockStatus.BAJO -> ScColors.dinero
+        StockStatus.OK -> ScColors.texto
     }
-}
 
-@Composable
-fun InventarioVacio(isFiltered: Boolean, onClear: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(StockCubaSpacing.Xl),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    ScPanel(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(0.dp)
     ) {
-        Surface(
-            modifier = Modifier.size(100.dp),
-            shape = Shape.Full,
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = if (isFiltered) Icons.Default.SearchOff else Icons.Default.Inventory2,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = producto.nombre,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = ScColors.texto,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(8.dp))
+                ScStatusPill(
+                    text = item.stockStatus.etiquetaStock(),
+                    tone = tone
+                )
+                MenuProducto(
+                    onAjuste = onAjuste,
+                    onHistorial = onHistorial
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = item.stockDisponible.formatoCantidad(),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = colorCifra,
+                    maxLines = 1
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    text = producto.unidadMedida.corta(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = ScColors.textoDebil,
+                    maxLines = 1
+                )
+                Spacer(Modifier.width(14.dp))
+                ScLevelBar(
+                    progress = progreso,
+                    tone = tone,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = "mín ${item.stockMinimo}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = ScColors.textoDebil,
+                    maxLines = 1
                 )
             }
         }
-        Spacer(Modifier.height(24.dp))
-        Text(
-            if (isFiltered) "Sin resultados" else "Sin existencias",
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+    }
+}
+
+/** Menú discreto por producto: mantiene ajuste e historial sin dos botones enormes. */
+@Composable
+private fun MenuProducto(
+    onAjuste: () -> Unit,
+    onHistorial: () -> Unit
+) {
+    var abierto by remember { mutableStateOf(false) }
+
+    Box {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .clickable { abierto = true },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Filled.MoreVert,
+                contentDescription = "Acciones del producto",
+                tint = ScColors.textoDebil,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        DropdownMenu(
+            expanded = abierto,
+            onDismissRequest = { abierto = false }
+        ) {
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = "Ajustar existencias",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = ScColors.texto
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Filled.EditCalendar,
+                        contentDescription = null,
+                        tint = ScColors.textoSecundario,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
+                onClick = {
+                    abierto = false
+                    onAjuste()
+                }
+            )
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = "Ver historial",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = ScColors.texto
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Filled.History,
+                        contentDescription = null,
+                        tint = ScColors.textoSecundario,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
+                onClick = {
+                    abierto = false
+                    onHistorial()
+                }
+            )
+        }
+    }
+}
+
+// =====================================================================================
+// ESTADOS: CARGANDO, ERROR, VACÍO
+// =====================================================================================
+
+@Composable
+private fun InventarioCargando(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+                .clip(Shape.Grande)
+                .background(ScColors.panel)
         )
-        Text(
-            if (isFiltered) "Prueba con otro término o filtro de estado" else "No hay productos con inventario registrado todavía.",
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        if (isFiltered) {
-            Spacer(Modifier.height(24.dp))
-            TextButton(onClick = onClear) {
-                Text("Limpiar todos los filtros")
-            }
+        repeat(3) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(96.dp)
+                    .clip(Shape.Grande)
+                    .background(ScColors.panel)
+            )
         }
     }
 }
 
 @Composable
-fun InventarioCargando() {
+private fun InventarioError(mensaje: String, onRetry: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        ScEmptyState(
+            icon = Icons.Filled.Warning,
+            title = "No se pudo cargar el inventario",
+            message = mensaje.ifBlank {
+                "Vuelve a abrir la pantalla para reintentar la carga del almacén."
+            },
+            actionLabel = "Reintentar",
+            onAction = onRetry
+        )
     }
 }
 
 @Composable
-fun InventarioError(message: String, onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(StockCubaSpacing.Xl),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(64.dp), tint = StockCubaColors.CoralAlerta)
-        Spacer(Modifier.height(16.dp))
-        Text("Error de Inventario", style = MaterialTheme.typography.titleLarge)
-        Text(message, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(24.dp))
-        Button(onClick = onRetry, shape = Shape.Grande) { Text("Volver a intentar") }
+private fun InventarioVacio(isFiltered: Boolean, onClear: () -> Unit) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        if (isFiltered) {
+            ScEmptyState(
+                icon = Icons.Filled.SearchOff,
+                title = "Sin resultados",
+                message = "Ningún producto coincide con la búsqueda o el filtro de stock. Ajusta los filtros para ver el almacén completo.",
+                actionLabel = "Limpiar filtros",
+                onAction = onClear
+            )
+        } else {
+            ScEmptyState(
+                icon = Icons.Filled.Inventory2,
+                title = "Sin productos activos",
+                message = "El catálogo no tiene productos activos. Agrégalos desde Productos y aquí verás su existencia contra el mínimo."
+            )
+        }
     }
+}
+
+// =====================================================================================
+// HELPERS DE PRESENTACIÓN
+// =====================================================================================
+
+private fun FiltroStock.etiquetaFiltro(): String = when (this) {
+    FiltroStock.TODOS -> "Todos"
+    FiltroStock.OK -> "Existencia OK"
+    FiltroStock.BAJO -> "Stock bajo"
+    FiltroStock.SIN_STOCK -> "Agotados"
+}
+
+/** El color comunica el estado: jade sano, ámbar atención, coral riesgo. */
+private fun StockStatus.tonoStock(): ScTone = when (this) {
+    StockStatus.OK -> ScTone.Positive
+    StockStatus.BAJO -> ScTone.Money
+    StockStatus.SIN_STOCK -> ScTone.Danger
+}
+
+private fun StockStatus.etiquetaStock(): String = when (this) {
+    StockStatus.OK -> "OK"
+    StockStatus.BAJO -> "Bajo"
+    StockStatus.SIN_STOCK -> "Agotado"
+}
+
+/** Unidades compactas para no romper la fila de cifra + barra + mínimo. */
+private fun UnidadMedida.corta(): String = when (this) {
+    UnidadMedida.UNIDAD -> "ud"
+    UnidadMedida.LIBRA -> "lb"
+    UnidadMedida.KG -> "kg"
+    UnidadMedida.LITRO -> "L"
+    UnidadMedida.PAQUETE -> "paq"
 }

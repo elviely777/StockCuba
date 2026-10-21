@@ -27,10 +27,10 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Habilitar Modo Inmersivo (Ocultar barras del sistema) (T68)
-        val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
-        windowInsetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
+        // Edge-to-edge: las barras del sistema quedan transparentes sobre el
+        // lienzo de la app (el tema decide si sus iconos son claros u oscuros).
+        // Ya no se ocultan las barras: sin barra de estado la cabecera pierde
+        // su referencia y la app se siente "pantalla completa de juego".
 
         setContent {
             TemaProvider {

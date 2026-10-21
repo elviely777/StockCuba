@@ -1,15 +1,13 @@
 package cu.stockcuba.app.presentation.theme
 
 import android.app.Activity
-import android.content.Context
-import android.graphics.Color as AndroidColor
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
@@ -20,130 +18,121 @@ import androidx.core.view.WindowInsetsControllerCompat
 import cu.stockcuba.app.domain.model.ThemeMode
 
 /**
- * Tema Material 3 completo para StockCuba.
+ * Tema StockCuba · "Mostrador".
  *
- * DISEÑO: Modo oscuro principal (inmersivo, reduce fatiga visual en largas jornadas).
- * Colores, tipografía y formas derivados directamente de DESIGN.md (Stitch).
+ * El modo oscuro es el principal: fondo de tinta, paneles con borde de 1px y
+ * acentos con significado. El modo claro es una variante de papel frío, no una
+ * inversión automática: comparte la misma jerarquía y los mismos acentos
+ * oscurecidos para mantener el contraste AA.
+ *
+ * Todo se construye desde [StockCubaSemanticColors], así que cambiar un token
+ * cambia el sistema completo (y las pantallas antiguas se adaptan solas).
  */
 
-// ===== COLOR SCHEMES MATERIAL 3 =====
+private fun esquemaOscuro() = darkColorScheme(
+    primary = ColoresOscuros.acento,
+    onPrimary = ColoresOscuros.sobreAcento,
+    primaryContainer = ColoresOscuros.acentoContenedor,
+    onPrimaryContainer = ColoresOscuros.sobreAcentoContenedor,
+    inversePrimary = ColoresOscuros.acento,
 
-private val DarkColorScheme = darkColorScheme(
-    // Primary - Teal (Éxito, Crecimiento, Acciones principales)
-    primary = Color(0xFF2DD4BF),
-    onPrimary = Color(0xFF001E1C),
-    primaryContainer = Color(0xFF0F766E),
-    onPrimaryContainer = Color(0xFFD1FAF5),
+    secondary = ColoresOscuros.dinero,
+    onSecondary = ColoresOscuros.sobreDinero,
+    secondaryContainer = ColoresOscuros.dineroContenedor,
+    onSecondaryContainer = ColoresOscuros.sobreDineroContenedor,
 
-    // Secondary - Coral (Alerta, Advertencia, Acciones destructivas)
-    secondary = Color(0xFFFB7185),
-    onSecondary = Color(0xFF4D0019),
-    secondaryContainer = Color(0xFF9F1239),
-    onSecondaryContainer = Color(0xFFFCE7EC),
+    tertiary = ColoresOscuros.info,
+    onTertiary = ColoresOscuros.sobreInfo,
+    tertiaryContainer = ColoresOscuros.infoContenedor,
+    onTertiaryContainer = ColoresOscuros.sobreInfoContenedor,
 
-    // Tertiary - Indigo (Acentos de marca, navegación)
-    tertiary = Color(0xFF6366F1),
-    onTertiary = Color(0xFFFFFFFF),
-    tertiaryContainer = Color(0xFF312E81),
-    onTertiaryContainer = Color(0xFFE0E7FF),
+    error = ColoresOscuros.alerta,
+    onError = ColoresOscuros.sobreAlerta,
+    errorContainer = ColoresOscuros.alertaContenedor,
+    onErrorContainer = ColoresOscuros.sobreAlertaContenedor,
 
-    // Error semántico
-    error = Color(0xFFFCA5A5),
-    onError = Color(0xFF7F1D1D),
-    errorContainer = Color(0xFF991B1B),
-    onErrorContainer = Color(0xFFFEF2F2),
+    background = ColoresOscuros.canvas,
+    onBackground = ColoresOscuros.texto,
 
-    // Surface - Fondos oscuros inmersivos
-    surface = Color(0xFF051424),        // Canvas principal
-    onSurface = Color(0xFFF8FAFC),      // Texto primario near-white
-    surfaceDim = Color(0xFF010F1F),
-    surfaceBright = Color(0xFF1E293B),  // Superficie L1 (Cards)
-    surfaceContainerLowest = Color(0xFF0F172A), // Fondo principal brand
-    surfaceContainerLow = Color(0xFF0D1C2D),
-    surfaceContainer = Color(0xFF1E293B),       // Superficie L1
-    surfaceContainerHigh = Color(0xFF1C2B3C),
-    surfaceContainerHighest = Color(0xFF334155), // Superficie L2 (Inputs, hover)
+    surface = ColoresOscuros.canvas,
+    onSurface = ColoresOscuros.texto,
+    surfaceDim = ColoresOscuros.canvas,
+    surfaceBright = ColoresOscuros.panelAlto,
+    surfaceContainerLowest = ColoresOscuros.canvas,
+    surfaceContainerLow = ColoresOscuros.panelHundido,
+    surfaceContainer = ColoresOscuros.panel,
+    surfaceContainerHigh = ColoresOscuros.panelAlto,
+    surfaceContainerHighest = ColoresOscuros.panelAlto,
+    surfaceVariant = ColoresOscuros.panelAlto,
+    onSurfaceVariant = ColoresOscuros.textoSecundario,
+    surfaceTint = ColoresOscuros.acento,
 
-    // Outline
-    outline = Color(0xFF334155),        // Borde sutil / divisores
-    outlineVariant = Color(0xFF475569),
+    outline = ColoresOscuros.borde,
+    outlineVariant = ColoresOscuros.bordeFuerte,
 
-    // Inverse
-    inverseSurface = Color(0xFFF8FAFC),
-    inverseOnSurface = Color(0xFF051424),
-    inversePrimary = Color(0xFF14B8A6),
+    inverseSurface = ColoresOscuros.texto,
+    inverseOnSurface = ColoresOscuros.canvas,
 
-    // Background (legacy, usar surface)
-    background = Color(0xFF051424),
-    onBackground = Color(0xFFF8FAFC),
-
-    // Surface variant
-    surfaceVariant = Color(0xFF1E293B),
-    onSurfaceVariant = Color(0xFF94A3B8), // Texto secundario
-
-    // Scrim
-    scrim = Color(0xFF000000)
+    scrim = ColoresOscuros.scrim
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF0F766E),
-    onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFFCCFBF1),
-    onPrimaryContainer = Color(0xFF00201C),
+private fun esquemaClaro() = lightColorScheme(
+    primary = ColoresClaros.acento,
+    onPrimary = ColoresClaros.sobreAcento,
+    primaryContainer = ColoresClaros.acentoContenedor,
+    onPrimaryContainer = ColoresClaros.sobreAcentoContenedor,
+    inversePrimary = ColoresClaros.acento,
 
-    secondary = Color(0xFF9F1239),
-    onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFFFCE7EC),
-    onSecondaryContainer = Color(0xFF4D0019),
+    secondary = ColoresClaros.dinero,
+    onSecondary = ColoresClaros.sobreDinero,
+    secondaryContainer = ColoresClaros.dineroContenedor,
+    onSecondaryContainer = ColoresClaros.sobreDineroContenedor,
 
-    tertiary = Color(0xFF312E81),
-    onTertiary = Color(0xFFFFFFFF),
-    tertiaryContainer = Color(0xFFE0E7FF),
-    onTertiaryContainer = Color(0xFF1E1B4B),
+    tertiary = ColoresClaros.info,
+    onTertiary = ColoresClaros.sobreInfo,
+    tertiaryContainer = ColoresClaros.infoContenedor,
+    onTertiaryContainer = ColoresClaros.sobreInfoContenedor,
 
-    error = Color(0xFFB91C1C),
-    onError = Color(0xFFFFFFFF),
-    errorContainer = Color(0xFFFEF2F2),
-    onErrorContainer = Color(0xFF7F1D1D),
+    error = ColoresClaros.alerta,
+    onError = ColoresClaros.sobreAlerta,
+    errorContainer = ColoresClaros.alertaContenedor,
+    onErrorContainer = ColoresClaros.sobreAlertaContenedor,
 
-    surface = Color(0xFFF8FAFC),
-    onSurface = Color(0xFF0F172A),
-    surfaceDim = Color(0xFFF1F5F9),
-    surfaceBright = Color(0xFFFFFFFF),
-    surfaceContainerLowest = Color(0xFFFFFFFF),
-    surfaceContainerLow = Color(0xFFF1F5F9),
-    surfaceContainer = Color(0xFFE2E8F0),
-    surfaceContainerHigh = Color(0xFFCBD5E1),
-    surfaceContainerHighest = Color(0xFF94A3B8),
+    background = ColoresClaros.canvas,
+    onBackground = ColoresClaros.texto,
 
-    outline = Color(0xFF94A3B8),
-    outlineVariant = Color(0xFFCBD5E1),
+    surface = ColoresClaros.canvas,
+    onSurface = ColoresClaros.texto,
+    surfaceDim = ColoresClaros.canvas,
+    surfaceBright = ColoresClaros.panel,
+    surfaceContainerLowest = ColoresClaros.panel,
+    surfaceContainerLow = ColoresClaros.panelHundido,
+    surfaceContainer = ColoresClaros.panel,
+    surfaceContainerHigh = ColoresClaros.panelAlto,
+    surfaceContainerHighest = ColoresClaros.panelHundido,
+    surfaceVariant = ColoresClaros.panelAlto,
+    onSurfaceVariant = ColoresClaros.textoSecundario,
+    surfaceTint = ColoresClaros.acento,
 
-    inverseSurface = Color(0xFF0F172A),
-    inverseOnSurface = Color(0xFFF8FAFC),
-    inversePrimary = Color(0xFF2DD4BF),
+    outline = ColoresClaros.borde,
+    outlineVariant = ColoresClaros.bordeFuerte,
 
-    background = Color(0xFFF8FAFC),
-    onBackground = Color(0xFF0F172A),
+    inverseSurface = ColoresClaros.texto,
+    inverseOnSurface = ColoresClaros.canvas,
 
-    surfaceVariant = Color(0xFFE2E8F0),
-    onSurfaceVariant = Color(0xFF475569),
-
-    scrim = Color(0xFF000000)
+    scrim = ColoresClaros.scrim
 )
-
-// ===== TEMA PRINCIPAL =====
 
 @Composable
 fun StockCubaTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Forzar dark=true para que coincida con el diseño (modo oscuro inmersivo)
     content: @Composable () -> Unit
 ) {
-    // Consumir el modo de tema desde CompositionLocal
+    // Modo elegido por el usuario (OSCURO por defecto desde v2.0).
     val temaMode = LocalTemaPreference.current
     val effectiveDarkTheme = temaMode.toDarkThemeBoolean(isSystemInDarkTheme())
-    val colorScheme = if (effectiveDarkTheme) DarkColorScheme else LightColorScheme
+    val semantic = if (effectiveDarkTheme) ColoresOscuros else ColoresClaros
+    val colorScheme = if (effectiveDarkTheme) esquemaOscuro() else esquemaClaro()
     val view = LocalView.current
     val context = LocalContext.current
 
@@ -156,63 +145,59 @@ fun StockCubaTheme(
                 insetsController.isAppearanceLightStatusBars = !effectiveDarkTheme
                 insetsController.isAppearanceLightNavigationBars = !effectiveDarkTheme
 
-                // Colores de barra de estado/navegación que coinciden con el fondo
-                val statusBarColor = when {
-                    effectiveDarkTheme -> colorScheme.background.toArgb()
-                    else -> colorScheme.surface.toArgb()
-                }
-                val navBarColor = colorScheme.surfaceContainer.toArgb()
-
-                window.statusBarColor = statusBarColor
-                window.navigationBarColor = navBarColor
+                // Barras transparentes: el contenido del sistema flota sobre el
+                // lienzo del app en lugar de dibujar una franja de otro color.
+                window.statusBarColor = Color.Transparent.toArgb()
+                window.navigationBarColor = Color.Transparent.toArgb()
             }
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography.StockCubaTypography,
-        shapes = Shape.StockCubaShapes,
-        content = content
-    )
+    CompositionLocalProvider(LocalStockCubaColors provides semantic) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography.StockCubaTypography,
+            shapes = Shape.StockCubaShapes,
+            content = content
+        )
+    }
 }
-
-// ===== PREVIEW HELPER =====
 
 @Composable
 fun StockCubaThemePreview(
-    darkTheme: Boolean = true, // Default a dark para previews
+    darkTheme: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography.StockCubaTypography,
-        shapes = Shape.StockCubaShapes,
-        content = content
-    )
+    val semantic = if (darkTheme) ColoresOscuros else ColoresClaros
+    val colorScheme = if (darkTheme) esquemaOscuro() else esquemaClaro()
+    CompositionLocalProvider(LocalStockCubaColors provides semantic) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography.StockCubaTypography,
+            shapes = Shape.StockCubaShapes,
+            content = content
+        )
+    }
 }
 
-// ===== ELEVACIÓN / SOMBRAS =====
-// Tonal Layering + Glassmorphism
-
+/**
+ * Elevación: el sistema NO usa sombras difusas. La profundidad se comunica con
+ * capas tonales (canvas → panel → panel alto) y un borde de 1px. Esta clase
+ * queda por compatibilidad con pantallas antiguas.
+ */
 object StockCubaElevation {
-    // Level 0: Background #0F172A (sin sombra)
-    // Level 1: Cards #1E293B + 1px border #334155
-    val CardBorder = Color(0xFF334155)
+    val CardBorder = ColoresOscuros.borde
     val CardBorderWidth = 1.dp
 
-    // Level 2: Modals - 70% opacity + 20px blur + glow
-    val ModalBackgroundOpacity = 0.7f
+    val ModalBackgroundOpacity = 0.86f
     val ModalBlurRadius = 20.dp
-    val ModalGlowShadow = Color(0x1A2DD4BF) // Teal glow
-    val ModalGlowShadowCoral = Color(0x1AFB7185) // Coral glow para alertas
+    val ModalGlowShadow = ColoresOscuros.acento.copy(alpha = 0.10f)
+    val ModalGlowShadowCoral = ColoresOscuros.alerta.copy(alpha = 0.10f)
 
-    // Sombras difusas tinted navy
-    val ShadowColor = Color(0xFF0F172A).copy(alpha = 0.15f)
-    val ShadowElevation1dp = 1.dp
-    val ShadowElevation4dp = 4.dp
-    val ShadowElevation8dp = 8.dp
-    val ShadowElevation16dp = 16.dp
-    val ShadowElevation24dp = 24.dp
+    val ShadowColor = ColoresOscuros.canvas
+    val ShadowElevation1dp = 0.dp
+    val ShadowElevation4dp = 0.dp
+    val ShadowElevation8dp = 0.dp
+    val ShadowElevation16dp = 0.dp
+    val ShadowElevation24dp = 0.dp
 }

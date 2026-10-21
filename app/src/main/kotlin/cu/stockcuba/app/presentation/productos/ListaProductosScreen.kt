@@ -1,44 +1,85 @@
 package cu.stockcuba.app.presentation.productos
 
-import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import cu.stockcuba.app.domain.model.Categoria
+import cu.stockcuba.app.domain.model.Moneda
 import cu.stockcuba.app.domain.model.Producto
-import cu.stockcuba.app.presentation.dashboard.*
+import cu.stockcuba.app.domain.model.UnidadMedida
+import cu.stockcuba.app.presentation.common.ScDivider
+import cu.stockcuba.app.presentation.common.ScEmptyState
+import cu.stockcuba.app.presentation.common.ScPanel
+import cu.stockcuba.app.presentation.common.ScScreenHeader
+import cu.stockcuba.app.presentation.common.ScSearchField
+import cu.stockcuba.app.presentation.common.ScStatusPill
+import cu.stockcuba.app.presentation.common.ScTone
+import cu.stockcuba.app.presentation.dashboard.formatoAuto
+import cu.stockcuba.app.presentation.dashboard.formatoCantidad
+import cu.stockcuba.app.presentation.theme.ScColors
 import cu.stockcuba.app.presentation.theme.Shape
-import cu.stockcuba.app.presentation.theme.StockCubaColors
-import cu.stockcuba.app.presentation.theme.StockCubaSpacing
 
 /**
- * Pantalla Lista de Productos - Rediseño Moderno e Inmersivo.
+ * Catálogo de productos · sistema "Mostrador".
+ *
+ * La pantalla es un instrumento: cabecera con el conteo, buscador, filtros de
+ * categoría en una fila desplazable y el catálogo agrupado por categoría en
+ * paneles con separadores de 1px. Cada fila es compacta (miniatura 48dp,
+ * nombre, stock y precio) y el jade marca lo positivo, el ámbar el dinero y el
+ * coral el riesgo real de quedarse sin producto.
+ *
+ * La lógica (ViewModel, filtros, selección múltiple, navegación) es la misma que
+ * antes: aquí solo cambia la composición visual.
  */
 @Composable
 fun ListaProductosScreen(
@@ -48,84 +89,79 @@ fun ListaProductosScreen(
     viewModel: ListaProductosViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val stateSuccess = uiState as? ListaProductosUiState.Success
-    val isSelectionMode = stateSuccess?.isSelectionMode == true
-    val selectedCount = stateSuccess?.selectedProductIds?.size ?: 0
+    val state = uiState as? ListaProductosUiState.Success
+    val isSelectionMode = state?.isSelectionMode == true
+    val selectedCount = state?.selectedProductIds?.size ?: 0
+    val conteo = state?.productos?.size ?: 0
+    val filtrando = state != null && (state.query.isNotBlank() || state.categoriaSeleccionada != null)
 
     Scaffold(
+        containerColor = ScColors.canvas,
         topBar = {
-            if (isSelectionMode) {
-                SelectionHeader(
-                    count = selectedCount,
-                    onClear = { viewModel.clearSelection() },
-                    onDelete = { viewModel.deleteSelected() }
-                )
-            } else {
-                ListaProductosHeader(
-                    count = stateSuccess?.productos?.size ?: 0,
-                    query = stateSuccess?.query ?: "",
-                    onQueryChange = { viewModel.setQuery(it) }
-                )
+            Column(modifier = Modifier.fillMaxWidth()) {
+                if (isSelectionMode) {
+                    BarraSeleccion(
+                        count = selectedCount,
+                        onCancelar = { viewModel.clearSelection() },
+                        onEliminar = { viewModel.deleteSelected() }
+                    )
+                } else {
+                    ScScreenHeader(
+                        title = "Productos",
+                        subtitle = when {
+                            state == null -> null
+                            filtrando -> "$conteo ${if (conteo == 1) "resultado" else "resultados"} de la búsqueda"
+                            else -> "$conteo ${if (conteo == 1) "producto" else "productos"} en el catálogo"
+                        }
+                    )
+                    ScSearchField(
+                        value = state?.query.orEmpty(),
+                        onValueChange = { viewModel.setQuery(it) },
+                        placeholder = "Buscar por nombre o descripción",
+                        onClear = { viewModel.setQuery("") },
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
+                }
+
+                if (state != null) {
+                    ChipsCategorias(
+                        categorias = state.categorias,
+                        seleccionada = state.categoriaSeleccionada,
+                        onSelect = { viewModel.setCategoria(it) }
+                    )
+                }
             }
         },
         floatingActionButton = {
             if (!isSelectionMode) {
-                FloatingActionButton(
-                    onClick = onAgregar,
-                    containerColor = StockCubaColors.VerdeExito,
-                    contentColor = Color(0xFF001E1C),
-                    shape = Shape.Grande,
-                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Agregar", modifier = Modifier.size(28.dp))
-                }
+                FabAgregarProducto(onClick = onAgregar)
             }
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
         ) {
-            // ===== BARRA DE CATEGORÍAS (CHIPS MODERNOS) =====
-            if (stateSuccess != null) {
-                CategoriasBarraHorizontal(
-                    categorias = stateSuccess.categorias,
-                    seleccionada = stateSuccess.categoriaSeleccionada,
-                    onSelect = { viewModel.setCategoria(it) }
-                )
-            }
-
-            // ===== CONTENIDO PRINCIPAL =====
-            Box(modifier = Modifier.fillMaxSize()) {
-                when (val state = uiState) {
-                    is ListaProductosUiState.Loading -> ListaProductosSkeleton()
-                    is ListaProductosUiState.Error -> ListaProductosError(state.message)
-                    is ListaProductosUiState.Success -> {
-                        if (state.productos.isEmpty()) {
-                            ListaProductosVacia(
-                                isFiltered = state.query.isNotEmpty() || state.categoriaSeleccionada != null,
-                                onClear = { viewModel.limpiarFiltros() },
-                                onAgregar = onAgregar
-                            )
-                        } else {
-                            ListaProductosLazy(
-                                productos = state.productos,
-                                categorias = state.categorias,
-                                tasas = state.tasas,
-                                monedaBase = state.monedaBase,
-                                selectedIds = state.selectedProductIds,
-                                onDetalle = { id ->
-                                    if (state.isSelectionMode) {
-                                        viewModel.toggleSelection(id)
-                                    } else {
-                                        onDetalle(id)
-                                    }
-                                },
-                                onLongClick = { viewModel.toggleSelection(it) }
-                            )
-                        }
+            when (val s = uiState) {
+                is ListaProductosUiState.Loading -> CatalogoCargando()
+                is ListaProductosUiState.Error -> CatalogoError(mensaje = s.message)
+                is ListaProductosUiState.Success -> {
+                    if (s.productos.isEmpty()) {
+                        CatalogoVacio(
+                            isFiltered = s.query.isNotEmpty() || s.categoriaSeleccionada != null,
+                            onClear = { viewModel.limpiarFiltros() },
+                            onAgregar = onAgregar
+                        )
+                    } else {
+                        CatalogoLista(
+                            state = s,
+                            isSelectionMode = isSelectionMode,
+                            onDetalle = { id ->
+                                if (s.isSelectionMode) viewModel.toggleSelection(id) else onDetalle(id)
+                            },
+                            onToggleSelection = { id -> viewModel.toggleSelection(id) }
+                        )
                     }
                 }
             }
@@ -133,439 +169,492 @@ fun ListaProductosScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+// =====================================================================================
+// CABECERA EN MODO SELECCIÓN
+// =====================================================================================
+
 @Composable
-fun SelectionHeader(
+private fun BarraSeleccion(
     count: Int,
-    onClear: () -> Unit,
-    onDelete: () -> Unit
+    onCancelar: () -> Unit,
+    onEliminar: () -> Unit
 ) {
-    var showConfirmDelete by remember { mutableStateOf(false) }
+    var confirmarEliminar by remember { mutableStateOf(false) }
 
-    TopAppBar(
-        title = { Text("$count seleccionados") },
-        navigationIcon = {
-            IconButton(onClick = onClear) {
-                Icon(Icons.Default.Close, contentDescription = "Cancelar")
-            }
-        },
-        actions = {
-            IconButton(onClick = { showConfirmDelete = true }) {
-                Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = MaterialTheme.colorScheme.error)
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
-        )
-    )
-
-    if (showConfirmDelete) {
-        AlertDialog(
-            onDismissRequest = { showConfirmDelete = false },
-            title = { Text("¿Eliminar $count productos?") },
-            text = { Text("Esta acción eliminará los productos seleccionados permanentemente.") },
-            confirmButton = {
-                TextButton(
-                    onClick = { 
-                        onDelete()
-                        showConfirmDelete = false
-                    },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text("Eliminar")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showConfirmDelete = false }) {
-                    Text("Cancelar")
-                }
-            }
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ListaProductosHeader(
-    count: Int,
-    query: String,
-    onQueryChange: (String) -> Unit
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 20.dp, end = 8.dp, top = 8.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = StockCubaSpacing.Lg, vertical = StockCubaSpacing.Md)
-                .statusBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        "Productos",
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)
-                    )
-                    Text(
-                        "$count artículos en inventario",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Surface(
-                    color = StockCubaColors.VerdeExito.copy(alpha = 0.1f),
-                    shape = Shape.Full
-                ) {
-                    Icon(
-                        Icons.Default.Inventory,
-                        contentDescription = null,
-                        tint = StockCubaColors.VerdeExito,
-                        modifier = Modifier.padding(8.dp).size(24.dp)
-                    )
-                }
-            }
-
-            // Barra de búsqueda moderna
-            OutlinedTextField(
-                value = query,
-                onValueChange = onQueryChange,
-                placeholder = { Text("Buscar por nombre o descripción...", fontSize = 14.sp) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
-                trailingIcon = if (query.isNotEmpty()) {
-                    {
-                        IconButton(onClick = { onQueryChange("") }) {
-                            Icon(Icons.Default.Close, contentDescription = "Limpiar", modifier = Modifier.size(18.dp))
-                        }
-                    }
-                } else null,
-                modifier = Modifier.fillMaxWidth(),
-                shape = Shape.Grande,
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedBorderColor = StockCubaColors.VerdeExito
-                )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "$count ${if (count == 1) "seleccionado" else "seleccionados"}",
+                style = MaterialTheme.typography.titleLarge,
+                color = ScColors.texto,
+                maxLines = 1
+            )
+            Text(
+                text = "Mantén pulsado un producto para ajustar la selección",
+                style = MaterialTheme.typography.bodySmall,
+                color = ScColors.textoSecundario,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        IconButton(onClick = { confirmarEliminar = true }) {
+            Icon(
+                imageVector = Icons.Filled.Delete,
+                contentDescription = "Eliminar seleccionados",
+                tint = ScColors.alerta,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+        IconButton(onClick = onCancelar) {
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = "Cancelar selección",
+                tint = ScColors.textoSecundario,
+                modifier = Modifier.size(22.dp)
             )
         }
     }
+
+    if (confirmarEliminar) {
+        AlertDialog(
+            onDismissRequest = { confirmarEliminar = false },
+            shape = Shape.Grande,
+            containerColor = ScColors.panel,
+            titleContentColor = ScColors.texto,
+            textContentColor = ScColors.textoSecundario,
+            title = {
+                Text(
+                    text = "¿Eliminar $count ${if (count == 1) "producto" else "productos"}?",
+                    style = MaterialTheme.typography.titleMedium
+                )
+            },
+            text = {
+                Text(
+                    text = "Los productos saldrán del catálogo de forma permanente. Esta acción no se puede deshacer.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onEliminar()
+                        confirmarEliminar = false
+                    }
+                ) {
+                    Text(text = "Eliminar", color = ScColors.alerta)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmarEliminar = false }) {
+                    Text(text = "Cancelar", color = ScColors.textoSecundario)
+                }
+            }
+        )
+    }
 }
 
+// =====================================================================================
+// FILTROS DE CATEGORÍA
+// =====================================================================================
+
 @Composable
-fun CategoriasBarraHorizontal(
+private fun ChipsCategorias(
     categorias: List<Categoria>,
     seleccionada: String?,
     onSelect: (String?) -> Unit
 ) {
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = StockCubaSpacing.Lg, vertical = StockCubaSpacing.Sm),
-        horizontalArrangement = Arrangement.spacedBy(StockCubaSpacing.Sm)
+        // 20dp al inicio y 20dp al final: el último chip entra completo al llegar al borde.
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        item {
-            CategoriaChip(
-                nombre = "Todos",
-                isSelected = seleccionada == null,
+        item(key = "categoria-todas") {
+            ChipFiltro(
+                texto = "Todos",
+                seleccionado = seleccionada == null,
                 onClick = { onSelect(null) }
             )
         }
-        items(categorias) { cat ->
-            CategoriaChip(
-                nombre = cat.nombre,
-                isSelected = seleccionada == cat.id,
-                color = Color(cat.color),
-                onClick = { onSelect(cat.id) }
+        items(categorias, key = { it.id }) { categoria ->
+            ChipFiltro(
+                texto = categoria.nombre,
+                seleccionado = seleccionada == categoria.id,
+                onClick = { onSelect(categoria.id) }
             )
         }
     }
 }
 
+/** Pastilla de filtro: jade tenue + borde jade cuando está activa, panel si no. */
 @Composable
-fun CategoriaChip(
-    nombre: String,
-    isSelected: Boolean,
-    color: Color = StockCubaColors.VerdeExito,
+private fun ChipFiltro(
+    texto: String,
+    seleccionado: Boolean,
     onClick: () -> Unit
 ) {
     Surface(
         onClick = onClick,
-        modifier = Modifier.height(36.dp),
+        modifier = Modifier.height(44.dp),
         shape = Shape.Full,
-        color = if (isSelected) color.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = BorderStroke(
-            1.dp,
-            if (isSelected) color else Color.Transparent
-        )
+        color = if (seleccionado) ScColors.acento.copy(alpha = 0.13f) else ScColors.panel,
+        contentColor = if (seleccionado) ScColors.acento else ScColors.textoSecundario,
+        border = BorderStroke(1.dp, if (seleccionado) ScColors.acento else ScColors.borde)
     ) {
-        Row(
+        Box(
             modifier = Modifier.padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            contentAlignment = Alignment.Center
         ) {
-            if (isSelected) {
-                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(color))
-                Spacer(Modifier.width(8.dp))
-            }
             Text(
-                text = nombre,
-                style = MaterialTheme.typography.labelLarge.copy(
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                ),
-                color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                text = texto,
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1
             )
         }
     }
 }
 
+// =====================================================================================
+// LISTA AGRUPADA POR CATEGORÍA
+// =====================================================================================
+
+private data class GrupoCatalogo(
+    val id: String,
+    val titulo: String,
+    val productos: List<Producto>
+)
+
+private fun agruparPorCategoria(
+    productos: List<Producto>,
+    categorias: List<Categoria>
+): List<GrupoCatalogo> {
+    val porCategoria = productos.groupBy { it.categoriaId }
+    val grupos = mutableListOf<GrupoCatalogo>()
+
+    categorias.forEach { categoria ->
+        val delGrupo = porCategoria[categoria.id].orEmpty()
+        if (delGrupo.isNotEmpty()) {
+            grupos.add(GrupoCatalogo(id = categoria.id, titulo = categoria.nombre, productos = delGrupo))
+        }
+    }
+
+    val idsConocidos = categorias.map { it.id }.toSet()
+    val sinCategoria = productos.filter { it.categoriaId !in idsConocidos }
+    if (sinCategoria.isNotEmpty()) {
+        grupos.add(GrupoCatalogo(id = "sin-categoria", titulo = "Sin categoría", productos = sinCategoria))
+    }
+
+    return grupos
+}
+
 @Composable
-fun ListaProductosLazy(
-    productos: List<cu.stockcuba.app.domain.model.Producto>,
-    categorias: List<Categoria>,
-    tasas: Map<cu.stockcuba.app.domain.model.Moneda, Double>,
-    monedaBase: cu.stockcuba.app.domain.model.Moneda,
-    selectedIds: Set<String>,
+private fun CatalogoLista(
+    state: ListaProductosUiState.Success,
+    isSelectionMode: Boolean,
     onDetalle: (String) -> Unit,
-    onLongClick: (String) -> Unit
+    onToggleSelection: (String) -> Unit
 ) {
+    val grupos = remember(state.productos, state.categorias) {
+        agruparPorCategoria(state.productos, state.categorias)
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(top = StockCubaSpacing.Sm, start = StockCubaSpacing.Lg, end = StockCubaSpacing.Lg, bottom = 80.dp),
-        verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 112.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(productos, key = { it.id }) { producto ->
-            val categoria = categorias.find { it.id == producto.categoriaId }
-            val isSelected = selectedIds.contains(producto.id)
-            ProductoCardModerno(
+        grupos.forEach { grupo ->
+            item(key = "grupo-${grupo.id}") {
+                PanelCatalogo(
+                    grupo = grupo,
+                    tasas = state.tasas,
+                    monedaBase = state.monedaBase,
+                    seleccionados = state.selectedProductIds,
+                    isSelectionMode = isSelectionMode,
+                    onProductoClick = { producto ->
+                        if (isSelectionMode) onToggleSelection(producto.id) else onDetalle(producto.id)
+                    },
+                    onProductoLongClick = { producto -> onToggleSelection(producto.id) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PanelCatalogo(
+    grupo: GrupoCatalogo,
+    tasas: Map<Moneda, Double>,
+    monedaBase: Moneda,
+    seleccionados: Set<String>,
+    isSelectionMode: Boolean,
+    onProductoClick: (Producto) -> Unit,
+    onProductoLongClick: (Producto) -> Unit
+) {
+    ScPanel(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(0.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = grupo.titulo,
+                style = MaterialTheme.typography.labelMedium,
+                color = ScColors.textoSecundario,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = "${grupo.productos.size}",
+                style = MaterialTheme.typography.labelSmall,
+                color = ScColors.textoDebil,
+                maxLines = 1
+            )
+        }
+        ScDivider()
+        grupo.productos.forEachIndexed { index, producto ->
+            if (index > 0) {
+                ScDivider()
+            }
+            FilaCatalogo(
                 producto = producto,
-                categoriaNombre = categoria?.nombre ?: "Sin categoría",
-                categoriaColor = categoria?.let { Color(it.color) } ?: MaterialTheme.colorScheme.outline,
                 tasas = tasas,
                 monedaBase = monedaBase,
-                isSelected = isSelected,
-                onClick = { onDetalle(producto.id) },
-                onLongClick = { onLongClick(producto.id) }
+                seleccionado = seleccionados.contains(producto.id),
+                isSelectionMode = isSelectionMode,
+                onClick = { onProductoClick(producto) },
+                onLongClick = { onProductoLongClick(producto) }
             )
         }
     }
 }
 
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ProductoCardModerno(
-    producto: cu.stockcuba.app.domain.model.Producto,
-    categoriaNombre: String,
-    categoriaColor: Color,
-    tasas: Map<cu.stockcuba.app.domain.model.Moneda, Double>,
-    monedaBase: cu.stockcuba.app.domain.model.Moneda,
-    isSelected: Boolean = false,
+private fun FilaCatalogo(
+    producto: Producto,
+    tasas: Map<Moneda, Double>,
+    monedaBase: Moneda,
+    seleccionado: Boolean,
+    isSelectionMode: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-    val statusLabel = producto.stockStatusLabel()
-    val statusColor = producto.stockStatusColor()
-    val statusBg = producto.stockStatusBackground()
-
-    // Cálculo de precio según moneda y tasa
-    val precioDisplay = producto.precioVenta.formatoAuto(
+    val status = producto.stockStatus()
+    val precio = producto.precioVenta.formatoAuto(
         moneda = producto.moneda,
         vinculado = producto.vincularTasa,
         tasa = tasas[producto.moneda] ?: 1.0,
         monedaBase = monedaBase
     )
 
-    Card(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(Shape.Grande)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        shape = Shape.Grande,
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(
-            1.dp, 
-            if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 1.dp)
+            .background(if (seleccionado) ScColors.acentoContenedor else ScColors.panel)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.height(IntrinsicSize.Min),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Checkbox o barra de selección
-            if (isSelected) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width(40.dp)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                }
-            } else {
-                // Barra lateral de color de categoría
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width(6.dp)
-                        .background(categoriaColor)
-                )
-            }
-
-            // Miniatura de Imagen
-            Box(
-                modifier = Modifier
-                    .padding(start = StockCubaSpacing.Md, top = StockCubaSpacing.Md, bottom = StockCubaSpacing.Md)
-                    .size(64.dp)
-                    .clip(Shape.Mediano)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
-            ) {
-                if (!producto.imagenUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = if (producto.imagenUrl.startsWith("/")) java.io.File(producto.imagenUrl) else producto.imagenUrl,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                        error = androidx.compose.ui.res.painterResource(id = android.R.drawable.ic_menu_report_image),
-                        placeholder = androidx.compose.ui.res.painterResource(id = android.R.drawable.ic_menu_gallery)
-                    )
-                } else {
-                    Icon(
-                        Icons.Default.Image,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier.padding(StockCubaSpacing.Md).weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = producto.nombre,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-                    // Badge de Precio
-                    Surface(
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                        shape = Shape.Pequeno
-                    ) {
-                        Text(
-                            precioDisplay,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-
-                Text(
-                    text = categoriaNombre,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Storage, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = "${producto.stockActual.formatoCantidad()} ${producto.unidadMedida.name.lowercase()}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-
-                    // Status Pill
-                    Surface(
-                        color = statusBg,
-                        shape = Shape.Full
-                    ) {
-                        Text(
-                            text = statusLabel,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = statusColor
-                        )
-                    }
-                }
-            }
+        if (isSelectionMode) {
+            Icon(
+                imageVector = if (seleccionado) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked,
+                contentDescription = null,
+                tint = if (seleccionado) ScColors.acento else ScColors.textoDebil,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(Modifier.width(10.dp))
         }
-    }
-}
 
-@Composable
-fun ListaProductosSkeleton() {
-    Column(modifier = Modifier.padding(StockCubaSpacing.Lg), verticalArrangement = Arrangement.spacedBy(StockCubaSpacing.Md)) {
-        repeat(5) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(90.dp)
-                    .clip(Shape.Grande)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+        MiniaturaProducto(imagenUrl = producto.imagenUrl)
+
+        Spacer(Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = producto.nombre,
+                style = MaterialTheme.typography.titleSmall,
+                color = ScColors.texto,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = "${producto.stockActual.formatoCantidad()} ${producto.unidadMedida.corta()} · mín ${producto.stockMinimo.formatoCantidad()}",
+                style = MaterialTheme.typography.bodySmall,
+                color = ScColors.textoSecundario,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        Spacer(Modifier.width(10.dp))
+
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                text = precio,
+                style = MaterialTheme.typography.titleSmall,
+                color = ScColors.dinero,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(Modifier.height(4.dp))
+            ScStatusPill(
+                text = status.etiquetaCatalogo(),
+                tone = status.tonoCatalogo()
             )
         }
     }
 }
 
 @Composable
-fun ListaProductosError(message: String) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(StockCubaSpacing.Xl),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+private fun MiniaturaProducto(imagenUrl: String?) {
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(Shape.Pequeno)
+            .background(ScColors.panelHundido)
+            .border(1.dp, ScColors.borde, Shape.Pequeno),
+        contentAlignment = Alignment.Center
     ) {
-        Icon(Icons.Default.ErrorOutline, contentDescription = null, modifier = Modifier.size(64.dp), tint = StockCubaColors.CoralAlerta)
-        Spacer(Modifier.height(16.dp))
-        Text("No se pudo cargar la lista", style = MaterialTheme.typography.titleMedium)
-        Text(message, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(
+            imageVector = Icons.Filled.Image,
+            contentDescription = null,
+            tint = ScColors.textoDebil,
+            modifier = Modifier.size(20.dp)
+        )
+        if (!imagenUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = if (imagenUrl.startsWith("/")) java.io.File(imagenUrl) else imagenUrl,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
+    }
+}
+
+// =====================================================================================
+// ACCIÓN FLOTANTE
+// =====================================================================================
+
+@Composable
+private fun FabAgregarProducto(onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.size(56.dp),
+        shape = CircleShape,
+        color = ScColors.acento,
+        contentColor = ScColors.sobreAcento
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Filled.Add,
+                contentDescription = "Agregar producto",
+                tint = ScColors.sobreAcento,
+                modifier = Modifier.size(26.dp)
+            )
+        }
+    }
+}
+
+// =====================================================================================
+// ESTADOS: CARGANDO, ERROR, VACÍO
+// =====================================================================================
+
+@Composable
+private fun CatalogoCargando() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        repeat(5) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(72.dp)
+                    .clip(Shape.Grande)
+                    .background(ScColors.panel)
+            )
+        }
     }
 }
 
 @Composable
-fun ListaProductosVacia(isFiltered: Boolean, onClear: () -> Unit, onAgregar: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(StockCubaSpacing.Xl),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        val icon = if (isFiltered) Icons.Default.SearchOff else Icons.Default.AddShoppingCart
-        val title = if (isFiltered) "No hay coincidencias" else "Inventario vacío"
-        val desc = if (isFiltered) "Prueba con otros filtros o términos de búsqueda" else "Empieza agregando productos para gestionar tu negocio"
-
-        Surface(modifier = Modifier.size(100.dp), shape = Shape.Full, color = MaterialTheme.colorScheme.surfaceVariant) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
+private fun CatalogoError(mensaje: String) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        ScEmptyState(
+            icon = Icons.Filled.Warning,
+            title = "No se pudo cargar el catálogo",
+            message = mensaje.ifBlank {
+                "Revisa que la base de datos esté disponible y vuelve a abrir la pantalla."
             }
-        }
-        Spacer(Modifier.height(24.dp))
-        Text(title, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
-        Spacer(Modifier.height(8.dp))
-        Text(desc, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-        Spacer(Modifier.height(32.dp))
+        )
+    }
+}
+
+@Composable
+private fun CatalogoVacio(
+    isFiltered: Boolean,
+    onClear: () -> Unit,
+    onAgregar: () -> Unit
+) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         if (isFiltered) {
-            OutlinedButton(onClick = onClear, shape = Shape.Grande) { Text("Limpiar filtros") }
+            ScEmptyState(
+                icon = Icons.Filled.SearchOff,
+                title = "Sin coincidencias",
+                message = "Ningún producto coincide con la búsqueda o la categoría. Prueba con otro término o quita el filtro.",
+                actionLabel = "Limpiar filtros",
+                onAction = onClear
+            )
         } else {
-            Button(onClick = onAgregar, shape = Shape.Grande) { Text("Agregar mi primer producto") }
+            ScEmptyState(
+                icon = Icons.Filled.Inventory2,
+                title = "El catálogo está vacío",
+                message = "Agrega tu primer producto para venderlo y controlar su stock desde el mostrador.",
+                actionLabel = "Agregar producto",
+                onAction = onAgregar
+            )
         }
     }
+}
+
+// =====================================================================================
+// HELPERS DE PRESENTACIÓN
+// =====================================================================================
+
+/** Unidades compactas: la fila no necesita explicar "UNIDAD" completo. */
+private fun UnidadMedida.corta(): String = when (this) {
+    UnidadMedida.UNIDAD -> "ud"
+    UnidadMedida.LIBRA -> "lb"
+    UnidadMedida.KG -> "kg"
+    UnidadMedida.LITRO -> "L"
+    UnidadMedida.PAQUETE -> "paq"
+}
+
+/** El color comunica el estado: jade sano, ámbar atención, coral riesgo. */
+private fun StockStatus.tonoCatalogo(): ScTone = when (this) {
+    StockStatus.OK -> ScTone.Positive
+    StockStatus.BAJO -> ScTone.Money
+    StockStatus.SIN_STOCK -> ScTone.Danger
+}
+
+private fun StockStatus.etiquetaCatalogo(): String = when (this) {
+    StockStatus.OK -> "OK"
+    StockStatus.BAJO -> "Bajo"
+    StockStatus.SIN_STOCK -> "Agotado"
 }

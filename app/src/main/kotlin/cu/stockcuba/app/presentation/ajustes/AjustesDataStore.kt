@@ -76,7 +76,7 @@ class AjustesDataStore @Inject constructor(
         .distinctUntilChanged()
 
     val tema: Flow<String> = dataStore.data
-        .map { it[TEMA_KEY] ?: "SYSTEM" }
+        .map { it[TEMA_KEY] ?: "DARK" }
         .distinctUntilChanged()
 
     val rolActual: Flow<cu.stockcuba.app.domain.model.RolUsuario> = dataStore.data

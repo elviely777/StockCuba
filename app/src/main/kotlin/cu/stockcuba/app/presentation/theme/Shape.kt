@@ -5,56 +5,41 @@ import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
 /**
- * Shapes de Material 3 basados en DESIGN.md.
+ * Formas StockCuba · vocabulario "instrumento de mostrador".
  *
- * Lenguaje de formas: Amigable y moderno.
- * - Default (cards/contenedores): 16px (rounded-lg) - suaviza datos técnicos
- * - Interactivos (botones, search bars): 24px (rounded-xl) / full pill - invitan interacción
- * - Utilitarios (tags, checkboxes): 4px (soft) - precisión funcional
+ * - Paneles de datos: 16dp (extraLarge del theme) — contienen información, no son botones.
+ * - Controles (botones, campos, chips de acción): 12dp — precisos, no pastillas.
+ * - Etiquetas pequeñas: 8dp.
+ * - Solo los estados (chips de stock) y los avatares/indicadores usan pastilla completa.
+ *
+ * La intención es que un botón no se confunda con una tarjeta y que la app no
+ * se lea como una pila de pastillas idénticas.
  */
 object Shape {
 
-    private val RedondeoSuave = 4.dp      // rounded-sm: 0.25rem = 4px
-    private val RedondeoDefault = 8.dp    // rounded: 0.5rem = 8px
-    private val RedondeoMedio = 12.dp     // rounded-md: 0.75rem = 12px
-    private val RedondeoGrande = 16.dp    // rounded-lg: 1rem = 16px (DEFAULT para cards)
-    private val RedondeoExtraGrande = 24.dp // rounded-xl: 1.5rem = 24px (botones, FAB, search)
-    private val RedondeoFull = 9999.dp    // rounded-full: 9999px (pills, chips, FAB circular)
+    /** 6dp — marcas, badges diminutos, rieles. */
+    val Suave = RoundedCornerShape(6.dp)
+
+    /** 8dp — etiquetas pequeñas, miniaturas. */
+    val Pequeno = RoundedCornerShape(8.dp)
+
+    /** 12dp — controles: botones, campos, filas pulsables. */
+    val Mediano = RoundedCornerShape(12.dp)
+
+    /** 16dp — paneles de datos (por defecto del sistema). */
+    val Grande = RoundedCornerShape(16.dp)
+
+    /** 20dp — hojas y modales inferiores. */
+    val ExtraGrande = RoundedCornerShape(20.dp)
+
+    /** Pastilla completa — solo chips de estado, avatares y el indicador del dock. */
+    val Full = RoundedCornerShape(percent = 50)
 
     val StockCubaShapes = Shapes(
-        // Extra small - 4px: Tags, badges, checkboxes, chips pequeños
-        extraSmall = RoundedCornerShape(RedondeoSuave),
-
-        // Small - 8px: Inputs, botones secundarios, chips
-        small = RoundedCornerShape(RedondeoDefault),
-
-        // Medium - 12px: Cards secundarias, dialogs, menus
-        medium = RoundedCornerShape(RedondeoMedio),
-
-        // Large - 16px: Cards principales, contenedores primarios (DEFAULT del diseño)
-        large = RoundedCornerShape(RedondeoGrande),
-
-        // Extra large - 24px: FAB, botones principales, search bars, modales
-        extraLarge = RoundedCornerShape(RedondeoExtraGrande)
+        extraSmall = Suave,
+        small = Pequeno,
+        medium = Mediano,
+        large = Grande,
+        extraLarge = ExtraGrande
     )
-
-    // ===== EXTENSIONES PARA USO DIRECTO =====
-
-    /** 4px - Tags, badges, checkboxes, utilitarios precisos */
-    val Suave = RoundedCornerShape(RedondeoSuave)
-
-    /** 8px - Inputs, botones secundarios, chips estándar */
-    val Pequeno = RoundedCornerShape(RedondeoDefault)
-
-    /** 12px - Cards secundarias, dropdowns, dialogs */
-    val Mediano = RoundedCornerShape(RedondeoMedio)
-
-    /** 16px - Cards principales, contenedores de contenido (DEFAULT DISEÑO) */
-    val Grande = RoundedCornerShape(RedondeoGrande)
-
-    /** 24px - FAB, botones primarios, search bars, modales (INVITA INTERACCIÓN) */
-    val ExtraGrande = RoundedCornerShape(RedondeoExtraGrande)
-
-    /** 9999px - Pills, FAB circular, avatares, badges completamente redondos */
-    val Full = RoundedCornerShape(RedondeoFull)
 }

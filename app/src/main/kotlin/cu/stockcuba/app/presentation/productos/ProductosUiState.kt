@@ -93,20 +93,18 @@ fun Producto.stockStatus(): StockStatus {
     }
 }
 
+@androidx.compose.runtime.Composable
 fun Producto.stockStatusColor(): androidx.compose.ui.graphics.Color {
     return when (stockStatus()) {
-        StockStatus.OK -> cu.stockcuba.app.presentation.theme.StockCubaColors.VerdeExito
-        StockStatus.BAJO -> cu.stockcuba.app.presentation.theme.StockCubaColors.CoralAlerta
-        StockStatus.SIN_STOCK -> cu.stockcuba.app.presentation.theme.StockCubaColors.CoralAlerta.copy(alpha = 0.9f)
+        StockStatus.OK -> cu.stockcuba.app.presentation.theme.ScColors.acento
+        StockStatus.BAJO -> cu.stockcuba.app.presentation.theme.ScColors.dinero
+        StockStatus.SIN_STOCK -> cu.stockcuba.app.presentation.theme.ScColors.alerta
     }
 }
 
+@androidx.compose.runtime.Composable
 fun Producto.stockStatusBackground(): androidx.compose.ui.graphics.Color {
-    return when (stockStatus()) {
-        StockStatus.OK -> cu.stockcuba.app.presentation.theme.StockCubaColors.ChipStockAltoFondo
-        StockStatus.BAJO -> cu.stockcuba.app.presentation.theme.StockCubaColors.ChipStockBajoFondo
-        StockStatus.SIN_STOCK -> cu.stockcuba.app.presentation.theme.StockCubaColors.ChipStockBajoFondo
-    }
+    return stockStatusColor().copy(alpha = 0.13f)
 }
 
 fun Producto.stockStatusLabel(): String {

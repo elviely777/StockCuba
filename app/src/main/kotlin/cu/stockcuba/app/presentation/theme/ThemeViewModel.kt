@@ -34,6 +34,6 @@ class ThemeViewModel @Inject constructor(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = ThemeMode.SYSTEM
+            initialValue = ThemeMode.DARK
         )
 }

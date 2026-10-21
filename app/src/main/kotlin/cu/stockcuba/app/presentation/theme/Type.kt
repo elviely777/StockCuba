@@ -1,145 +1,163 @@
+@file:OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
+
 package cu.stockcuba.app.presentation.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import cu.stockcuba.app.R
 
 /**
- * Tipografía Material 3 replicando la escala de DESIGN.md.
- * Fuente: Inter (exclusiva para máxima legibilidad en móvil).
+ * Tipografía StockCuba · Inter (variable, incluida en la app).
  *
- * Jerarquía: Contraste extremo de pesos.
- * - Headers: Bold (700) / ExtraBold (800) - anclan la página
- * - Body: Regular (400) - alta legibilidad en listas densas
- * - Labels semánticos: Medium (500) / SemiBold (600) - distinguen datos de texto estático
+ * Por qué Inter: es una grotesca de interfaz con altura de x generosa y cifras
+ * tabulares, lo que hace que los importes en una lista se puedan comparar de un
+ * vistazo. Todo el sistema usa una sola familia; el carácter viene del contraste
+ * de pesos (400 cuerpo / 600 títulos / 800 cifras) y del tracking negativo en
+ * tamaños grandes.
+ *
+ * Regla: los números siempre con [Cifras] (`tnum`), para que no "bailen" al
+ * actualizarse en vivo.
  */
+
+private fun inter(weight: Int): Font = Font(
+    resId = R.font.inter_variable,
+    weight = FontWeight(weight),
+    style = FontStyle.Normal,
+    variationSettings = FontVariation.Settings(FontVariation.weight(weight))
+)
+
+/** Familia Inter completa, con los cinco pesos que usa el sistema. */
+val FamiliaInter: FontFamily = FontFamily(
+    inter(400),
+    inter(500),
+    inter(600),
+    inter(700),
+    inter(800)
+)
+
+/** Tracking de cifras: tabulares + numerales de altura fija. */
+const val Cifras = "tnum"
+
 object Typography {
 
-    private val Inter = FontFamily.Default // Se carga via Google Fonts o local
-
     val StockCubaTypography = Typography(
-        // ===== DISPLAY =====
-        // displayLarge: 48px, ExtraBold (800), lineHeight 56px, letterSpacing -0.02em
+        // ===== DISPLAY — solo para la cifra protagonista de una pantalla =====
         displayLarge = TextStyle(
-            fontFamily = Inter,
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = 48.sp,
-            lineHeight = 56.sp,
-            letterSpacing = (-0.02).em
-        ),
-        // displayMedium: 40px, ExtraBold (800)
-        displayMedium = TextStyle(
-            fontFamily = Inter,
+            fontFamily = FamiliaInter,
             fontWeight = FontWeight.ExtraBold,
             fontSize = 40.sp,
-            lineHeight = 48.sp,
-            letterSpacing = (-0.01).em
+            lineHeight = 46.sp,
+            letterSpacing = (-0.03).em,
+            fontFeatureSettings = Cifras
         ),
-        // displaySmall: 36px, Bold (700)
-        displaySmall = TextStyle(
-            fontFamily = Inter,
-            fontWeight = FontWeight.Bold,
-            fontSize = 36.sp,
-            lineHeight = 44.sp
-        ),
-
-        // ===== HEADLINE =====
-        // headlineLarge: 32px, Bold (700), lineHeight 40px, letterSpacing -0.01em
-        headlineLarge = TextStyle(
-            fontFamily = Inter,
-            fontWeight = FontWeight.Bold,
-            fontSize = 32.sp,
+        displayMedium = TextStyle(
+            fontFamily = FamiliaInter,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 34.sp,
             lineHeight = 40.sp,
-            letterSpacing = (-0.01).em
+            letterSpacing = (-0.03).em,
+            fontFeatureSettings = Cifras
         ),
-        // headlineMedium: 28px, Bold (700), lineHeight 36px (mobile)
-        headlineMedium = TextStyle(
-            fontFamily = Inter,
+        displaySmall = TextStyle(
+            fontFamily = FamiliaInter,
             fontWeight = FontWeight.Bold,
             fontSize = 28.sp,
-            lineHeight = 36.sp
+            lineHeight = 34.sp,
+            letterSpacing = (-0.02).em,
+            fontFeatureSettings = Cifras
         ),
-        // headlineSmall: 24px, Bold (700), lineHeight 32px
-        headlineSmall = TextStyle(
-            fontFamily = Inter,
+
+        // ===== HEADLINE — títulos de pantalla y de sección =====
+        headlineLarge = TextStyle(
+            fontFamily = FamiliaInter,
             fontWeight = FontWeight.Bold,
-            fontSize = 24.sp,
-            lineHeight = 32.sp
+            fontSize = 26.sp,
+            lineHeight = 32.sp,
+            letterSpacing = (-0.02).em
         ),
-
-        // ===== TITLE =====
-        // titleLarge: 22px, SemiBold (600)
-        titleLarge = TextStyle(
-            fontFamily = Inter,
-            fontWeight = FontWeight.SemiBold,
+        headlineMedium = TextStyle(
+            fontFamily = FamiliaInter,
+            fontWeight = FontWeight.Bold,
             fontSize = 22.sp,
-            lineHeight = 28.sp
+            lineHeight = 28.sp,
+            letterSpacing = (-0.015).em
         ),
-        // titleMedium: 18px, SemiBold (600) - body-lg weight
-        titleMedium = TextStyle(
-            fontFamily = Inter,
+        headlineSmall = TextStyle(
+            fontFamily = FamiliaInter,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 18.sp,
-            lineHeight = 28.sp
-        ),
-        // titleSmall: 16px, Medium (500)
-        titleSmall = TextStyle(
-            fontFamily = Inter,
-            fontWeight = FontWeight.Medium,
-            fontSize = 16.sp,
-            lineHeight = 24.sp
+            fontSize = 20.sp,
+            lineHeight = 26.sp,
+            letterSpacing = (-0.01).em
         ),
 
-        // ===== BODY =====
-        // bodyLarge: 18px, Regular (400), lineHeight 28px
-        bodyLarge = TextStyle(
-            fontFamily = Inter,
-            fontWeight = FontWeight.Normal,
+        // ===== TITLE — filas, tarjetas, diálogos =====
+        titleLarge = TextStyle(
+            fontFamily = FamiliaInter,
+            fontWeight = FontWeight.SemiBold,
             fontSize = 18.sp,
-            lineHeight = 28.sp
-        ),
-        // bodyMedium: 16px, Regular (400), lineHeight 24px
-        bodyMedium = TextStyle(
-            fontFamily = Inter,
-            fontWeight = FontWeight.Normal,
-            fontSize = 16.sp,
             lineHeight = 24.sp
         ),
-        // bodySmall: 14px, Regular (400)
-        bodySmall = TextStyle(
-            fontFamily = Inter,
-            fontWeight = FontWeight.Normal,
+        titleMedium = TextStyle(
+            fontFamily = FamiliaInter,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 16.sp,
+            lineHeight = 22.sp
+        ),
+        titleSmall = TextStyle(
+            fontFamily = FamiliaInter,
+            fontWeight = FontWeight.SemiBold,
             fontSize = 14.sp,
             lineHeight = 20.sp
         ),
 
-        // ===== LABEL =====
-        // labelLarge: 14px, SemiBold (600), lineHeight 20px, letterSpacing 0.01em
+        // ===== BODY — texto de lectura y datos secundarios =====
+        bodyLarge = TextStyle(
+            fontFamily = FamiliaInter,
+            fontWeight = FontWeight.Normal,
+            fontSize = 16.sp,
+            lineHeight = 24.sp
+        ),
+        bodyMedium = TextStyle(
+            fontFamily = FamiliaInter,
+            fontWeight = FontWeight.Normal,
+            fontSize = 15.sp,
+            lineHeight = 22.sp
+        ),
+        bodySmall = TextStyle(
+            fontFamily = FamiliaInter,
+            fontWeight = FontWeight.Normal,
+            fontSize = 13.sp,
+            lineHeight = 20.sp
+        ),
+
+        // ===== LABEL — etiquetas, chips, botones =====
         labelLarge = TextStyle(
-            fontFamily = Inter,
+            fontFamily = FamiliaInter,
             fontWeight = FontWeight.SemiBold,
             fontSize = 14.sp,
-            lineHeight = 20.sp,
+            lineHeight = 18.sp,
             letterSpacing = 0.01.em
         ),
-        // labelMedium: 12px, Medium (500), lineHeight 16px, letterSpacing 0.04em
         labelMedium = TextStyle(
-            fontFamily = Inter,
+            fontFamily = FamiliaInter,
             fontWeight = FontWeight.Medium,
             fontSize = 12.sp,
             lineHeight = 16.sp,
             letterSpacing = 0.04.em
         ),
-        // labelSmall: 11px, Medium (500)
         labelSmall = TextStyle(
-            fontFamily = Inter,
+            fontFamily = FamiliaInter,
             fontWeight = FontWeight.Medium,
             fontSize = 11.sp,
-            lineHeight = 16.sp,
-            letterSpacing = 0.04.em
+            lineHeight = 14.sp,
+            letterSpacing = 0.06.em
         )
     )
 }

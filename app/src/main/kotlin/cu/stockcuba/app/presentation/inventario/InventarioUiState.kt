@@ -63,20 +63,19 @@ enum class StockStatus {
     SIN_STOCK  // Rojo
 }
 
+@androidx.compose.runtime.Composable
 fun ProductoConStock.stockStatusColor(): androidx.compose.ui.graphics.Color {
     return when (stockStatus) {
-        StockStatus.OK -> cu.stockcuba.app.presentation.theme.StockCubaColors.VerdeExito
-        StockStatus.BAJO -> Color(0xFFF59E0B) // Amber/Warning
-        StockStatus.SIN_STOCK -> cu.stockcuba.app.presentation.theme.StockCubaColors.CoralAlerta
+        StockStatus.OK -> cu.stockcuba.app.presentation.theme.ScColors.acento
+        StockStatus.BAJO -> cu.stockcuba.app.presentation.theme.ScColors.dinero
+        StockStatus.SIN_STOCK -> cu.stockcuba.app.presentation.theme.ScColors.alerta
     }
 }
 
+@androidx.compose.runtime.Composable
 fun ProductoConStock.stockStatusBackground(): androidx.compose.ui.graphics.Color {
-    return when (stockStatus) {
-        StockStatus.OK -> cu.stockcuba.app.presentation.theme.StockCubaColors.ChipStockAltoFondo
-        StockStatus.BAJO -> Color(0x1AF59E0B) // 10% Amber
-        StockStatus.SIN_STOCK -> cu.stockcuba.app.presentation.theme.StockCubaColors.ChipStockBajoFondo
-    }
+    val color = stockStatusColor()
+    return color.copy(alpha = 0.13f)
 }
 
 fun ProductoConStock.stockStatusLabel(): String {

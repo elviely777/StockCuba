@@ -1,165 +1,130 @@
 ---
-name: Productora Digital
-colors:
-  surface: '#051424'
-  surface-dim: '#051424'
-  surface-bright: '#2c3a4c'
-  surface-container-lowest: '#010f1f'
-  surface-container-low: '#0d1c2d'
-  surface-container: '#122131'
-  surface-container-high: '#1c2b3c'
-  surface-container-highest: '#273647'
-  on-surface: '#d4e4fa'
-  on-surface-variant: '#c6c6cd'
-  inverse-surface: '#d4e4fa'
-  inverse-on-surface: '#233143'
-  outline: '#909097'
-  outline-variant: '#45464d'
-  surface-tint: '#bec6e0'
-  primary: '#bec6e0'
-  on-primary: '#283044'
-  primary-container: '#0f172a'
-  on-primary-container: '#798098'
-  inverse-primary: '#565e74'
-  secondary: '#44e2cd'
-  on-secondary: '#003731'
-  secondary-container: '#03c6b2'
-  on-secondary-container: '#004d44'
-  tertiary: '#ffb2b9'
-  on-tertiary: '#67001f'
-  tertiary-container: '#38000d'
-  on-tertiary-container: '#d65569'
-  error: '#ffb4ab'
-  on-error: '#690005'
-  error-container: '#93000a'
-  on-error-container: '#ffdad6'
-  primary-fixed: '#dae2fd'
-  primary-fixed-dim: '#bec6e0'
-  on-primary-fixed: '#131b2e'
-  on-primary-fixed-variant: '#3f465c'
-  secondary-fixed: '#62fae3'
-  secondary-fixed-dim: '#3cddc7'
-  on-secondary-fixed: '#00201c'
-  on-secondary-fixed-variant: '#005047'
-  tertiary-fixed: '#ffdadc'
-  tertiary-fixed-dim: '#ffb2b9'
-  on-tertiary-fixed: '#400010'
-  on-tertiary-fixed-variant: '#891933'
-  background: '#051424'
-  on-background: '#d4e4fa'
-  surface-variant: '#273647'
-typography:
-  display:
-    fontFamily: Inter
-    fontSize: 48px
-    fontWeight: '800'
-    lineHeight: 56px
-    letterSpacing: -0.02em
-  headline-lg:
-    fontFamily: Inter
-    fontSize: 32px
-    fontWeight: '700'
-    lineHeight: 40px
-    letterSpacing: -0.01em
-  headline-lg-mobile:
-    fontFamily: Inter
-    fontSize: 28px
-    fontWeight: '700'
-    lineHeight: 36px
-  headline-md:
-    fontFamily: Inter
-    fontSize: 24px
-    fontWeight: '700'
-    lineHeight: 32px
-  body-lg:
-    fontFamily: Inter
-    fontSize: 18px
-    fontWeight: '400'
-    lineHeight: 28px
-  body-md:
-    fontFamily: Inter
-    fontSize: 16px
-    fontWeight: '400'
-    lineHeight: 24px
-  label-md:
-    fontFamily: Inter
-    fontSize: 14px
-    fontWeight: '600'
-    lineHeight: 20px
-    letterSpacing: 0.01em
-  label-sm:
-    fontFamily: Inter
-    fontSize: 12px
-    fontWeight: '500'
-    lineHeight: 16px
-    letterSpacing: 0.04em
-rounded:
-  sm: 0.25rem
-  DEFAULT: 0.5rem
-  md: 0.75rem
-  lg: 1rem
-  xl: 1.5rem
-  full: 9999px
-spacing:
-  base: 4px
-  xs: 8px
-  sm: 12px
-  md: 16px
-  lg: 24px
-  xl: 32px
-  gutter: 16px
-  margin-mobile: 16px
-  margin-desktop: 40px
+name: StockCuba · Mostrador
+version: 2.0
+modo_principal: oscuro
 ---
 
+# StockCuba · Sistema de diseño "Mostrador"
+
 ## Brand & Style
-The design system is engineered for the high-velocity environment of small business management in Cuba. It balances the utility of an inventory tool with a sophisticated, modern aesthetic that feels premium yet accessible.
 
-The style is **Modern Corporate with Glassmorphic accents**. It utilizes a deep, immersive dark mode to reduce eye strain during long hours of stock counting and sales entry. The visual language conveys reliability and growth through high-contrast typography and a clear functional color mapping. Subtle frosted-glass surfaces and vibrant accent glows are used to highlight critical business insights, moving away from the "spreadsheet" look into a dynamic, data-driven dashboard experience.
+StockCuba es una herramienta de mostrador: se usa de pie, con una mano, en una tienda
+con luz variable y con prisa. El diseño no busca parecer un panel SaaS: busca parecer un
+**instrumento**. Superficie oscura y calmada, paneles con borde de un pixel, jerarquía
+tipográfica fuerte y color que siempre significa algo.
 
-## Colors
-The palette is rooted in a deep charcoal base to provide maximum contrast for functional data visualization.
+- **Modo oscuro principal**: fondo de tinta azul-negro (no negro puro) para reducir fatiga
+  en jornadas largas y evitar el look "OLED genérico".
+- **Modo claro secundario**: papel frío (no crema) con los mismos acentos oscurecidos para
+  mantener contraste AA. No es una inversión automática del oscuro.
+- **Profundidad tonal, no sombras**: la elevación se comunica con capas (lienzo → panel →
+  panel alto) y un borde de 1px. No hay sombras difusas en el sistema.
+- **Un momento audaz por pantalla**: la cifra del dinero del periodo. El resto guarda silencio.
 
-- **Background (Primary):** `#0F172A` (Dark Navy/Charcoal). Used for the main application canvas and deep containers.
-- **Success & Growth (Secondary):** `#2DD4BF` (Vibrant Teal). Applied to positive metrics, "In Stock" statuses, and primary action buttons.
-- **Alert & Warning (Tertiary):** `#FB7185` (Warm Coral). Strictly reserved for low stock alerts, expired items, and destructive actions.
-- **Surface & Borders:** 
-  - `Surface-L1`: `#1E293B` (Elevated card backgrounds)
-  - `Surface-L2`: `#334155` (Hover states/Input fields)
-- **Typography:**
-  - `Text-Primary`: `#F8FAFC` (Near white for maximum legibility)
-  - `Text-Secondary`: `#94A3B8` (Muted gray for labels and metadata)
+## Colores
 
-## Typography
-This design system uses **Inter** exclusively to ensure maximum legibility on mobile devices and variable screen quality. 
+### Paleta oscura (principal)
 
-The typographic hierarchy relies on **extreme weight contrast**. Headers are set to Bold (700) or ExtraBold (800) to anchor the page, while body text remains Regular (400) for high readability in dense inventory lists. Semantic labels use Medium (500) or SemiBold (600) to distinguish data points from static UI text.
+| Token | Hex | Uso |
+|---|---|---|
+| `canvas` | `#050D13` | Lienzo de la app |
+| `panel` | `#0A1720` | Paneles y superficies nivel 1 |
+| `panelAlto` | `#102330` | Campos, controles, chips |
+| `panelHundido` | `#0D1E29` | Rieles de barras, zonas hundidas |
+| `borde` | `#1B303C` | Borde de 1px de todo el sistema |
+| `bordeFuerte` | `#264555` | Foco y selección |
+| `texto` | `#E9F1F4` | Texto primario |
+| `textoSecundario` | `#93A8B3` | Etiquetas y metadata |
+| `textoDebil` | `#5C7481` | Placeholders e inactivos |
+| `acento` (jade) | `#3BE3B0` | Acción primaria, stock sano, positivo |
+| `sobreAcento` | `#03211A` | Texto sobre jade |
+| `dinero` (ámbar) | `#F2B544` | Importes, totales, atención |
+| `alerta` (coral) | `#FF7A6B` | Riesgo, agotado, error |
+| `info` (azul) | `#7FB2FF` | Información neutra, transferencias |
 
-## Layout & Spacing
-The layout follows a **Fluid Grid** model with a base-4 tracking system. 
+### Paleta clara (secundaria)
 
-- **Mobile:** 4-column grid with 16px margins and 16px gutters.
-- **Desktop:** 12-column grid with 40px margins and 24px gutters.
+| Token | Hex | Uso |
+|---|---|---|
+| `canvas` | `#F2F5F6` | Papel frío |
+| `panel` | `#FFFFFF` | Paneles |
+| `panelAlto` | `#EAF0F2` | Campos y controles |
+| `borde` | `#D6E1E5` | Bordes de 1px |
+| `texto` | `#08161D` | Texto primario |
+| `textoSecundario` | `#4C6570` | Etiquetas |
+| `acento` | `#07795C` | Acción / positivo |
+| `dinero` | `#8A5A00` | Importes |
+| `alerta` | `#B3261E` | Riesgo |
+| `info` | `#1D5FA8` | Información |
 
-The spacing rhythm is generous to ensure touch targets are accessible for users who may be operating the app in fast-paced retail or warehouse environments. Content is grouped into logical modules using `lg` (24px) spacing, while internal element spacing within a card uses `sm` (12px) to maintain visual cohesion.
+**Regla**: ninguna pantalla escribe un color literal. Todo sale de `ScColors` (tokens
+semánticos que leen el tema activo) o de `MaterialTheme.colorScheme`.
 
-## Elevation & Depth
-Depth is communicated through **Tonal Layering** and **Glassmorphism**, rather than traditional heavy shadows.
+## Tipografía
 
-- **Level 0 (Base):** The #0F172A background.
-- **Level 1 (Cards):** #1E293B with a subtle 1px border of #334155.
-- **Level 2 (Modals/Popovers):** Semi-transparent background (70% opacity) with a 20px backdrop-blur and a vibrant teal or coral drop-shadow glow (0px 8px 24px, 10% opacity) to signify priority.
-- **Shadows:** Shadows are highly diffused and tinted with the primary navy color to avoid a "dirty" look on the dark background.
+**Inter** incluida en la app como fuente variable (`res/font/inter_variable.ttf`).
+Una sola familia; el carácter viene del contraste de pesos y del tracking negativo en
+tamaños grandes. Cifras siempre tabulares (`tnum`) para que los importes no "bailen".
 
-## Shapes
-The shape language is friendly and modern. A default border radius of **16px (rounded-lg)** is used for all primary cards and containers to soften the technical nature of inventory data. 
+| Rol | Estilo | Tamaño / interlínea |
+|---|---|---|
+| Cifra protagonista | `displayLarge` ExtraBold, -0.03em | 40 / 46 |
+| Cifra secundaria | `displaySmall` Bold | 28 / 34 |
+| Título de pantalla | `headlineLarge` Bold, -0.02em | 26 / 32 |
+| Título de panel | `titleMedium` SemiBold | 16 / 22 |
+| Texto de fila | `bodyMedium` Regular | 15 / 22 |
+| Metadata | `bodySmall` Regular | 13 / 20 |
+| Etiqueta de dato | `labelMedium` Medium, +0.04em | 12 / 16 |
 
-Interactive elements like buttons and search bars use **rounded-xl (24px)** or full pill-shapes to invite interaction. Small utility components like tags or checkboxes use **soft (4px)** corners for a more precise, functional appearance.
+## Espaciado y rejilla
 
-## Components
-- **Cards:** Feature 16px corner radius, a subtle 1px inner border, and are used to group product details or sales summaries. 
-- **Floating Action Button (FAB):** The primary entry point for "Add Sale" or "Scan Barcode." It is a circular/pill-shaped Teal button with a significant drop glow.
-- **Search Bars:** High-contrast containers with Level 2 elevation. They include a persistent glassmorphic blur to remain visible over scrolling lists.
-- **Chips/Status Badges:** Used for stock levels. "High Stock" is Teal text on a 10% Teal background; "Low Stock" is Coral text on 10% Coral background.
-- **Input Fields:** Filled style using Surface-L2 colors. They feature a 2px Teal bottom border or ring on focus to provide clear visual feedback.
-- **Inventory Lists:** Use horizontal dividers with 0.5px thickness in #334155 to separate line items without adding visual clutter.
+Base 4dp. Márgenes laterales de pantalla **20dp**; separación entre paneles **16dp**;
+relleno interno de panel **16–18dp**. Contenido agrupado en módulos, no en una lista de
+tarjetas sueltas. Objetivos táctiles ≥ 44dp.
+
+## Formas
+
+- `Shape.Mediano` (12dp): controles (botones, campos, filas pulsables).
+- `Shape.Grande` (16dp): paneles de datos.
+- `Shape.Pequeno` (8dp): miniaturas, cajas de icono.
+- `Shape.Full`: solo pastillas de estado, avatares e indicadores.
+
+Los botones **no** son pastillas: son rectángulos redondeados de 12dp, para que un botón
+no se confunda con una tarjeta.
+
+## Componentes
+
+Biblioteca compartida en `presentation/common/StockCubaUi.kt`:
+
+- `ScPanel` — superficie base con borde de 1px y sin sombra.
+- `ScScreenHeader` — título grande + subtítulo + acciones.
+- `ScSectionHeader` — título de sección con acción ("Ver todo").
+- `ScMoney` — importe tabular + unidad pequeña al lado.
+- `ScMetricCell` — celda de métrica para retículas con divisores.
+- `ScStatusPill` — estado con punto de color (jade/ámbar/coral/azul).
+- `ScLevelBar` — barra de nivel animada (stock, metas).
+- `ScPrimaryButton` / `ScSecondaryButton` / `ScIconButton`.
+- `ScSearchField` — buscador con fondo de panel, sin línea de Material.
+- `ScEmptyState` — estado vacío que explica y ofrece el siguiente paso.
+- `ScBottomDock` — dock inferior con marca jade en el destino activo.
+
+## Navegación
+
+Dock inferior de cinco destinos: Panel · Ventas · Productos · Inventario · Más.
+Una regla de 1px separa el dock del contenido; el destino activo se marca con una barra
+jade de 2px sobre el icono y el color jade en icono y etiqueta.
+
+## Movimiento
+
+Mínimo y funcional: barras de nivel que animan su valor (420ms), marca del dock (180ms),
+cambios de selección. Sin animaciones de entrada por sección ni hover decorativo.
+
+## Anti-patrones (prohibidos en este sistema)
+
+- Emojis como iconos.
+- Sombras difusas y tarjetas con la misma elevación para todo.
+- Pastillas para todo (botones, tarjetas, chips idénticos).
+- Colores literales en pantallas.
+- Estados vacíos mudos ("—", pantalla en blanco).
+- Etiquetas en MAYÚSCULAS con tracking como decoración.
+- Texto por debajo de 13sp en cuerpo.
