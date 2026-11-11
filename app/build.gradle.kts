@@ -19,7 +19,7 @@ android {
     // Version management
     val versionMajor = 1
     val versionMinor = 7
-    val versionPatch = 8
+    val versionPatch = 9
     val computedVersionCode = versionMajor * 10000 + versionMinor * 100 + versionPatch
     val computedVersionName = "$versionMajor.$versionMinor.$versionPatch"
 
