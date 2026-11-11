@@ -39,6 +39,7 @@ fun DetalleVentaScreen(
     ventaId: String,
     onBack: () -> Unit,
     onEditar: (String) -> Unit,
+    puedeEditar: Boolean = true,
     viewModel: DetalleVentaViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -57,8 +58,10 @@ fun DetalleVentaScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { onEditar(ventaId) }) {
-                        Icon(Icons.Default.Edit, contentDescription = "Editar Venta", tint = MaterialTheme.colorScheme.primary)
+                    if (puedeEditar) {
+                        IconButton(onClick = { onEditar(ventaId) }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Editar Venta", tint = MaterialTheme.colorScheme.primary)
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)

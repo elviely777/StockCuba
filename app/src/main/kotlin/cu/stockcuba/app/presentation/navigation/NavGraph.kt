@@ -227,6 +227,10 @@ fun AppNavHost() {
                     arguments = listOf(navArgument("ventaId") { type = NavType.StringType })
                 ) { backStackEntry ->
                     val ventaId = backStackEntry.arguments?.getString("ventaId") ?: ""
+                    val rolActual by securityViewModel.rolActual.collectAsState(RolUsuario.VENDEDOR)
+                    val permisoEditarVentas by securityViewModel.permisoEditarVentas.collectAsState(false)
+                    val puedeEditar = rolActual == RolUsuario.DUENO || permisoEditarVentas
+
                     SecurityGate(
                         securityRepository = securityRepository,
                         onUnlocked = { /* unlocked */ }
@@ -234,7 +238,8 @@ fun AppNavHost() {
                         DetalleVentaScreen(
                             ventaId = ventaId, 
                             onBack = { navController.popBackStack() },
-                            onEditar = { id -> navController.navigate(Screen.EditarVenta(id).route) }
+                            onEditar = { id -> navController.navigate(Screen.EditarVenta(id).route) },
+                            puedeEditar = puedeEditar
                         )
                     }
                 }
@@ -258,10 +263,15 @@ fun AppNavHost() {
             // ===== Productos =====
             navigation(startDestination = Screen.Productos.route, route = "productos_root") {
                 composable(Screen.Productos.route) {
+                    val rolActual by securityViewModel.rolActual.collectAsState(RolUsuario.VENDEDOR)
+                    val permisoEditarProductos by securityViewModel.permisoEditarProductos.collectAsState(false)
+                    val puedeEditarProductos = rolActual == RolUsuario.DUENO || permisoEditarProductos
+
                     ListaProductosScreen(
                         onAgregar = { navController.navigate(Screen.FormularioProducto("crear").route) },
                         onDetalle = { id -> navController.navigate(Screen.DetalleProducto(id).route) },
-                        onEditar = { id -> navController.navigate(Screen.FormularioProducto("editar", id).route) }
+                        onEditar = { id -> navController.navigate(Screen.FormularioProducto("editar", id).route) },
+                        puedeEditar = puedeEditarProductos
                     )
                 }
                 composable(
@@ -305,6 +315,10 @@ fun AppNavHost() {
             // ===== PROTECTED: Inventario =====
             navigation(startDestination = Screen.Inventario.route, route = "inventario_root") {
                 composable(Screen.Inventario.route) {
+                    val rolActual by securityViewModel.rolActual.collectAsState(RolUsuario.VENDEDOR)
+                    val permisoAjustarInventario by securityViewModel.permisoAjustarInventario.collectAsState(false)
+                    val puedeAjustar = rolActual == RolUsuario.DUENO || permisoAjustarInventario
+
                     SecurityGate(
                         securityRepository = securityRepository,
                         onUnlocked = { /* unlocked */ }
@@ -312,6 +326,7 @@ fun AppNavHost() {
                         InventarioScreen(
                             onAjuste = { producto -> navController.navigate(Screen.AjusteInventario(producto.id).route) },
                             onHistorial = { producto -> navController.navigate(Screen.HistorialMovimientos(producto.id).route) },
+                            puedeAjustar = puedeAjustar,
                             onBack = { navController.popBackStack() }
                         )
                     }

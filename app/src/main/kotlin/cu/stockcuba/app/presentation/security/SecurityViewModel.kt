@@ -13,4 +13,7 @@ class SecurityViewModel @Inject constructor(
     private val ajustesDataStore: AjustesDataStore
 ) : ViewModel() {
     val rolActual: Flow<cu.stockcuba.app.domain.model.RolUsuario> = ajustesDataStore.rolActual
+    val permisoEditarVentas: Flow<Boolean> = ajustesDataStore.permisoVendedorEditarVentas
+    val permisoEditarProductos: Flow<Boolean> = ajustesDataStore.permisoVendedorEditarProductos
+    val permisoAjustarInventario: Flow<Boolean> = ajustesDataStore.permisoVendedorAjustarInventario
 }

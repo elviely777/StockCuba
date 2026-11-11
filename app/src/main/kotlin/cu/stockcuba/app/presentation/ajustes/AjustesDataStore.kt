@@ -10,6 +10,7 @@ import cu.stockcuba.app.domain.model.Result
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import javax.inject.Inject
@@ -53,6 +54,11 @@ class AjustesDataStore @Inject constructor(
         // Bluetooth Printer (T76)
         val PRINTER_MAC_KEY = stringPreferencesKey("printer_mac")
         val PRINTER_NAME_KEY = stringPreferencesKey("printer_name")
+
+        // Permisos de Vendedor
+        val PERMISO_VENDEDOR_EDITAR_VENTAS_KEY = booleanPreferencesKey("permiso_vendedor_editar_ventas")
+        val PERMISO_VENDEDOR_EDITAR_PRODUCTOS_KEY = booleanPreferencesKey("permiso_vendedor_editar_productos")
+        val PERMISO_VENDEDOR_AJUSTAR_INVENTARIO_KEY = booleanPreferencesKey("permiso_vendedor_ajustar_inventario")
     }
 
     val nombreNegocio: Flow<String> = dataStore.data
@@ -135,6 +141,19 @@ class AjustesDataStore @Inject constructor(
         .map { it[BUSINESS_ID_KEY] != null && it[POS_ID_KEY] != null }
         .distinctUntilChanged()
 
+    // Permisos del Vendedor (Flows)
+    val permisoVendedorEditarVentas: Flow<Boolean> = dataStore.data
+        .map { it[PERMISO_VENDEDOR_EDITAR_VENTAS_KEY] ?: false }
+        .distinctUntilChanged()
+
+    val permisoVendedorEditarProductos: Flow<Boolean> = dataStore.data
+        .map { it[PERMISO_VENDEDOR_EDITAR_PRODUCTOS_KEY] ?: false }
+        .distinctUntilChanged()
+
+    val permisoVendedorAjustarInventario: Flow<Boolean> = dataStore.data
+        .map { it[PERMISO_VENDEDOR_AJUSTAR_INVENTARIO_KEY] ?: false }
+        .distinctUntilChanged()
+
     suspend fun guardarNombreNegocio(nombre: String): Result<Unit> = guardarDato(NOMBRE_NEGOCIO_KEY, nombre)
     suspend fun guardarDireccion(direccion: String): Result<Unit> = guardarDato(DIRECCION_KEY, direccion)
     suspend fun guardarTelefono(telefono: String): Result<Unit> = guardarDato(TELEFONO_KEY, telefono)
@@ -148,6 +167,11 @@ class AjustesDataStore @Inject constructor(
     suspend fun guardarTasaUSD(tasa: Double): Result<Unit> = guardarDato(TASA_USD_KEY, tasa)
     suspend fun guardarTasaMLC(tasa: Double): Result<Unit> = guardarDato(TASA_MLC_KEY, tasa)
     suspend fun guardarTasaEUR(tasa: Double): Result<Unit> = guardarDato(TASA_EUR_KEY, tasa)
+
+    // Permisos del Vendedor (Setters)
+    suspend fun guardarPermisoVendedorEditarVentas(permitido: Boolean): Result<Unit> = guardarDato(PERMISO_VENDEDOR_EDITAR_VENTAS_KEY, permitido)
+    suspend fun guardarPermisoVendedorEditarProductos(permitido: Boolean): Result<Unit> = guardarDato(PERMISO_VENDEDOR_EDITAR_PRODUCTOS_KEY, permitido)
+    suspend fun guardarPermisoVendedorAjustarInventario(permitido: Boolean): Result<Unit> = guardarDato(PERMISO_VENDEDOR_AJUSTAR_INVENTARIO_KEY, permitido)
 
     suspend fun guardarEstadoNegocio(estado: String): Result<Unit> = guardarDato(ESTADO_NEGOCIO_KEY, estado)
 

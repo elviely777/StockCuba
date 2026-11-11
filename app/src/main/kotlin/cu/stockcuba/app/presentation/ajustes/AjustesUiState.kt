@@ -28,6 +28,12 @@ sealed interface AjustesUiState {
         val businessId: String = "",
         val printerName: String = "No vinculada",
         val printerMac: String? = null,
+        
+        // Permisos de Vendedor
+        val permisoVendedorEditarVentas: Boolean = false,
+        val permisoVendedorEditarProductos: Boolean = false,
+        val permisoVendedorAjustarInventario: Boolean = false,
+
         val isLoading: Boolean = false,
         val validationErrors: Map<String, String> = emptyMap()
     ) : AjustesUiState {

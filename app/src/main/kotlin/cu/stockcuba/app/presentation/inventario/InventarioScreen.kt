@@ -79,6 +79,7 @@ import cu.stockcuba.app.presentation.theme.Shape
 fun InventarioScreen(
     onAjuste: (Producto) -> Unit,
     onHistorial: (Producto) -> Unit,
+    puedeAjustar: Boolean = true,
     onBack: (() -> Unit)? = null,
     viewModel: InventarioViewModel = hiltViewModel()
 ) {
@@ -162,7 +163,8 @@ fun InventarioScreen(
                                 TarjetaStock(
                                     item = item,
                                     onAjuste = { onAjuste(item.producto) },
-                                    onHistorial = { onHistorial(item.producto) }
+                                    onHistorial = { onHistorial(item.producto) },
+                                    puedeAjustar = puedeAjustar
                                 )
                             }
                         }
@@ -302,7 +304,8 @@ private fun ChipFiltro(
 private fun TarjetaStock(
     item: ProductoConStock,
     onAjuste: () -> Unit,
-    onHistorial: () -> Unit
+    onHistorial: () -> Unit,
+    puedeAjustar: Boolean = true
 ) {
     val producto = item.producto
     val tone = item.stockStatus.tonoStock()
@@ -342,7 +345,8 @@ private fun TarjetaStock(
                 )
                 MenuProducto(
                     onAjuste = onAjuste,
-                    onHistorial = onHistorial
+                    onHistorial = onHistorial,
+                    puedeAjustar = puedeAjustar
                 )
             }
 
@@ -387,7 +391,8 @@ private fun TarjetaStock(
 @Composable
 private fun MenuProducto(
     onAjuste: () -> Unit,
-    onHistorial: () -> Unit
+    onHistorial: () -> Unit,
+    puedeAjustar: Boolean = true
 ) {
     var abierto by remember { mutableStateOf(false) }
 
@@ -410,27 +415,29 @@ private fun MenuProducto(
             expanded = abierto,
             onDismissRequest = { abierto = false }
         ) {
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        text = "Ajustar existencias",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = ScColors.texto
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Filled.EditCalendar,
-                        contentDescription = null,
-                        tint = ScColors.textoSecundario,
-                        modifier = Modifier.size(18.dp)
-                    )
-                },
-                onClick = {
-                    abierto = false
-                    onAjuste()
-                }
-            )
+            if (puedeAjustar) {
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = "Ajustar existencias",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = ScColors.texto
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Filled.EditCalendar,
+                            contentDescription = null,
+                            tint = ScColors.textoSecundario,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    onClick = {
+                        abierto = false
+                        onAjuste()
+                    }
+                )
+            }
             DropdownMenuItem(
                 text = {
                     Text(

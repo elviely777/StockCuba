@@ -73,7 +73,10 @@ class AjustesViewModel @Inject constructor(
                 ajustesDataStore.tasaMLC,
                 ajustesDataStore.tasaEUR,
                 ajustesDataStore.printerName,
-                ajustesDataStore.printerMac
+                ajustesDataStore.printerMac,
+                ajustesDataStore.permisoVendedorEditarVentas,
+                ajustesDataStore.permisoVendedorEditarProductos,
+                ajustesDataStore.permisoVendedorAjustarInventario
             ) { array ->
                 AjustesUiState.Success(
                     nombreNegocio = array[0] as String,
@@ -91,6 +94,9 @@ class AjustesViewModel @Inject constructor(
                     tasaEUR = array[12] as Double,
                     printerName = (array[13] as? String) ?: "No vinculada",
                     printerMac = array[14] as? String,
+                    permisoVendedorEditarVentas = array[15] as Boolean,
+                    permisoVendedorEditarProductos = array[16] as Boolean,
+                    permisoVendedorAjustarInventario = array[17] as Boolean,
                     appVersion = BuildConfig.VERSION_NAME,
                     validationErrors = emptyMap()
                 )
@@ -160,6 +166,18 @@ class AjustesViewModel @Inject constructor(
 
     fun guardarTasaEUR(tasa: String) {
         tasa.toDoubleOrNull()?.let { viewModelScope.launch { ajustesDataStore.guardarTasaEUR(it) } }
+    }
+
+    fun guardarPermisoVendedorEditarVentas(permitido: Boolean) {
+        viewModelScope.launch { ajustesDataStore.guardarPermisoVendedorEditarVentas(permitido) }
+    }
+
+    fun guardarPermisoVendedorEditarProductos(permitido: Boolean) {
+        viewModelScope.launch { ajustesDataStore.guardarPermisoVendedorEditarProductos(permitido) }
+    }
+
+    fun guardarPermisoVendedorAjustarInventario(permitido: Boolean) {
+        viewModelScope.launch { ajustesDataStore.guardarPermisoVendedorAjustarInventario(permitido) }
     }
 
     suspend fun exportarBaseDatos(): Result<Uri> = backupRepository.exportDatabase()

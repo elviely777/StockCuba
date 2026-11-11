@@ -487,6 +487,40 @@ fun AjustesContenidoModerno(
             }
         }
 
+        // --- SECCIÓN PERMISOS DEL VENDEDOR (solo para Dueño) ---
+        if (state.rolActual == cu.stockcuba.app.domain.model.RolUsuario.DUENO) {
+            item {
+                SeccionAjustesModerna(titulo = "Permisos del Vendedor", icono = Icons.Default.AdminPanelSettings, color = Color(0xFF8B5CF6)) {
+                    FilaSwitchAjuste(
+                        titulo = "Editar y anular ventas",
+                        subtitulo = "Permite al vendedor modificar o anular ventas registradas",
+                        icon = Icons.Default.EditNote,
+                        checked = state.permisoVendedorEditarVentas,
+                        color = Color(0xFF8B5CF6),
+                        onCheckedChange = { viewModel.guardarPermisoVendedorEditarVentas(it) }
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                    FilaSwitchAjuste(
+                        titulo = "Crear y editar productos",
+                        subtitulo = "Permite al vendedor añadir, cambiar o eliminar productos",
+                        icon = Icons.Default.Category,
+                        checked = state.permisoVendedorEditarProductos,
+                        color = Color(0xFF8B5CF6),
+                        onCheckedChange = { viewModel.guardarPermisoVendedorEditarProductos(it) }
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                    FilaSwitchAjuste(
+                        titulo = "Realizar ajustes de inventario",
+                        subtitulo = "Permite al vendedor registrar mermas, entradas o auditorías",
+                        icon = Icons.Default.Inventory,
+                        checked = state.permisoVendedorAjustarInventario,
+                        color = Color(0xFF8B5CF6),
+                        onCheckedChange = { viewModel.guardarPermisoVendedorAjustarInventario(it) }
+                    )
+                }
+            }
+        }
+
         // --- SECCIÓN 4: DATOS ---
         item {
 SeccionAjustesModerna(titulo = "Gestión de Datos", icono = Icons.Default.Storage, color = Color(0xFFF59E0B)) {
@@ -743,6 +777,47 @@ fun FilaAccionAjuste(
                 Text(subtitulo, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+        }
+    }
+}
+
+@Composable
+fun FilaSwitchAjuste(
+    titulo: String,
+    subtitulo: String,
+    icon: ImageVector,
+    checked: Boolean,
+    color: Color = MaterialTheme.colorScheme.primary,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Surface(
+        onClick = { onCheckedChange(!checked) },
+        modifier = Modifier.fillMaxWidth(),
+        color = Color.Transparent,
+        shape = Shape.Grande
+    ) {
+        Row(
+            modifier = Modifier.padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(color.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
+            }
+            Spacer(Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(titulo, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
+                Text(subtitulo, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange
+            )
         }
     }
 }

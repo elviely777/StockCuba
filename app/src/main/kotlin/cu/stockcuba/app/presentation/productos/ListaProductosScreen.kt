@@ -86,6 +86,7 @@ fun ListaProductosScreen(
     onAgregar: () -> Unit,
     onDetalle: (String) -> Unit,
     onEditar: (String) -> Unit,
+    puedeEditar: Boolean = true,
     viewModel: ListaProductosViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -133,7 +134,7 @@ fun ListaProductosScreen(
             }
         },
         floatingActionButton = {
-            if (!isSelectionMode) {
+            if (!isSelectionMode && puedeEditar) {
                 FabAgregarProducto(onClick = onAgregar)
             }
         }
@@ -150,6 +151,7 @@ fun ListaProductosScreen(
                     if (s.productos.isEmpty()) {
                         CatalogoVacio(
                             isFiltered = s.query.isNotEmpty() || s.categoriaSeleccionada != null,
+                            puedeEditar = puedeEditar,
                             onClear = { viewModel.limpiarFiltros() },
                             onAgregar = onAgregar
                         )
@@ -609,6 +611,7 @@ private fun CatalogoError(mensaje: String) {
 @Composable
 private fun CatalogoVacio(
     isFiltered: Boolean,
+    puedeEditar: Boolean = true,
     onClear: () -> Unit,
     onAgregar: () -> Unit
 ) {
@@ -625,9 +628,9 @@ private fun CatalogoVacio(
             ScEmptyState(
                 icon = Icons.Filled.Inventory2,
                 title = "El catálogo está vacío",
-                message = "Agrega tu primer producto para venderlo y controlar su stock desde el mostrador.",
-                actionLabel = "Agregar producto",
-                onAction = onAgregar
+                message = if (puedeEditar) "Agrega tu primer producto para venderlo y controlar su stock desde el mostrador." else "No hay productos registrados en el catálogo.",
+                actionLabel = if (puedeEditar) "Agregar producto" else null,
+                onAction = if (puedeEditar) onAgregar else null
             )
         }
     }
