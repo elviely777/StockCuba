@@ -40,6 +40,7 @@ sealed interface FormularioProductoUiState {
         val nombre: String = "",
         val descripcion: String = "",
         val precioVenta: String = "",
+        val precioTransferencia: String = "",
         val costoUnitario: String = "",
         val moneda: Moneda = Moneda.CUP,
         val stockInicial: String = "",

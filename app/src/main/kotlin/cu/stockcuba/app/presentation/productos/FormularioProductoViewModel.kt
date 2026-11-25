@@ -76,6 +76,7 @@ class FormularioProductoViewModel @Inject constructor(
                             nombre = producto.nombre,
                             descripcion = producto.descripcion ?: "",
                             precioVenta = producto.precioVenta.toString(),
+                            precioTransferencia = producto.precioTransferencia?.toString() ?: "",
                             costoUnitario = producto.costoUnitario.toString(),
                             moneda = producto.moneda,
                             stockInicial = producto.stockActual.toString(),
@@ -117,6 +118,7 @@ class FormularioProductoViewModel @Inject constructor(
                         "nombre" -> state.copy(nombre = value)
                         "descripcion" -> state.copy(descripcion = value)
                         "precioVenta" -> state.copy(precioVenta = value)
+                        "precioTransferencia" -> state.copy(precioTransferencia = value)
                         "costoUnitario" -> state.copy(costoUnitario = value)
                         "stockInicial" -> state.copy(stockInicial = value)
                         "stockMinimo" -> state.copy(stockMinimo = value)
@@ -226,6 +228,12 @@ class FormularioProductoViewModel @Inject constructor(
             } ?: run { errors["precioVenta"] = "Precio inválido" }
         }
 
+        if (state.precioTransferencia.trim().isNotEmpty()) {
+            state.precioTransferencia.trim().replace(',', '.').toDoubleOrNull()?.let {
+                if (it < 0) errors["precioTransferencia"] = "El precio debe ser positivo"
+            } ?: run { errors["precioTransferencia"] = "Precio inválido" }
+        }
+
         if (state.costoUnitario.trim().isEmpty()) {
             errors["costoUnitario"] = "El costo es obligatorio"
         } else {
@@ -312,6 +320,7 @@ class FormularioProductoViewModel @Inject constructor(
                         }
 
                         val precioVentaVal = currentState.precioVenta.trim().replace(',', '.').toDoubleOrNull() ?: 0.0
+                        val precioTransferenciaVal = currentState.precioTransferencia.trim().replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 }
                         val costoUnitarioVal = currentState.costoUnitario.trim().replace(',', '.').toDoubleOrNull() ?: 0.0
 
                         val producto = Producto(
@@ -319,6 +328,7 @@ class FormularioProductoViewModel @Inject constructor(
                             nombre = currentState.nombre.trim(),
                             descripcion = currentState.descripcion.trim().takeIf { it.isNotBlank() },
                             precioVenta = precioVentaVal,
+                            precioTransferencia = precioTransferenciaVal,
                             costoUnitario = costoUnitarioVal,
                             moneda = currentState.moneda,
                             stockActual = currentState.stockInicial.toIntOrNull() ?: 0,
@@ -425,6 +435,7 @@ class FormularioProductoViewModel @Inject constructor(
                     nombre = "",
                     descripcion = "",
                     precioVenta = "",
+                    precioTransferencia = "",
                     costoUnitario = "",
                     moneda = cu.stockcuba.app.domain.model.Moneda.CUP,
                     stockInicial = "",

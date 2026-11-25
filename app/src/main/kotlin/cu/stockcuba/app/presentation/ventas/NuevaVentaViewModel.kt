@@ -96,13 +96,12 @@ class NuevaVentaViewModel @Inject constructor(
             val newCarrito = state.carrito.toMutableList()
 
             // El precio en el carrito SIEMPRE lo calculamos en moneda base para poder sumar totales
-            val precioEnBase = if (producto.vincularTasa) {
-                toBase(producto.precioVenta, producto.moneda, state)
+            val precioElegido = if (state.metodoPago == MetodoPago.TRANSFERENCIA && producto.precioTransferencia != null && producto.precioTransferencia > 0) {
+                producto.precioTransferencia
             } else {
-                // Si no está vinculado, el usuario quiere ese precio fijo, pero para el total
-                // de la venta (que es en monedaBase) tenemos que convertirlo.
-                toBase(producto.precioVenta, producto.moneda, state)
+                producto.precioVenta
             }
+            val precioEnBase = toBase(precioElegido, producto.moneda, state)
 
             if (existingIndex >= 0) {
                 val item = newCarrito[existingIndex]
@@ -160,10 +159,17 @@ class NuevaVentaViewModel @Inject constructor(
 
     fun setMetodoPago(metodo: MetodoPago) {
         _uiState.update { state ->
-            when (state) {
-                is NuevaVentaUiState.Editing -> state.copy(metodoPago = metodo)
-                else -> state
+            if (state !is NuevaVentaUiState.Editing) return@update state
+            val nuevoCarrito = state.carrito.map { item ->
+                val precioElegido = if (metodo == MetodoPago.TRANSFERENCIA && item.producto.precioTransferencia != null && item.producto.precioTransferencia > 0) {
+                    item.producto.precioTransferencia
+                } else {
+                    item.producto.precioVenta
+                }
+                val precioEnBase = toBase(precioElegido, item.producto.moneda, state)
+                item.copy(precioCalculado = precioEnBase)
             }
+            state.copy(metodoPago = metodo, carrito = nuevoCarrito)
         }
     }
 

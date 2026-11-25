@@ -37,6 +37,9 @@ data class ProductoEntity(
     @ColumnInfo(name = "precio_venta")
     val precioVenta: Double,
 
+    @ColumnInfo(name = "precio_transferencia")
+    val precioTransferencia: Double? = null,
+
     @ColumnInfo(name = "costo_unitario")
     val costoUnitario: Double,
 

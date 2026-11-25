@@ -28,7 +28,7 @@ import java.io.File
         VentaDiariaResumenEntity::class,
         VentaDiariaItemEntity::class
     ],
-    version = 16,
+    version = 17,
     autoMigrations = [
         AutoMigration(from = 7, to = 8),
         AutoMigration(from = 8, to = 9),
@@ -246,12 +246,19 @@ abstract class StockCubaDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `productos` ADD COLUMN `precio_transferencia` REAL DEFAULT NULL")
+            }
+        }
+
         val ALL_MANUAL_MIGRATIONS = arrayOf(
             MIGRATION_1_14, MIGRATION_2_14, MIGRATION_3_14, MIGRATION_4_14, MIGRATION_5_14,
             MIGRATION_6_14, MIGRATION_7_14, MIGRATION_8_14, MIGRATION_9_14, MIGRATION_10_14,
             MIGRATION_11_14, MIGRATION_12_14, MIGRATION_13_14,
             MIGRATION_14_15,
-            MIGRATION_15_16
+            MIGRATION_15_16,
+            MIGRATION_16_17
         )
 
         fun getInstance(context: Context): StockCubaDatabase {

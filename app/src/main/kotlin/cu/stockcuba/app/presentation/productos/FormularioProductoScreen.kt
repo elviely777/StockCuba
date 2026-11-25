@@ -317,15 +317,25 @@ fun FormularioContenido(
                         supportingText = state.errors["precioVenta"]
                     )
                     CampoTextoModerno(
-                        value = state.costoUnitario,
-                        onValueChange = { viewModel.updateField("costoUnitario", it) },
-                        label = "Costo",
+                        value = state.precioTransferencia,
+                        onValueChange = { viewModel.updateField("precioTransferencia", it) },
+                        label = "Precio Transferencia",
                         modifier = Modifier.weight(1f),
                         keyboardType = KeyboardType.Number,
-                        isError = state.errors["costoUnitario"] != null,
-                        supportingText = state.errors["costoUnitario"]
+                        isError = state.errors["precioTransferencia"] != null,
+                        supportingText = state.errors["precioTransferencia"]
                     )
                 }
+                Spacer(Modifier.height(8.dp))
+                CampoTextoModerno(
+                    value = state.costoUnitario,
+                    onValueChange = { viewModel.updateField("costoUnitario", it) },
+                    label = "Costo",
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardType = KeyboardType.Number,
+                    isError = state.errors["costoUnitario"] != null,
+                    supportingText = state.errors["costoUnitario"]
+                )
             }
         }
 
